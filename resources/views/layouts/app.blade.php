@@ -212,7 +212,9 @@ document.addEventListener('livewire:initialized', () => {
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-{{-- ── PWA: Banner de instalación ─────────────────────────────── --}}
+{{-- ── PWA: Banner de instalación (solo planes profesional y enterprise) ──── --}}
+@auth
+@if(auth()->user()->canDownloadApp())
 <div id="pwa-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:9999;
     background:#1a1a1a; border-top:1px solid rgba(255,255,255,0.08);
     padding:14px 20px; display:none; align-items:center; justify-content:space-between; gap:12px;">
@@ -296,6 +298,8 @@ document.addEventListener('livewire:initialized', () => {
     });
 })();
 </script>
+@endif
+@endauth
     
 </body>
 </html>
