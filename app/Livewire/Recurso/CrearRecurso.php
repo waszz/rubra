@@ -1,0 +1,62 @@
+<?php
+
+namespace App\Livewire\Recurso;
+
+use Livewire\Component;
+use App\Models\Recurso;
+use App\Models\PrecioHistorial;
+
+class CrearRecurso extends Component
+{
+    public $nombre;
+    public $tipo = 'material';
+    public $unidad = 'un';
+    public $precio_usd = 0;
+    public $moneda = 'USD';
+    public $region = 'Uruguay';
+    public $vendedor;
+    public $precio_estimativo = false;
+    public $marca_modelo;
+    public $observaciones;
+
+    protected $rules = [
+        'nombre'     => 'required|min:2',
+        'tipo'       => 'required',
+        'unidad'     => 'required',
+        'precio_usd' => 'required|numeric|min:0',
+    ];
+
+    public function guardar(): void
+    {
+        $this->validate();
+
+        $recurso = Recurso::create([
+            'nombre'     => $this->nombre,
+            'tipo'       => $this->tipo,
+            'unidad'     => $this->unidad,
+            'precio_usd' => $this->precio_usd,
+        ]);
+
+        // Registrar en historial de precios
+        PrecioHistorial::create([
+            'recurso_id' => $recurso->id,
+            'precio_anterior' => null,
+            'precio_nuevo' => $this->precio_usd,
+            'razon' => 'Recurso creado',
+        ]);
+
+        $this->reset();
+        $this->dispatch('recursoCreado');
+        $this->dispatch('cerrarModalRecurso');
+    }
+
+    public function cancelar(): void
+    {
+        $this->dispatch('cerrarModalRecurso');
+    }
+
+    public function render()
+    {
+        return view('livewire.recurso.crear-recurso');
+    }
+}
