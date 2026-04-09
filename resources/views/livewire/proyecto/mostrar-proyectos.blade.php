@@ -1,4 +1,123 @@
 <div>
+
+{{-- ══════════════════════════════════════════════════
+     GUÍA DE INICIO RÁPIDO
+══════════════════════════════════════════════════ --}}
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('onboardingRubra', () => ({
+        paso: 0,
+        abierto: false,
+        storageKey: 'rubra_onboarding_omitido_{{ auth()->id() }}',
+        pasos: [
+            {
+                titulo: 'Bienvenido a Rubra',
+                desc: 'Tu herramienta profesional para crear y gestionar presupuestos de obra. Te guiamos en pocos pasos para que arranques rápido.',
+                icono: '📐',
+                bg: 'bg-orange-500/10 border-orange-500/20'
+            },
+            {
+                titulo: '1. Configurá tu Empresa',
+                desc: 'Andá a Configuración para cargar los datos de tu empresa, logo y preferencias generales antes de empezar.',
+                icono: '⚙️',
+                bg: 'bg-white/5 border-white/10'
+            },
+            {
+                titulo: '2. Cargá tus Recursos',
+                desc: 'En Recursos podés agregar materiales, mano de obra y equipos con sus precios. También podés crear recursos compuestos (APU).',
+                icono: '🧱',
+                bg: 'bg-emerald-500/10 border-emerald-500/20'
+            },
+            {
+                titulo: '3. Creá un Proyecto',
+                desc: 'Hacé clic en "+ Nuevo Proyecto", elegí la tipología, sistema constructivo y completá los datos básicos.',
+                icono: '📁',
+                bg: 'bg-purple-500/10 border-purple-500/20'
+            },
+            {
+                titulo: '4. Armá tu Presupuesto',
+                desc: 'Dentro del proyecto, agregá rubros, subrubros y recursos. El sistema calcula automáticamente costos, IVA y cargas sociales.',
+                icono: '📊',
+                bg: 'bg-blue-500/10 border-blue-500/20'
+            }
+        ],
+        init() {
+            if (!localStorage.getItem(this.storageKey)) {
+                this.abierto = true;
+            }
+        },
+        omitir() {
+            localStorage.setItem(this.storageKey, '1');
+            this.abierto = false;
+        },
+        siguiente() {
+            if (this.paso < this.pasos.length - 1) {
+                this.paso++;
+            } else {
+                this.abierto = false;
+            }
+        },
+        anterior() {
+            if (this.paso > 0) this.paso--;
+        }
+    }));
+});
+</script>
+
+<div x-data="onboardingRubra" x-init="init()">
+    <template x-if="abierto">
+        <div class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div class="w-full max-w-lg bg-[#0d0d0d] border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+
+                {{-- Header --}}
+                <div class="flex items-center justify-between px-6 py-4 border-b border-white/5">
+                    <h2 class="text-sm font-black text-white uppercase tracking-widest">Guía de Inicio Rápido</h2>
+                    <button @click="omitir()" class="text-gray-600 hover:text-white transition text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5">
+                        Omitir
+                    </button>
+                </div>
+
+                {{-- Contenido del paso --}}
+                <div class="p-10 flex flex-col items-center text-center min-h-[280px] justify-center">
+                    <template x-for="(p, i) in pasos" :key="i">
+                        <div x-show="paso === i">
+                            <div :class="'w-20 h-20 rounded-full flex items-center justify-center mb-6 border mx-auto ' + p.bg">
+                                <span class="text-4xl" x-text="p.icono"></span>
+                            </div>
+                            <h3 class="text-xl font-black text-white mb-3" x-text="p.titulo"></h3>
+                            <p class="text-gray-500 text-sm leading-relaxed max-w-sm mx-auto" x-text="p.desc"></p>
+                        </div>
+                    </template>
+                </div>
+
+                {{-- Footer --}}
+                <div class="px-6 py-4 border-t border-white/5 bg-white/[0.02] flex items-center justify-between">
+                    {{-- Dots --}}
+                    <div class="flex items-center gap-1.5">
+                        <template x-for="(p, i) in pasos" :key="i">
+                            <div :class="'h-1.5 rounded-full transition-all duration-300 ' + (i === paso ? 'w-5 bg-orange-500' : 'w-1.5 bg-white/20')"></div>
+                        </template>
+                    </div>
+
+                    {{-- Botones --}}
+                    <div class="flex items-center gap-2">
+                        <button x-show="paso > 0" @click="anterior()"
+                            class="px-4 py-2 text-[10px] font-black uppercase tracking-wider text-gray-500 hover:text-white rounded-xl border border-white/10 hover:bg-white/5 transition-all">
+                            Anterior
+                        </button>
+                        <button @click="siguiente()"
+                            class="px-5 py-2 text-[10px] font-black uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-white rounded-xl transition-all flex items-center gap-1.5">
+                            <span x-text="paso === pasos.length - 1 ? 'Comenzar' : 'Siguiente'"></span>
+                            <svg x-show="paso < pasos.length - 1" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </template>
+</div>
+
 <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
     
     @if(session()->has('mensaje'))

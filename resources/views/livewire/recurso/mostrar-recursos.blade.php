@@ -315,7 +315,7 @@
                 <div>
                     <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Tipo</label>
                     <select
-                        wire:model="editTipo"
+                        wire:model.live="editTipo"
                         class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border text-[13px] focus:outline-none cursor-pointer transition-colors
                                {{ $errors->has('editTipo') ? 'border-red-500/50' : 'border-gray-800 focus:border-gray-600' }}"
                     >
@@ -364,6 +364,27 @@
                     <p class="mt-1 text-[11px] text-red-400">{{ $message }}</p>
                 @enderror
             </div>
+
+            {{-- Carga Social (solo para mano de obra) --}}
+            @if ($editTipo === 'labor')
+            <div>
+                <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Carga Social (%)</label>
+                <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    wire:model="editSocialChargesPercentage"
+                    class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border text-[13px] focus:outline-none transition-colors
+                           {{ $errors->has('editSocialChargesPercentage') ? 'border-red-500/50' : 'border-gray-800 focus:border-gray-600' }}"
+                    placeholder="Ej: 72"
+                >
+                <p class="text-[9px] text-gray-500 mt-1">Porcentaje de carga social sobre el costo de mano de obra</p>
+                @error('editSocialChargesPercentage')
+                    <p class="mt-1 text-[11px] text-red-400">{{ $message }}</p>
+                @enderror
+            </div>
+            @endif
         </div>
 
         {{-- Footer --}}

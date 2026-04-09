@@ -18,12 +18,14 @@ class CrearRecurso extends Component
     public $precio_estimativo = false;
     public $marca_modelo;
     public $observaciones;
+    public $social_charges_percentage = 0;
 
     protected $rules = [
         'nombre'     => 'required|min:2',
         'tipo'       => 'required',
         'unidad'     => 'required',
         'precio_usd' => 'required|numeric|min:0',
+        'social_charges_percentage' => 'nullable|numeric|min:0|max:100',
     ];
 
     public function guardar(): void
@@ -31,10 +33,11 @@ class CrearRecurso extends Component
         $this->validate();
 
         $recurso = Recurso::create([
-            'nombre'     => $this->nombre,
-            'tipo'       => $this->tipo,
-            'unidad'     => $this->unidad,
-            'precio_usd' => $this->precio_usd,
+            'nombre'                    => $this->nombre,
+            'tipo'                      => $this->tipo,
+            'unidad'                    => $this->unidad,
+            'precio_usd'                => $this->precio_usd,
+            'social_charges_percentage' => $this->tipo === 'labor' ? $this->social_charges_percentage : 0,
         ]);
 
         // Registrar en historial de precios

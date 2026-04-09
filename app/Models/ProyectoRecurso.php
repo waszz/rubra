@@ -18,6 +18,7 @@ class ProyectoRecurso extends Model
     'precio_usd',
     'costo_real',
     'categoria',
+    'orden',
     'fecha_inicio', 
     'fecha_fin',    
 ];

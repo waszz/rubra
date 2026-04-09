@@ -19,7 +19,7 @@
     <div class="grid grid-cols-2 gap-4">
         <div>
             <label class="text-[10px] text-gray-500 uppercase">Tipo</label>
-            <select wire:model="tipo" class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 focus:border-white/30 focus:outline-none">
+            <select wire:model.live="tipo" class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 focus:border-white/30 focus:outline-none">
                 <option value="material">Material</option>
                 <option value="labor">Mano de Obra</option>
                 <option value="equipment">Equipo/Herramienta</option>
@@ -38,7 +38,7 @@
                 <option value="d">d (Día)</option>
                 <option value="p2">p² (Pie cuadrado)</option>
                 <option value="ml">ml (Metro lineal)</option>
-                <option value="par">par</option>
+                <option value="mes">mes</option>
             </select>
         </div>
     </div>
@@ -65,6 +65,24 @@
             </select>
         </div>
     </div>
+
+    {{-- CARGA SOCIAL (Solo para mano de obra) --}}
+    @if ($tipo === 'labor')
+    <div>
+        <label class="text-[10px] text-gray-500 uppercase">Carga Social (%)</label>
+        <input
+            type="number"
+            wire:model="social_charges_percentage"
+            min="0"
+            max="100"
+            step="0.01"
+            class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 focus:border-white/30 focus:outline-none"
+            placeholder="Ej: 72"
+        >
+        <p class="text-[9px] text-gray-400 mt-1">Porcentaje de carga social sobre el costo de mano de obra (ej: 72%)</p>
+        @error('social_charges_percentage') <span class="text-red-400 text-xs mt-1 block">{{ $message }}</span> @enderror
+    </div>
+    @endif
 
     {{-- REGIÓN + VENDEDOR --}}
     <div class="grid grid-cols-2 gap-4">

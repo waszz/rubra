@@ -101,6 +101,16 @@
             {{-- Botones icono-only (ocultos en modo lectura) --}}
             @if(!$modoLectura)
             <div class="flex items-center gap-0.5 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button wire:click.stop="subirNodo({{ $nodo->id }})"
+                    title="Subir"
+                    class="w-5 h-5 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
+                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                </button>
+                <button wire:click.stop="bajarNodo({{ $nodo->id }})"
+                    title="Bajar"
+                    class="w-5 h-5 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
+                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                </button>
                 <button wire:click.stop="abrirModalEditar({{ $nodo->id }})"
                     title="Editar"
                     class="w-5 h-5 flex items-center justify-center bg-yellow-500/20 text-yellow-400 rounded hover:bg-yellow-500/40 transition">

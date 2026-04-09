@@ -1099,7 +1099,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-12 items-center relative z-10">
 
             <!-- LEFT -->
-            <div>
+            <div class="relative z-10">
 
                 <div class="flex items-center gap-3 mb-6 md:mb-8">
                     <div class="h-[1px] w-6 bg-[#d15330]"></div>
@@ -1116,11 +1116,12 @@
                 </p>
 
             </div>
+
 <div class="flex flex-col gap-3 md:gap-4 lg:items-end relative z-10">
 
-    <a href="#"
-       class="w-full lg:w-72 bg-[#d15330] hover:bg-[#e25a36] text-white text-center py-4 md:py-5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-[#d15330]/20 relative z-20">
-        Ver Demo
+    <a href="{{ auth()->check() ? route('dashboard') : route('register') }}"
+       class="w-full lg:w-72 bg-[#d15330] hover:bg-[#e25a36] text-white text-center py-4 md:py-5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-[#d15330]/20">
+        Empezar gratis
     </a>
 
     <a href="#precios"
@@ -1696,14 +1697,14 @@ gsap.from("#cta-final a, #cta-final button", {
 <!-- FOOTER -->
 <footer class="bg-[#0a0a0a] border-t border-white/5 mt-20 py-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-12">
             <!-- Brand -->
             <div>
                 <h3 class="text-white font-black text-lg tracking-tight mb-4">
                     <span class="text-[#d15330]">R</span>ubra
                 </h3>
                 <p class="text-white/40 text-sm leading-relaxed">
-                    Plataforma integral para presupuestar, controlar costos y gestionar obras en tiempo real.
+                    Herramienta de apoyo a la presupuestación y gestión de obra. La validación final de la información y decisiones corresponde al usuario.
                 </p>
             </div>
 
@@ -1718,38 +1719,34 @@ gsap.from("#cta-final a, #cta-final button", {
                 </ul>
             </div>
 
-            <!-- Empresa -->
-            <div>
-                <h4 class="text-white font-bold text-sm uppercase tracking-wider mb-4">Empresa</h4>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="text-white/50 hover:text-[#d15330] transition">Sobre nosotros</a></li>
-                    <li><a href="#" class="text-white/50 hover:text-[#d15330] transition">Blog</a></li>
-                    <li><a href="#" class="text-white/50 hover:text-[#d15330] transition">Documentación</a></li>
-                    <li><a href="#" class="text-white/50 hover:text-[#d15330] transition">Contacto</a></li>
-                </ul>
-            </div>
-
-            <!-- Legal -->
-            <div>
-                <h4 class="text-white font-bold text-sm uppercase tracking-wider mb-4">Legal</h4>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="text-white/50 hover:text-[#d15330] transition">Términos</a></li>
-                    <li><a href="#" class="text-white/50 hover:text-[#d15330] transition">Privacidad</a></li>
-                    <li><a href="#" class="text-white/50 hover:text-[#d15330] transition">Cookies</a></li>
-                </ul>
+            <!-- Empresa + Legal en columna -->
+            <div class="grid grid-cols-2 gap-8">
+                <div>
+                    <h4 class="text-white font-bold text-sm uppercase tracking-wider mb-4">Empresa</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="text-white/50 hover:text-[#d15330] transition">Sobre nosotros</a></li>
+                        <li><a href="#" class="text-white/50 hover:text-[#d15330] transition">Blog</a></li>
+                        <li><a href="#" class="text-white/50 hover:text-[#d15330] transition">Documentación</a></li>
+                        <li><a href="#" class="text-white/50 hover:text-[#d15330] transition">Contacto</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold text-sm uppercase tracking-wider mb-4">Legal</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="{{ route('legal.terminos') }}" class="text-white/50 hover:text-[#d15330] transition">Términos</a></li>
+                        <li><a href="{{ route('legal.privacidad') }}" class="text-white/50 hover:text-[#d15330] transition">Privacidad</a></li>
+                        <li><a href="{{ route('legal.cookies') }}" class="text-white/50 hover:text-[#d15330] transition">Cookies</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
 
-        <!-- Divider -->
-        <div class="border-t border-white/5 pt-8">
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-6 text-sm text-white/40">
-                <p>&copy; {{ date('Y') }} Rubra. Todos los derechos reservados.</p>
-                <div class="flex gap-6">
-                    <a href="#" class="hover:text-[#d15330] transition">Twitter</a>
-                    <a href="#" class="hover:text-[#d15330] transition">LinkedIn</a>
-                    <a href="#" class="hover:text-[#d15330] transition">GitHub</a>
-                </div>
-            </div>
+        <!-- Copyright + Texto legal -->
+        <div class="border-t border-white/5 pt-8 space-y-3">
+            <p class="text-white/40 text-sm">&copy; {{ date('Y') }} Rubra. Todos los derechos reservados.</p>
+            <p class="text-white/25 text-xs leading-relaxed">
+                El uso de Rubra está sujeto a nuestros Términos y Condiciones, Política de Privacidad, Política de Cookies y Política de Soporte. Los datos cargados por cada usuario siguen siendo de su titularidad. Rubra es una herramienta de apoyo a la presupuestación y gestión de obra, por lo que la validación final de la información y de las decisiones tomadas con base en la plataforma corresponde al usuario. En caso de soporte solicitado, ApexObra podrá acceder a la cuenta únicamente con fines de asistencia técnica.
+            </p>
         </div>
     </div>
 </footer>

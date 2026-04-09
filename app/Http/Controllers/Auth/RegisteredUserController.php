@@ -48,6 +48,7 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'token' => ['nullable', 'string'],
             'proyecto_token' => ['nullable', 'string'],
+            'acepta_terminos' => ['accepted'],
         ]);
 
         // Buscar si existe una cuenta eliminada (soft delete) con este email

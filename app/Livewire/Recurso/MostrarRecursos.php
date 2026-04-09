@@ -28,8 +28,7 @@ class MostrarRecursos extends Component
     public string $editNombre = '';
     public string $editTipo   = '';
     public string $editUnidad = '';
-    public string $editPrecio = '';
-
+    public string $editPrecio = '';    public string $editSocialChargesPercentage = '';
     // ── Modal eliminación ────────────────────────────────────
     public bool $modalEliminar         = false;
     public bool $modalEliminarMultiple = false;
@@ -222,6 +221,7 @@ public function eliminarItem()
             'editTipo'   => 'required|in:material,labor,equipment,composition',
             'editUnidad' => 'required|string|max:50',
             'editPrecio' => 'required|numeric|min:0',
+            'editSocialChargesPercentage' => 'nullable|numeric|min:0|max:100',
         ];
     }
 
@@ -257,6 +257,9 @@ public function eliminarItem()
     // ── EDITAR ────────────────────────────────────────────────
     public function editar(int $id): void
     {
+        // Cerrar modal anterior si estaba abierto
+        $this->cerrarModalEditar();
+
         $recurso = Recurso::findOrFail($id);
 
         $this->editandoId = $id;
@@ -264,8 +267,8 @@ public function eliminarItem()
         $this->editTipo   = $recurso->tipo;
         $this->editUnidad = $recurso->unidad;
         $this->editPrecio = (string) $recurso->precio_usd;
+        $this->editSocialChargesPercentage = (string) ($recurso->social_charges_percentage ?? 0);
 
-        $this->resetErrorBag();
         $this->modalEditar = true;
     }
 
@@ -278,10 +281,11 @@ public function eliminarItem()
         $precioNuevo = (float) $this->editPrecio;
 
         $recurso->update([
-            'nombre'     => trim($this->editNombre),
-            'tipo'       => $this->editTipo,
-            'unidad'     => trim($this->editUnidad),
-            'precio_usd' => $precioNuevo,
+            'nombre'                    => trim($this->editNombre),
+            'tipo'                      => $this->editTipo,
+            'unidad'                    => trim($this->editUnidad),
+            'precio_usd'                => $precioNuevo,
+            'social_charges_percentage' => $this->editTipo === 'labor' ? (float) $this->editSocialChargesPercentage : 0,
         ]);
 
         // Registrar en historial si el precio cambió
@@ -300,13 +304,14 @@ public function eliminarItem()
 
     public function cerrarModalEditar(): void
     {
+        $this->resetErrorBag();
         $this->modalEditar = false;
         $this->editandoId  = null;
         $this->editNombre  = '';
-        $this->editTipo    = '';
+        $this->editTipo    = 'material';
         $this->editUnidad  = '';
         $this->editPrecio  = '';
-        $this->resetErrorBag();
+        $this->editSocialChargesPercentage = '';
     }
 
     // ── HISTORIAL DE PRECIOS ──────────────────────────────

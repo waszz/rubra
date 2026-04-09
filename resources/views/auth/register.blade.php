@@ -41,6 +41,22 @@
         <x-input-error :messages="$errors->get('password_confirmation')" class="mt-1 text-[10px] uppercase font-bold text-red-500" />
 
         <div class="pt-4 space-y-4">
+            {{-- Aceptación de términos --}}
+            <div>
+                <label class="flex items-start gap-3 cursor-pointer group">
+                    <input type="checkbox" name="acepta_terminos" id="acepta_terminos" required
+                        class="mt-0.5 shrink-0 rounded-sm border-white/10 bg-white/5 text-[#d15330] focus:ring-[#d15330] focus:ring-offset-black">
+                    <span class="text-[10px] uppercase tracking-wide text-white/40 font-bold leading-relaxed">
+                        He leído y acepto los
+                        <a href="{{ route('legal.terminos') }}" target="_blank" class="text-[#d15330] hover:brightness-125 transition">Términos y Condiciones</a>,
+                        la <a href="{{ route('legal.privacidad') }}" target="_blank" class="text-[#d15330] hover:brightness-125 transition">Política de Privacidad</a>
+                        y la <a href="{{ route('legal.cookies') }}" target="_blank" class="text-[#d15330] hover:brightness-125 transition">Política de Cookies</a>
+                        de Rubra.
+                    </span>
+                </label>
+                <x-input-error :messages="$errors->get('acepta_terminos')" class="mt-1 text-[10px] uppercase font-bold text-red-500" />
+            </div>
+
             <button type="submit" class="w-full bg-[#d15330] text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:brightness-110 transition-all shadow-lg shadow-[#d15330]/10">
                 {{ __('Registrarse') }}
             </button>

@@ -131,6 +131,15 @@
                    placeholder="Filtrar rubros..."
                    class="pl-7 pr-3 py-1.5 bg-white/5 border border-white/5 rounded-lg text-[11px] text-white placeholder-gray-600 outline-none focus:border-white/20 w-full sm:w-48 transition-all">
         </div>
+
+        {{-- Botón Agregar Rubro --}}
+        @if(!$modoLectura && $vistaActiva === 'presupuesto' && !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
+        <button wire:click="abrirModalRubro"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 text-[10px] font-black uppercase tracking-wider transition-all">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            Agregar Rubro
+        </button>
+        @endif
     </div>
 
     {{-- DERECHA: beneficio + exportar --}}
@@ -379,6 +388,16 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                         {{-- BOTONES icono-only (ocultos en modo lectura) --}}
                         @if(!$modoLectura && !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
                         <div class="flex items-center gap-1 shrink-0 ml-1">
+                            <button wire:click.stop="subirNodo({{ $nodosRaiz->first()->id }})"
+                                title="Subir categoría"
+                                class="w-6 h-6 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                            </button>
+                            <button wire:click.stop="bajarNodo({{ $nodosRaiz->first()->id }})"
+                                title="Bajar categoría"
+                                class="w-6 h-6 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
                             <button wire:click.stop="abrirModalSubrubro({{ $nodosRaiz->first()->id }}, '{{ $nombreCategoria }}', '{{ $nombreCategoria }}')"
                                 title="+ Rubro"
                                 class="w-6 h-6 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/40 transition">
@@ -437,8 +456,15 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
             </div>
 
         @empty
-            <div class="py-20 text-center text-gray-700 text-[10px] uppercase font-bold tracking-widest">
-                Sin recursos cargados
+            <div class="py-20 text-center space-y-4">
+                <p class="text-gray-700 text-[10px] uppercase font-bold tracking-widest">Sin rubros cargados</p>
+                @if(!$modoLectura && !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
+                <button wire:click="abrirModalRubro"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 text-xs font-black uppercase tracking-wider transition-all">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    Agregar primer rubro
+                </button>
+                @endif
             </div>
         @endforelse
 
@@ -677,6 +703,59 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
 </div>
     {{-- ══════════════════════════════════════════════════════
+         MODAL: NUEVO RUBRO (CATEGORÍA RAÍZ)
+    ══════════════════════════════════════════════════════ --}}
+    @if($mostrarModalRubro)
+    <div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+        <div class="w-full max-w-md border border-white/10 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl">
+
+            <div class="text-center">
+                <p class="text-[9px] text-gray-600 uppercase font-black mb-1">Nuevo Rubro</p>
+                <h2 class="text-purple-400 font-extrabold text-sm uppercase">Agregar Rubro</h2>
+            </div>
+
+            <div>
+                <label class="text-[10px] text-gray-500 uppercase font-black">Nombre del Rubro</label>
+                <input type="text" wire:model="nombreRubro"
+                    placeholder="Ej: 01. Preliminares"
+                    class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] border border-white/10 text-white text-sm outline-none focus:border-purple-500/50">
+                @error('nombreRubro') <p class="text-red-400 text-[10px] mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            <div>
+                <label class="text-[10px] text-gray-500 uppercase font-black">Unidad</label>
+                <select wire:model="unidadRubro"
+                    class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 text-sm outline-none focus:border-purple-500/50">
+                    <option value="gl">gl (Global)</option>
+                    <option value="un">und (Unidad)</option>
+                    <option value="m">m (Metro)</option>
+                    <option value="m2">m² (Metro cuadrado)</option>
+                    <option value="m3">m³ (Metro cúbico)</option>
+                    <option value="kg">kg (Kilogramo)</option>
+                    <option value="l">l (Litro)</option>
+                    <option value="h">h (Hora)</option>
+                    <option value="d">d (Día)</option>
+                    <option value="p2">p² (Pie cuadrado)</option>
+                    <option value="ml">ml (Metro lineal)</option>
+                    <option value="mes">mes</option>
+                </select>
+            </div>
+
+            <div class="flex gap-3 pt-1">
+                <button wire:click="$set('mostrarModalRubro', false)"
+                    class="w-1/2 py-3 rounded-xl border border-white/10 text-white text-xs font-bold hover:bg-white/5 transition-all">
+                    CANCELAR
+                </button>
+                <button wire:click="guardarRubro"
+                    class="w-1/2 bg-purple-500 text-white py-3 rounded-xl font-black text-xs hover:bg-purple-600 transition-all">
+                    GUARDAR
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ══════════════════════════════════════════════════════
          MODAL: NUEVO SUB-RUBRO
     ══════════════════════════════════════════════════════ --}}
     @if($mostrarModalSubrubro)
@@ -690,22 +769,26 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
             <div class="space-y-3">
                 <div>
                     <label class="text-[10px] text-gray-500 uppercase font-black">Nombre</label>
-                    <input type="text" wire:model="nombreSubrubro"
+                    <input type="text" wire:model.live="nombreSubrubro"
                         class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 text-sm focus:border-purple-500/50 outline-none"
                         placeholder="Ej: Mampostería">
                 </div>
                 <div>
                     <label class="text-[10px] text-gray-500 uppercase font-black">Unidad</label>
-                    <select wire:model="unidadSubrubro"
+                    <select wire:model.live="unidadSubrubro"
                         class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 text-sm outline-none">
-                        <option value="gl">gl</option>
-                        <option value="un">un</option>
-                        <option value="m">m</option>
-                        <option value="m2">m2</option>
-                        <option value="m3">m3</option>
-                        <option value="kg">kg</option>
-                        <option value="h">h</option>
-                        <option value="ml">ml</option>
+                        <option value="gl">gl (Global)</option>
+                        <option value="un">und (Unidad)</option>
+                        <option value="m">m (Metro)</option>
+                        <option value="m2">m² (Metro cuadrado)</option>
+                        <option value="m3">m³ (Metro cúbico)</option>
+                        <option value="kg">kg (Kilogramo)</option>
+                        <option value="l">l (Litro)</option>
+                        <option value="h">h (Hora)</option>
+                        <option value="d">d (Día)</option>
+                        <option value="p2">p² (Pie cuadrado)</option>
+                        <option value="ml">ml (Metro lineal)</option>
+                        <option value="mes">mes</option>
                     </select>
                 </div>
             </div>
@@ -841,12 +924,13 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
     </div>
     @endif
 @if($mostrarModalEditar)
-<div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+<div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4"
+    x-data="{ nombreLocal: @entangle('editNombre') }">
     <div class="w-full max-w-md border border-white/10 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl">
 
         <div class="text-center">
             <p class="text-[9px] text-gray-600 uppercase font-black mb-1">Editar</p>
-            <h2 class="text-yellow-400 font-extrabold text-sm uppercase">{{ $editNombre }}</h2>
+            <h2 class="text-yellow-400 font-extrabold text-sm uppercase" x-text="nombreLocal || '{{ $editNombre }}'"></h2>
         </div>
 
         {{-- Nombre --}}
@@ -854,6 +938,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
             <label class="text-[10px] text-gray-500 uppercase font-black">Nombre</label>
             <input type="text"
                 wire:model="editNombre"
+                @input="nombreLocal = $event.target.value"
                 class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] border border-white/10 text-white text-sm outline-none focus:border-yellow-500/50">
         </div>
 
@@ -862,14 +947,18 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
             <label class="text-[10px] text-gray-500 uppercase font-black">Unidad</label>
             <select wire:model="editUnidad"
                 class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 text-sm outline-none focus:border-yellow-500/50">
-                <option value="gl">gl</option>
-                <option value="un">un</option>
-                <option value="m">m</option>
-                <option value="m2">m2</option>
-                <option value="m3">m3</option>
-                <option value="kg">kg</option>
-                <option value="h">h</option>
-                <option value="ml">ml</option>
+                <option value="gl">gl (Global)</option>
+                <option value="un">und (Unidad)</option>
+                <option value="m">m (Metro)</option>
+                <option value="m2">m² (Metro cuadrado)</option>
+                <option value="m3">m³ (Metro cúbico)</option>
+                <option value="kg">kg (Kilogramo)</option>
+                <option value="l">l (Litro)</option>
+                <option value="h">h (Hora)</option>
+                <option value="d">d (Día)</option>
+                <option value="p2">p² (Pie cuadrado)</option>
+                <option value="ml">ml (Metro lineal)</option>
+                <option value="mes">mes</option>
             </select>
         </div>
 

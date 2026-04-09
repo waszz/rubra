@@ -19,6 +19,19 @@ Route::get('/', function () {
     return view('home.index');
 })->name('home');
 
+// ── PÁGINAS LEGALES ──────────────────────────────────────────────────
+Route::get('/terminos-y-condiciones', function () {
+    return view('legal.terminos');
+})->name('legal.terminos');
+
+Route::get('/privacidad', function () {
+    return view('legal.privacidad');
+})->name('legal.privacidad');
+
+Route::get('/cookies', function () {
+    return view('legal.cookies');
+})->name('legal.cookies');
+
 // ── WEBHOOK MERCADOPAGO (sin auth) ────────────────────────────────────
 Route::post('/webhooks/mercadopago', [PagoController::class, 'webhookMercadopago'])
     ->name('webhooks.mercadopago');

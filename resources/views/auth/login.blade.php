@@ -62,5 +62,12 @@
                 Crear cuenta
             </a>
         </div>
+
+        <p class="mt-6 text-center text-[9px] uppercase tracking-wide text-white/20 font-bold leading-relaxed">
+            Al ingresar confirmás que aceptás nuestros
+            <a href="{{ route('legal.terminos') }}" target="_blank" class="text-white/40 hover:text-[#d15330] transition">Términos</a>,
+            <a href="{{ route('legal.privacidad') }}" target="_blank" class="text-white/40 hover:text-[#d15330] transition">Privacidad</a>
+            y <a href="{{ route('legal.cookies') }}" target="_blank" class="text-white/40 hover:text-[#d15330] transition">Cookies</a>.
+        </p>
     </form> 
 </x-guest-layout>

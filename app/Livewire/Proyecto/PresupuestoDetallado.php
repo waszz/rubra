@@ -36,6 +36,11 @@ class PresupuestoDetallado extends Component
     public $categoriaCtx = '';
     public $nombreCtx    = '';
 
+    // Modal nuevo rubro (categoría raíz)
+    public $mostrarModalRubro = false;
+    public $nombreRubro        = '';
+    public $unidadRubro        = 'gl';
+
     // Formulario sub-rubro
     public $nombreSubrubro = '';
     public $unidadSubrubro = 'gl';
@@ -865,6 +870,7 @@ public function invitarUsuariosSeleccionados()
         $this->proyecto->load([
             'proyectoRecursos' => fn($q) =>
                 $q->whereNull('parent_id')
+                  ->orderBy('orden')
                   ->with($this->relacionesRecursivas(6)),
         ]);
     }
@@ -874,7 +880,7 @@ public function invitarUsuariosSeleccionados()
         if ($depth <= 0) return [];
 
         return [
-            'hijos' => fn($q) => $q->with(array_merge(
+            'hijos' => fn($q) => $q->orderBy('orden')->with(array_merge(
                 $this->relacionesRecursivas($depth - 1),
                 [
                     'recurso',
@@ -883,6 +889,50 @@ public function invitarUsuariosSeleccionados()
                 ]
             )),
         ];
+    }
+
+    // ── MOVER NODOS ARRIBA / ABAJO ───────────────────────────
+
+    public function subirNodo($id)
+    {
+        $nodo = ProyectoRecurso::find($id);
+        if (!$nodo) return;
+
+        $anterior = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->where('parent_id', $nodo->parent_id)
+            ->where('orden', '<', $nodo->orden)
+            ->orderBy('orden', 'desc')
+            ->first();
+
+        if (!$anterior) return;
+
+        [$nodo->orden, $anterior->orden] = [$anterior->orden, $nodo->orden];
+        $nodo->save();
+        $anterior->save();
+
+        $this->proyecto->refresh();
+        $this->cargarProyecto();
+    }
+
+    public function bajarNodo($id)
+    {
+        $nodo = ProyectoRecurso::find($id);
+        if (!$nodo) return;
+
+        $siguiente = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->where('parent_id', $nodo->parent_id)
+            ->where('orden', '>', $nodo->orden)
+            ->orderBy('orden', 'asc')
+            ->first();
+
+        if (!$siguiente) return;
+
+        [$nodo->orden, $siguiente->orden] = [$siguiente->orden, $nodo->orden];
+        $nodo->save();
+        $siguiente->save();
+
+        $this->proyecto->refresh();
+        $this->cargarProyecto();
     }
 
     public function toggleBeneficio()
@@ -913,6 +963,7 @@ public function actualizarCostoReal($id, $valor)
     if (!$recurso || $recurso->proyecto_id !== $this->proyecto->id) return;
 
     $recurso->update(['costo_real' => $costo]);
+    $this->proyecto->refresh();
     $this->cargarProyecto();
 }
 
@@ -920,12 +971,16 @@ public function actualizarCostoReal($id, $valor)
 
     public function abrirModalEditar($id)
     {
+        // Limpiar estado de edición anterior
+        $this->reset(['mostrarModalEditar', 'editId', 'editNombre', 'editUnidad']);
+        $this->resetErrorBag();
+
         $nodo = ProyectoRecurso::find($id);
         if (!$nodo) return;
 
         $this->editId     = $id;
         $this->editNombre = $nodo->nombre;
-         $this->editUnidad = $nodo->unidad;
+        $this->editUnidad = $nodo->unidad;
         $this->mostrarModalEditar = true;
     }
 
@@ -933,12 +988,26 @@ public function actualizarCostoReal($id, $valor)
 {
     $this->validate(['editNombre' => 'required|min:2']);
 
-    ProyectoRecurso::find($this->editId)?->update([
+    $nodo = ProyectoRecurso::find($this->editId);
+    if (!$nodo) return;
+
+    // Si es un nodo raíz (categoría), actualizar también el campo 'categoria'
+    // en todos los registros del proyecto que pertenezcan a esa categoría
+    if (is_null($nodo->parent_id)) {
+        $categoriaVieja = $nodo->categoria;
+        ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->where('categoria', $categoriaVieja)
+            ->update(['categoria' => $this->editNombre]);
+    }
+
+    $nodo->update([
         'nombre' => $this->editNombre,
         'unidad' => $this->editUnidad,
     ]);
 
-    $this->reset(['mostrarModalEditar', 'editId', 'editNombre', 'editUnidad']); 
+    $this->reset(['mostrarModalEditar', 'editId', 'editNombre', 'editUnidad']);
+    $this->resetErrorBag();
+    $this->proyecto->refresh();
     $this->cargarProyecto();
     $this->guardarEstado();
 }
@@ -959,6 +1028,7 @@ public function actualizarCostoReal($id, $valor)
         $this->eliminarRecursivo($nodo);
 
         $this->reset(['mostrarModalEliminar', 'deleteId']);
+        $this->proyecto->refresh();
         $this->cargarProyecto();
         $this->guardarEstado();
     }
@@ -984,15 +1054,55 @@ public function actualizarCostoReal($id, $valor)
     }
 
 
+    // ── MODAL RUBRO RAÍZ ──────────────────────────────────────
+
+    public function abrirModalRubro()
+    {
+        $this->resetErrorBag();
+        $this->reset(['nombreRubro', 'unidadRubro']);
+        $this->unidadRubro = 'gl';
+        $this->mostrarModalRubro = true;
+    }
+
+    public function guardarRubro()
+    {
+        $this->validate(['nombreRubro' => 'required|min:2']);
+
+        $maxOrden = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->whereNull('parent_id')
+            ->max('orden') ?? 0;
+
+        $this->proyecto->proyectoRecursos()->create([
+            'parent_id'  => null,
+            'recurso_id' => null,
+            'nombre'     => $this->nombreRubro,
+            'unidad'     => $this->unidadRubro,
+            'cantidad'   => 1,
+            'precio_usd' => 0,
+            'categoria'  => $this->nombreRubro,
+            'orden'      => $maxOrden + 1,
+        ]);
+
+        $this->reset(['mostrarModalRubro', 'nombreRubro', 'unidadRubro']);
+        $this->resetErrorBag();
+        $this->proyecto->refresh();
+        $this->cargarProyecto();
+        $this->guardarEstado();
+    }
+
     // ── MODAL SUB-RUBRO ──────────────────────────────────────
 
     public function abrirModalSubrubro($parentId, $categoria, $nombrePadre)
     {
-        $this->reset(['nombreSubrubro', 'unidadSubrubro']);
-        $this->unidadSubrubro       = 'gl';
+        // Limpiar estado anterior completamente
+        $this->resetErrorBag();
+        $this->reset(['nombreSubrubro', 'unidadSubrubro', 'parentId', 'categoriaCtx', 'nombreCtx']);
+        
         $this->parentId             = $parentId;
         $this->categoriaCtx         = $categoria;
         $this->nombreCtx            = $nombrePadre;
+        $this->unidadSubrubro       = 'gl';
+        $this->nombreSubrubro       = '';
         $this->mostrarModalSubrubro = true;
         $this->modalSelector        = false;
     }
@@ -1000,6 +1110,10 @@ public function actualizarCostoReal($id, $valor)
     public function guardarSubrubro()
     {
         $this->validate(['nombreSubrubro' => 'required|min:2']);
+
+        $maxOrden = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->where('parent_id', $this->parentId)
+            ->max('orden') ?? 0;
 
         $this->proyecto->proyectoRecursos()->create([
             'parent_id'  => $this->parentId,
@@ -1009,10 +1123,13 @@ public function actualizarCostoReal($id, $valor)
             'cantidad'   => 1,
             'precio_usd' => 0,
             'categoria'  => $this->categoriaCtx,
+            'orden'      => $maxOrden + 1,
         ]);
 
         $this->nodosAbiertos[] = 'node_' . $this->parentId;
-        $this->mostrarModalSubrubro = false;
+        $this->reset(['mostrarModalSubrubro', 'nombreSubrubro', 'unidadSubrubro', 'parentId', 'categoriaCtx', 'nombreCtx']);
+        $this->resetErrorBag();
+        $this->proyecto->refresh();
         $this->cargarProyecto();
         $this->guardarEstado();
     }
@@ -1062,7 +1179,11 @@ public function actualizarCostoReal($id, $valor)
     {
         $this->validate(['itemsRecursos' => 'required|array|min:1']);
 
-        foreach ($this->itemsRecursos as $item) {
+        $maxOrden = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->where('parent_id', $this->parentId)
+            ->max('orden') ?? 0;
+
+        foreach ($this->itemsRecursos as $index => $item) {
             $this->proyecto->proyectoRecursos()->create([
                 'parent_id'  => $this->parentId,
                 'recurso_id' => $item['recurso_id'],
@@ -1071,11 +1192,13 @@ public function actualizarCostoReal($id, $valor)
                 'cantidad'   => $item['cantidad'],
                 'precio_usd' => $item['precio_usd'] ?? 0,
                 'categoria'  => $this->categoriaCtx,
+                'orden'      => $maxOrden + $index + 1,
             ]);
         }
 
         $this->nodosAbiertos[] = 'node_' . $this->parentId;
         $this->mostrarModalRecursos = false;
+        $this->proyecto->refresh();
         $this->cargarProyecto();
         $this->guardarEstado();
     }
@@ -1089,6 +1212,7 @@ public function actualizarCostoReal($id, $valor)
         if ($cantidad === false || $cantidad < 0) return;
 
         ProyectoRecurso::find($id)?->update(['cantidad' => $cantidad]);
+        $this->proyecto->refresh();
         $this->cargarProyecto();
         $this->guardarEstado();
     }

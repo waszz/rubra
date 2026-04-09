@@ -36,9 +36,40 @@
         ::-webkit-scrollbar-track { background: #0a0a0a; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #ff4d00; }
+
+        /* ── FONDO CUADRÍCULA ── */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(209,83,48,.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(209,83,48,.03) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: radial-gradient(circle at center, black, transparent 78%);
+            opacity: .55;
+        }
+
+        /* ── GLOW QUE SIGUE EL MOUSE ── */
+        #mouse-glow {
+            position: fixed;
+            width: 440px;
+            height: 440px;
+            pointer-events: none;
+            background: radial-gradient(circle, rgba(209,83,48,.10), transparent 62%);
+            z-index: 1;
+            filter: blur(12px);
+            transform: translate(-50%, -50%);
+            top: 50%;
+            left: 50%;
+            transition: top .05s linear, left .05s linear;
+        }
     </style>
 </head>
 <body class="font-sans antialiased bg-[#0a0a0a] text-gray-200 overflow-x-hidden">
+<div id="mouse-glow"></div>
 
   @if(auth()->check() && !request()->routeIs('home'))
     {{-- LAYOUT CON SIDEBAR para usuarios logueados (solo en páginas internas) --}}
@@ -136,6 +167,76 @@
     @livewireScripts
     @stack('scripts')
      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+{{-- ── CURSOR EFFECT ──────────────────────────────────────────────────────── --}}
+<canvas id="cursor-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:9999;"></canvas>
+<script>
+(function() {
+    const canvas = document.getElementById('cursor-canvas');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const particles = [];
+    const mouse = { x: -200, y: -200 };
+
+    function resize() {
+        canvas.width  = window.innerWidth  * dpr;
+        canvas.height = window.innerHeight * dpr;
+        canvas.style.width  = window.innerWidth  + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        ctx.scale(dpr, dpr);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function spawnParticle() {
+        particles.push({
+            x: mouse.x, y: mouse.y,
+            vx: (Math.random() - 0.5) * 1.8,
+            vy: (Math.random() - 0.5) * 1.8,
+            life: 1,
+            size: Math.random() * 3 + 1
+        });
+        if (particles.length > 120) particles.shift();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.018;
+            if (p.life <= 0) { particles.splice(i, 1); continue; }
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(209,83,48,' + (p.life * 0.55) + ')';
+            ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        // Punto central
+        ctx.beginPath();
+        ctx.fillStyle = 'rgba(209,83,48,0.95)';
+        ctx.arc(mouse.x, mouse.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        // Anillo exterior
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255,214,200,0.55)';
+        ctx.lineWidth = 1;
+        ctx.arc(mouse.x, mouse.y, 18, 0, Math.PI * 2);
+        ctx.stroke();
+        requestAnimationFrame(draw);
+    }
+    draw();
+
+    window.addEventListener('mousemove', function(e) {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        for (let i = 0; i < 3; i++) spawnParticle();
+        // Mover glow
+        var glow = document.getElementById('mouse-glow');
+        if (glow) { glow.style.left = e.clientX + 'px'; glow.style.top = e.clientY + 'px'; }
+    });
+})();
+</script>
 
 
      
