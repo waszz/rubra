@@ -216,7 +216,12 @@
 
             <div class="col-span-2 text-center text-sm text-gray-600 font-mono">
                 @if(!$esComposicion)
-                    {{ number_format($nodo->precio_unitario ?? $nodo->precio_usd ?? 0, 2, ',', '.') }}
+                    @php
+                        $precioMostrar = is_null($nodo->recurso_id)
+                            ? ($computePerUnit($nodo) ?? 0)
+                            : ($nodo->precio_unitario ?? $nodo->precio_usd ?? 0);
+                    @endphp
+                    {{ number_format($precioMostrar, 2, ',', '.') }}
                 @endif
             </div>
 

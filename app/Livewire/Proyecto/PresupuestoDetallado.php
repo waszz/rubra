@@ -855,7 +855,7 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
                 'descripcion' => '',
                 'unidad'      => $nodo->unidad ?? '',
                 'cantidad'    => $nodo->cantidad ?? null,
-                'precio_usd'  => $nodo->precio_usd ?? $nodo->precio_unitario ?? 0,
+                'precio_usd'  => $computePerUnit($nodo), // precio por unidad basado en lo que contiene
                 'subtotal'    => $subrubroSubtotal,
             ];
 
