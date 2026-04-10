@@ -1,10 +1,10 @@
-<div class="space-y-5 p-6">
+<div class="space-y-5 p-6 bg-gray-50 dark:bg-[#090909] text-black dark:text-white">
 
     {{-- HEADER --}}
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
     <div>
-        <h1 class="text-2xl font-semibold text-white tracking-tight">Recursos</h1>
-        <p class="text-[11px] text-gray-500 uppercase tracking-widest mt-1">
+        <h1 class="text-2xl font-semibold text-black dark:text-white tracking-tight">Recursos</h1>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1">
             Materiales, mano de obra, equipos y composiciones
         </p>
     </div>
@@ -17,24 +17,24 @@
             </button>
         @endif
 
-        <label class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:border-white/20 transition-all">
+        <label class="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 cursor-pointer hover:border-blue-300 dark:hover:border-white/20 transition-all">
             <input type="checkbox" wire:model.live="selectAll" wire:click="toggleSelectAll"
-                class="w-4 h-4 rounded border-gray-700 bg-white/5 text-orange-500 focus:ring-0">
-            <span class="text-[11px] font-medium text-gray-400">Seleccionar todo</span>
+                class="w-4 h-4 rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-white/5 text-orange-500 focus:ring-0">
+            <span class="text-[11px] font-medium text-gray-600 dark:text-gray-400">Seleccionar todo</span>
         </label>
 
         <div class="relative w-full sm:w-56">
             <input type="text"
                 wire:model.live.debounce.300ms="buscar"
                 placeholder="Buscar recurso..."
-                class="pl-9 pr-4 py-2 rounded-lg bg-[#111] text-white border border-gray-800 focus:border-gray-600 focus:outline-none text-[13px] w-full transition-all">
-            <svg class="w-3.5 h-3.5 text-gray-600 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                class="pl-9 pr-4 py-2 rounded-lg bg-gray-50 dark:bg-[#111] text-black dark:text-white border border-gray-300 dark:border-gray-800 focus:border-blue-500 focus:outline-none text-[13px] w-full shadow-sm transition-all">
+            <svg class="w-3.5 h-3.5 text-gray-600 dark:text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
         </div>
 
         <select wire:model.live="filtroTipo"
-            class="flex-1 sm:flex-none px-3 py-2 rounded-lg bg-[#111] text-white border border-gray-800 focus:border-gray-600 focus:outline-none text-[13px] cursor-pointer">
+            class="flex-1 sm:flex-none px-3 py-2 rounded-lg bg-gray-50 dark:bg-[#111] text-black dark:text-white border border-gray-300 dark:border-gray-800 focus:border-blue-500 focus:outline-none text-[13px] cursor-pointer shadow-sm">
             <option value="">Todos los tipos</option>
             <option value="material">Material</option>
             <option value="labor">Mano de obra</option>
@@ -43,7 +43,7 @@
         </select>
 
         <select wire:model.live="filtroProyecto"
-            class="flex-1 sm:flex-none px-3 py-2 rounded-lg bg-[#111] text-white border border-gray-800 focus:border-gray-600 focus:outline-none text-[13px] cursor-pointer">
+            class="flex-1 sm:flex-none px-3 py-2 rounded-lg bg-gray-50 dark:bg-[#111] text-black dark:text-white border border-gray-300 dark:border-gray-800 focus:border-blue-500 focus:outline-none text-[13px] cursor-pointer shadow-sm">
             <option value="">Todos los proyectos</option>
             @foreach($proyectos as $proyecto)
                 <option value="{{ $proyecto->id }}">{{ $proyecto->nombre_proyecto }}</option>
@@ -51,7 +51,7 @@
         </select>
 
         <button wire:click="abrirModalRecurso"
-            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-white text-[12px] font-bold hover:bg-white/5 transition-all">
+            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-blue-100 dark:border-white/10 bg-blue-50 dark:bg-transparent text-blue-700 dark:text-white text-[12px] font-bold hover:bg-blue-100 dark:hover:bg-white/5 transition-all shadow-sm">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
@@ -59,7 +59,7 @@
         </button>
 
         <button wire:click="abrirModalComposicion"
-            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-white text-[12px] font-bold hover:bg-white/5 transition-all">
+            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-purple-100 dark:border-white/10 bg-purple-50 dark:bg-transparent text-purple-700 dark:text-white text-[12px] font-bold hover:bg-purple-100 dark:hover:bg-white/5 transition-all shadow-sm">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
             </svg>
@@ -67,7 +67,7 @@
         </button>
 
         <button wire:click="abrirModalImportar"
-            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-white text-[12px] font-bold hover:bg-white/5 transition-all">
+            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-green-100 dark:border-white/10 bg-green-50 dark:bg-transparent text-green-700 dark:text-white text-[12px] font-bold hover:bg-green-100 dark:hover:bg-white/5 transition-all shadow-sm">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v-4m0 0V8m0 4H8m4 0h4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
@@ -77,19 +77,19 @@
 </div>
 
     {{-- TOGGLE --}}
-    <div class="flex bg-[#111] p-1 rounded-lg border border-gray-800 w-fit">
+    <div class="flex bg-gray-100 dark:bg-[#111] p-1 rounded-lg border border-gray-300 dark:border-gray-800 w-fit shadow-sm">
         <button wire:click="$set('vista','grid')"
-            class="px-4 py-1.5 rounded-md text-[11px] font-bold transition-all {{ $vista === 'grid' ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-600 hover:text-gray-400' }}">
+            class="px-4 py-1.5 rounded-md text-[11px] font-bold transition-all {{ $vista === 'grid' ? 'bg-gray-200 dark:bg-[#1a1a1a] text-black dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white' }}">
             GRID
         </button>
         <button wire:click="$set('vista','lista')"
-            class="px-4 py-1.5 rounded-md text-[11px] font-bold transition-all {{ $vista === 'lista' ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-600 hover:text-gray-400' }}">
+            class="px-4 py-1.5 rounded-md text-[11px] font-bold transition-all {{ $vista === 'lista' ? 'bg-gray-200 dark:bg-[#1a1a1a] text-black dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white' }}">
             LISTA
         </button>
     </div>
 
     {{-- CONTENIDO --}}
-    <div class="bg-[#0f0f0f] border border-gray-800/60 rounded-2xl overflow-hidden shadow-2xl">
+    <div class="bg-gray-50 dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-800/60 rounded-2xl overflow-hidden shadow-xl">
 
       
      {{-- ================= GRID ================= --}}
@@ -106,7 +106,7 @@
                 };
             @endphp
 
-            <div wire:key="recurso-grid-{{ $recurso->id }}" class="bg-[#141414] border border-white/5 rounded-[24px] p-6 hover:border-white/10 transition-all group flex flex-col h-full relative">
+            <div wire:key="recurso-grid-{{ $recurso->id }}" class="bg-white dark:bg-[#141414] border border-gray-300 dark:border-white/5 rounded-[24px] p-6 hover:border-blue-300 dark:hover:border-white/10 transition-all group flex flex-col h-full relative shadow-sm">
                 
                 {{-- TOP ACTIONS & ICON --}}
                 <div class="flex justify-between items-start mb-6">
@@ -125,23 +125,23 @@
 
                 {{-- INFO --}}
                 <div class="mb-6">
-                    <h3 class="text-white text-[15px] font-bold uppercase tracking-wide leading-tight">{{ $recurso->nombre }}</h3>
+                    <h3 class="text-black dark:text-white text-[15px] font-bold uppercase tracking-wide leading-tight">{{ $recurso->nombre }}</h3>
                     <div class="flex items-center gap-2 mt-1">
-                        <span class="text-gray-500 text-[11px] uppercase font-bold">{{ $recurso->unidad }}</span>
-                        <span class="text-gray-700 text-[11px]">•</span>
-                        <span class="text-gray-500 text-[11px] uppercase font-bold">SIN PROVEEDOR</span>
+                        <span class="text-gray-500 dark:text-gray-400 text-[11px] uppercase font-bold">{{ $recurso->unidad }}</span>
+                        <span class="text-gray-700 dark:text-gray-500 text-[11px]">•</span>
+                        <span class="text-gray-500 dark:text-gray-400 text-[11px] uppercase font-bold">SIN PROVEEDOR</span>
                     </div>
 
                     <div class="mt-6">
-                        <p class="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-1">Precio Unitario</p>
-                        <p class="text-[28px] font-bold text-white tracking-tighter">
-                            USD {{ number_format($recurso->precio_usd, 0, ',', '.') }}<span class="text-lg text-white/50">,{{ explode('.', number_format($recurso->precio_usd, 2, '.', ''))[1] }}</span>
+                        <p class="text-gray-500 dark:text-gray-400 text-[9px] font-bold uppercase tracking-widest mb-1">Precio Unitario</p>
+                        <p class="text-[28px] font-bold text-black dark:text-white tracking-tighter">
+                            USD {{ number_format($recurso->precio_usd, 0, ',', '.') }}<span class="text-lg text-black/50 dark:text-white/50">,{{ explode('.', number_format($recurso->precio_usd, 2, '.', ''))[1] }}</span>
                         </p>
                     </div>
                 </div>
 
                 {{-- BOTON HISTORIAL (OPCIONAL) --}}
-                <button wire:click="abrirHistorialPrecios({{ $recurso->id }})" class="w-full py-2.5 mb-6 rounded-xl border border-white/5 bg-white/[0.02] text-gray-400 text-[11px] font-bold flex items-center justify-center gap-2 hover:bg-white/5 transition-all">
+                <button wire:click="abrirHistorialPrecios({{ $recurso->id }})" class="w-full py-2.5 mb-6 rounded-xl border border-gray-200 dark:border-white/5 bg-gray-100/50 dark:bg-white/[0.02] text-gray-600 dark:text-gray-400 text-[11px] font-bold flex items-center justify-center gap-2 hover:bg-gray-200 dark:hover:bg-white/5 transition-all">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Ver Historial de Precios
                 </button>
@@ -150,7 +150,7 @@
              
 {{-- DESGLOSE (COMPOSICIÓN) --}}
 @if($recurso->tipo === 'composition' && $recurso->items->count())
-    <div class="mt-auto pt-4 border-t border-white/5">
+    <div class="mt-auto pt-4 border-t border-gray-200 dark:border-white/5">
         <div class="flex justify-between items-center mb-3">
             <p class="text-[10px] text-purple-400 font-black uppercase tracking-[0.15em]">Composición</p>
             <button wire:click="abrirAgregarItem({{ $recurso->id }})"
@@ -162,11 +162,11 @@
         <div class="space-y-2">
             @foreach($recurso->items as $item)
                 <div class="flex justify-between items-center text-[12px] group/item">
-                    <span class="text-gray-400 font-medium truncate max-w-[140px]">{{ $item->nombre }}</span>
+                    <span class="text-gray-600 dark:text-gray-400 font-medium truncate max-w-[140px]">{{ $item->nombre }}</span>
                    <div class="flex items-center gap-2">
-    <span class="text-white font-bold">{{ number_format($item->cantidad, 2) }} <span class="text-gray-500 font-medium">{{ $item->recursoBase?->unidad ?? '' }}</span></span>
-    <span class="text-gray-600">–</span>
-    <span class="text-white font-bold">USD {{ number_format($item->precio_total, 2) }}</span>
+    <span class="text-black dark:text-white font-bold">{{ number_format($item->cantidad, 2) }} <span class="text-gray-500 dark:text-gray-400 font-medium">{{ $item->recursoBase?->unidad ?? '' }}</span></span>
+    <span class="text-gray-700 dark:text-gray-600">–</span>
+    <span class="text-black dark:text-white font-bold">USD {{ number_format($item->precio_total, 2) }}</span>
 
     {{-- Editar --}}
     <button wire:click="editarItem({{ $item->id }})"
@@ -192,9 +192,9 @@
         </div>
 
         {{-- TOTAL --}}
-        <div class="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
+        <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 dark:border-white/5">
             <span class="text-[10px] text-purple-400 font-black uppercase tracking-[0.15em]">Total</span>
-            <span class="text-white font-bold text-[13px]">USD {{ number_format($recurso->precio_usd, 2) }}</span>
+            <span class="text-black dark:text-white font-bold text-[13px]">USD {{ number_format($recurso->precio_usd, 2) }}</span>
         </div>
     </div>
 @endif
@@ -207,39 +207,39 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
                     <thead>
-                        <tr class="border-b border-gray-800 bg-[#111]/60">
+                        <tr class="border-b border-gray-300 dark:border-gray-800 bg-gray-100 dark:bg-[#111]/60">
                             <th class="pl-6 py-4 w-10"></th>
-                            <th class="px-3 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Nombre</th>
-                            <th class="px-3 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Tipo</th>
-                            <th class="px-3 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Unidad</th>
-                            <th class="px-3 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Precio</th>
-                            <th class="pr-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right w-20">Acciones</th>
+                            <th class="px-3 py-4 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Nombre</th>
+                            <th class="px-3 py-4 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-center">Tipo</th>
+                            <th class="px-3 py-4 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-center">Unidad</th>
+                            <th class="px-3 py-4 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-right">Precio</th>
+                            <th class="pr-6 py-4 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest text-right w-20">Acciones</th>
                         </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-gray-800/40">
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-800/40">
                         @foreach($recursos as $recurso)
-                            <tr wire:key="recurso-lista-{{ $recurso->id }}" class="hover:bg-white/[0.02] transition-colors group">
+                            <tr wire:key="recurso-lista-{{ $recurso->id }}" class="hover:bg-blue-50 dark:hover:bg-white/[0.02] transition-colors group">
                                 <td class="pl-6 py-4">
                                     <input type="checkbox" value="{{ $recurso->id }}" wire:model.live="selectedResources"
-                                        class="w-4 h-4 rounded border-gray-700 bg-gray-900 text-orange-500 focus:ring-0 cursor-pointer">
+                                        class="w-4 h-4 rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-orange-500 focus:ring-0 cursor-pointer">
                                 </td>
                                 <td class="px-3 py-4">
-                                    <span class="text-white text-[13px] font-medium">{{ $recurso->nombre }}</span>
+                                    <span class="text-black dark:text-white text-[13px] font-medium">{{ $recurso->nombre }}</span>
                                 </td>
                                 <td class="px-3 py-4 text-center">
-                                    <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-white/5 text-gray-400 border border-white/5 uppercase inline-block">
+                                    <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-gray-200 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-white/5 uppercase inline-block">
                                         {{ str_replace('_', ' ', $recurso->tipo) }}
                                     </span>
                                 </td>
-                                <td class="px-3 py-4 text-gray-400 text-[12px] text-center font-medium">{{ $recurso->unidad }}</td>
-                                <td class="px-3 py-4 text-right text-white font-mono font-bold">
+                                <td class="px-3 py-4 text-gray-600 dark:text-gray-400 text-[12px] text-center font-medium">{{ $recurso->unidad }}</td>
+                                <td class="px-3 py-4 text-right text-black dark:text-white font-mono font-bold">
                                     USD {{ number_format($recurso->precio_usd, 2, ',', '.') }}
                                 </td>
                                 <td class="pr-6 py-4 text-right">
                                     <div class="flex justify-end gap-2">
                                         <button wire:click="editar({{ $recurso->id }})" 
-                                            class="p-1.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+                                            class="p-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/5 text-gray-600 dark:text-gray-400 hover:text-blue-700 dark:hover:text-white hover:bg-blue-100 dark:hover:bg-white/10 transition-all">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                         </button>
                                     </div>
@@ -254,7 +254,7 @@
 
         {{-- PAGINACIÓN --}}
         @if($recursos->hasPages())
-            <div class="px-6 py-4 border-t border-gray-800 bg-[#111]/30">
+            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#111]/30">
                 {{ $recursos->links() }}
             </div>
         @endif

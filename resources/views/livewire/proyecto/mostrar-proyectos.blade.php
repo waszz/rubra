@@ -132,13 +132,13 @@ document.addEventListener('alpine:init', () => {
         </div>
     @endif
 
-    <div class="bg-[#0d0d0d] border border-white/5 rounded-[2rem] p-10 mb-10 relative overflow-hidden group">
+    <div class="bg-white dark:bg-[#0d0d0d] border border-gray-200 dark:border-white/5 rounded-[2rem] p-10 mb-10 relative overflow-hidden group text-black dark:text-white">
         <div class="absolute -top-24 -right-24 w-48 h-48 bg-orange-500/5 blur-[80px] rounded-full"></div>
         <div class="relative z-10">
-            <h2 class="text-xl font-black text-white uppercase tracking-[0.3em] mb-2">
+            <h2 class="text-xl font-black uppercase tracking-[0.3em] mb-2">
                 Bienvenido a <span class="text-orange-500">Rubra</span>
             </h2>
-            <p class="text-sm text-gray-500 font-medium tracking-wide">
+            <p class="text-sm text-gray-700 dark:text-gray-500 font-medium tracking-wide">
                 Empieza creando tu primer proyecto para gestionar tu obra.
             </p>
         </div>
@@ -475,7 +475,7 @@ document.addEventListener('alpine:init', () => {
             };
         @endphp
 
-        <div wire:key="grid-{{ $proyecto->id }}" class="bg-[#111] border border-gray-800/60 rounded-2xl p-5 hover:bg-white/[0.03] transition-all shadow-lg flex flex-col gap-4">
+        <div wire:key="grid-{{ $proyecto->id }}" class="bg-white dark:bg-[#111] border border-gray-200 dark:border-gray-800/60 rounded-2xl p-5 shadow-lg flex flex-col gap-4 proyectos-curso-card text-black dark:text-white">
 
             {{-- HEADER CARD --}}
             <a href="{{ route('proyectos.presupuesto', $proyecto->id) }}"
@@ -488,11 +488,11 @@ document.addEventListener('alpine:init', () => {
                 </div>
 
                 <div class="min-w-0">
-                    <p class="text-sm font-black text-white truncate">
+                    <p class="text-sm font-black truncate">
                         {{ $proyecto->nombre_proyecto }}
                     </p>
 
-                    <p class="text-[10px] text-gray-500 uppercase tracking-wider">
+                    <p class="text-[10px] text-gray-700 dark:text-gray-500 uppercase tracking-wider">
                         {{ $proyecto->cliente ?? 'Sin cliente' }}
                         · {{ $proyecto->metros_cuadrados }} m²
                     </p>
@@ -503,11 +503,12 @@ document.addEventListener('alpine:init', () => {
             {{-- INFO --}}
             <div class="flex items-center justify-between">
 
-                <p class="text-xs font-black text-white">
+                <p class="text-xs font-black">
                     USD {{ number_format($totalesPorProyecto[$proyecto->id] ?? 0, 0, ',', '.') }}
                 </p>
 
-                <span class="text-[10px] font-black px-3 py-1 rounded-full border uppercase tracking-wider {{ $badgeColor }}">
+                <span class="text-[10px] font-black px-3 py-1 rounded-full border uppercase tracking-wider proyectos-curso-card"
+                    :class="{'bg-yellow-100 text-yellow-700 border-yellow-300': document.documentElement.classList.contains('light'), '{{ $badgeColor }}': document.documentElement.classList.contains('dark')}">
                     {{ $badgeLabel }}
                 </span>
 
@@ -609,7 +610,7 @@ document.addEventListener('alpine:init', () => {
                 angulo += slice;
             });
 
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = document.documentElement.classList.contains('light') ? '#18181b' : '#ffffff';
             ctx.font = 'bold 26px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';

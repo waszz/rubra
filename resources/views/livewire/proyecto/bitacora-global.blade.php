@@ -1,8 +1,8 @@
-<div class="min-h-screen bg-[#0a0a0a]">
+<div class="min-h-screen bg-white dark:bg-[#0a0a0a] text-black dark:text-white">
 
     {{-- NAVBAR solo en modo proyecto --}}
     @if($modoProyecto && $proyecto)
-    <nav class="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-[#0d0d0d]">
+    <nav class="flex items-center justify-between px-6 py-3 border-b border-gray-200 dark:border-white/5 bg-white dark:bg-[#0d0d0d]">
         <div class="flex items-center gap-4">
             <a href="{{ route('proyectos.presupuesto', $proyecto) }}" class="text-gray-500 hover:text-white transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -11,12 +11,12 @@
             </a>
             <div>
                 <div class="flex items-center gap-2">
-                    <h1 class="text-white font-black text-sm uppercase tracking-widest">{{ $proyecto->nombre_proyecto }}</h1>
+                    <h1 class="font-black text-sm uppercase tracking-widest text-black dark:text-white">{{ $proyecto->nombre_proyecto }}</h1>
                     <span class="bg-green-500/10 text-green-500 text-sm font-black px-2 py-0.5 rounded border border-green-500/20 flex items-center gap-1">
                         <span class="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span> ONLINE
                     </span>
                 </div>
-                <p class="text-sm text-gray-600 uppercase tracking-widest font-bold">BITÁCORA ▾</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400 uppercase tracking-widest font-bold">BITÁCORA ▾</p>
             </div>
         </div>
 
@@ -33,7 +33,7 @@
                 @endif
                 <a href="{{ $tab['route'] }}"
                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-black uppercase tracking-wider transition-all
-                       {{ $tab['active'] ? 'bg-white text-black' : 'text-gray-500 hover:text-white hover:bg-white/5' }}">
+                       {{ $tab['active'] ? 'bg-gray-200 dark:bg-white text-black dark:text-black' : 'text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5' }}">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $tab['icon'] }}"/>
                     </svg>
@@ -46,26 +46,26 @@
     </nav>
     @endif
 
-    <div class="p-8 min-h-screen text-white">
+    <div class="p-8 min-h-screen bg-white dark:bg-[#0a0a0a] text-black dark:text-white">
         <div class="max-w-5xl mx-auto">
 
             {{-- HEADER --}}
             <div class="flex justify-between items-center mb-8">
                 <div>
                     <h1 class="text-3xl font-black uppercase tracking-tighter italic">Bitácora de Obra</h1>
-                    <p class="text-gray-500 text-sm uppercase font-bold tracking-widest">Historial de movimientos del proyecto</p>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm uppercase font-bold tracking-widest">Historial de movimientos del proyecto</p>
                 </div>
             </div>
 
             {{-- FILTROS --}}
-            <div class="bg-[#111] border border-white/5 rounded-2xl p-4 mb-10 flex flex-wrap items-center gap-6">
+            <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 mb-10 flex flex-wrap items-center gap-6">
 
                 {{-- Selector de proyecto (solo modo global) --}}
                 @if(!$modoProyecto)
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-xs text-gray-500 uppercase font-black ml-1 tracking-widest">Proyecto</label>
+                    <label class="text-xs text-gray-500 dark:text-gray-400 uppercase font-black ml-1 tracking-widest">Proyecto</label>
                     <select wire:model.live="proyectoId"
-                        class="bg-[#0a0a0a] border border-white/10 rounded-xl text-xs text-white px-4 py-2 focus:border-blue-500 outline-none transition w-64">
+                        class="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 rounded-xl text-xs text-black dark:text-white px-4 py-2 focus:border-blue-500 outline-none transition w-64">
                         @foreach($proyectos as $p)
                             <option value="{{ $p->id }}">{{ $p->nombre_proyecto }}</option>
                         @endforeach
@@ -74,15 +74,15 @@
                 @endif
 
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-xs text-gray-500 uppercase font-black ml-1 tracking-widest">Fecha del reporte</label>
+                    <label class="text-xs text-gray-500 dark:text-gray-400 uppercase font-black ml-1 tracking-widest">Fecha del reporte</label>
                     <input type="date" wire:model.live="searchFecha"
-                        class="bg-[#0a0a0a] border border-white/10 rounded-xl text-xs text-white px-4 py-2 focus:border-blue-500 outline-none transition w-44">
+                        class="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 rounded-xl text-xs text-black dark:text-white px-4 py-2 focus:border-blue-500 outline-none transition w-44">
                 </div>
 
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-xs text-gray-500 uppercase font-black ml-1 tracking-widest">Filtrar por rubro</label>
+                    <label class="text-xs text-gray-500 dark:text-gray-400 uppercase font-black ml-1 tracking-widest">Filtrar por rubro</label>
                     <select wire:model.live="searchRubro"
-                        class="bg-[#0a0a0a] border border-white/10 rounded-xl text-xs text-white px-4 py-2 focus:border-blue-500 outline-none transition w-64">
+                        class="bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 rounded-xl text-xs text-black dark:text-white px-4 py-2 focus:border-blue-500 outline-none transition w-64">
                         <option value="">Todos los rubros</option>
                         @foreach($rubrosDisponibles as $rubro)
                             <option value="{{ $rubro->id }}">{{ $rubro->nombre }}</option>
@@ -101,48 +101,49 @@
 
             {{-- LÍNEA DE TIEMPO --}}
             @if(!$proyecto)
-                <div class="flex items-center justify-center h-64 border-2 border-dashed border-gray-800 rounded-3xl">
-                    <p class="text-gray-600 text-base font-bold uppercase tracking-widest">Seleccioná un proyecto para ver su bitácora</p>
+                <div class="flex items-center justify-center h-64 border-2 border-dashed border-gray-300 dark:border-gray-800 rounded-3xl">
+                    <p class="text-gray-600 dark:text-gray-400 text-base font-bold uppercase tracking-widest">Seleccioná un proyecto para ver su bitácora</p>
                 </div>
             @else
-            <div class="relative border-l border-white/10 ml-4 space-y-12 pb-20">
+            <div class="relative border-l border-gray-200 dark:border-white/10 ml-4 space-y-12 pb-20">
                 @forelse($registros as $registro)
                     <div class="relative pl-12 group">
-                        <div class="absolute -left-[7px] top-6 w-3.5 h-3.5 bg-[#00ff88] rounded-full border-[3px] border-[#0a0a0a] shadow-[0_0_15px_rgba(0,255,136,0.3)] group-hover:scale-125 transition-transform"></div>
 
-                        <div class="bg-[#111] border border-white/5 rounded-3xl p-6 shadow-2xl hover:border-white/10 transition-colors">
+                        <div class="absolute -left-[7px] top-6 w-3.5 h-3.5 bg-[#00ff88] rounded-full border-[3px] border-white dark:border-[#0a0a0a] shadow-[0_0_15px_rgba(0,255,136,0.3)] group-hover:scale-125 transition-transform"></div>
+
+                        <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-3xl p-6 shadow-2xl hover:border-gray-300 dark:hover:border-white/10 transition-colors">
                             <div class="flex justify-between items-start mb-6">
                                 <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-inner">
+                                    <div class="w-12 h-12 rounded-2xl bg-gray-200 dark:bg-white/5 flex items-center justify-center border border-gray-300 dark:border-white/10 shadow-inner">
                                         <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                         </svg>
                                     </div>
                                     <div>
-                                        <h4 class="font-bold text-sm">Residente de Obra</h4>
-                                        <p class="text-xs text-gray-500 uppercase font-black tracking-widest">
+                                        <h4 class="font-bold text-sm text-black dark:text-white">Residente de Obra</h4>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-black tracking-widest">
                                             Reporte: <span class="text-blue-400">{{ $registro->recurso->nombre }}</span>
                                         </p>
                                     </div>
                                 </div>
-                                <span class="text-sm text-gray-600 font-mono bg-black/40 px-3 py-1 rounded-full border border-white/5">
+                                <span class="text-sm text-gray-600 dark:text-gray-400 font-mono bg-gray-200/40 dark:bg-black/40 px-3 py-1 rounded-full border border-gray-300 dark:border-white/5">
                                     {{ $registro->created_at->format('d/m/Y H:i') }}
                                 </span>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div class="md:col-span-2">
-                                    <p class="text-gray-400 text-xs italic leading-relaxed">
+                                    <p class="text-gray-600 dark:text-gray-400 text-xs italic leading-relaxed">
                                         "{{ $registro->notas ?? 'Sin comentarios adicionales.' }}"
                                     </p>
                                     <div class="mt-4 flex flex-wrap gap-2">
-                                        <span class="text-sm bg-white/5 px-3 py-1 rounded-full text-gray-300 border border-white/5">
+                                        <span class="text-sm bg-gray-200 dark:bg-white/5 px-3 py-1 rounded-full text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-white/5">
                                             Avance: <strong class="text-[#00ff88]">{{ $registro->avance_fisico }}%</strong>
                                         </span>
-                                        <span class="text-sm bg-white/5 px-3 py-1 rounded-full text-gray-400 border border-white/5">
+                                        <span class="text-sm bg-gray-200 dark:bg-white/5 px-3 py-1 rounded-full text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-white/5">
                                             {{ $registro->cantidad_hoy }} (M2)
                                         </span>
-                                        <span class="text-sm bg-white/5 px-3 py-1 rounded-full text-gray-400 border border-white/5">
+                                        <span class="text-sm bg-gray-200 dark:bg-white/5 px-3 py-1 rounded-full text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-white/5">
                                             ${{ number_format($registro->costo_hoy, 2) }}
                                         </span>
                                     </div>
@@ -153,7 +154,7 @@
                                         <img
                                             src="{{ asset('storage/' . $registro->foto_path) }}"
                                             @click="open = true"
-                                            class="w-full h-24 object-cover rounded-2xl border border-white/10 cursor-zoom-in hover:brightness-110 transition-all"
+                                            class="w-full h-24 object-cover rounded-2xl border border-gray-300 dark:border-white/10 cursor-zoom-in hover:brightness-110 transition-all"
                                         >
                                         <template x-if="open">
                                             <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-6" @click="open = false" @keydown.escape.window="open = false">
@@ -167,7 +168,7 @@
                     </div>
                 @empty
                     <div class="pl-12 py-10">
-                        <p class="text-gray-600 text-xs uppercase font-black tracking-widest italic">No se encontraron registros con los filtros aplicados.</p>
+                        <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-black tracking-widest italic">No se encontraron registros con los filtros aplicados.</p>
                     </div>
                 @endforelse
             </div>

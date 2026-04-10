@@ -102,22 +102,22 @@
 </nav>
 
 {{-- BARRA DE HERRAMIENTAS --}}
-<div class="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-2 border-b border-white/5 bg-[#0d0d0d]/80 backdrop-blur-sm">
+<div class="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-2 border-b border-gray-200 dark:border-white/5 bg-white/80 dark:bg-[#0d0d0d]/80 backdrop-blur-sm text-black dark:text-white">
 
     {{-- IZQUIERDA: toggle presupuesto/ejecución + buscador --}}
     <div class="flex items-center gap-2 flex-wrap">
         
         {{-- Toggle Presupuesto / Ejecución --}}
-        <div class="flex items-center bg-white/5 rounded-lg p-0.5 border border-white/5">
+        <div class="flex items-center bg-gray-100 dark:bg-white/5 rounded-lg p-0.5 border border-gray-200 dark:border-white/5">
             <button
                 wire:click="cambiarVista('presupuesto')"
-                class="px-3 py-1 rounded text-sm font-black uppercase tracking-wider transition-all {{ $vistaActiva === 'presupuesto' ? 'bg-white text-black' : 'text-gray-500 hover:text-white' }}">
+                class="px-3 py-1 rounded text-sm font-black uppercase tracking-wider transition-all {{ $vistaActiva === 'presupuesto' ? 'bg-white text-black dark:bg-white/10 dark:text-white' : 'text-gray-700 dark:text-gray-400 hover:text-black dark:hover:text-white' }}">
                 Presupuesto
             </button>
             <button
                 wire:click="cambiarVista('ejecucion')"
                 @disabled(in_array($proyecto->estado_obra, ['en_revision', 'activo', 'pausado']))
-                class="px-3 py-1 rounded text-sm font-black uppercase tracking-wider transition-all {{ $vistaActiva === 'ejecucion' ? 'bg-orange-500 text-white' : 'text-gray-500 hover:text-white' }} {{ in_array($proyecto->estado_obra, ['en_revision', 'activo', 'pausado']) ? 'opacity-50 cursor-not-allowed' : '' }}">
+                class="px-3 py-1 rounded text-sm font-black uppercase tracking-wider transition-all {{ $vistaActiva === 'ejecucion' ? 'bg-orange-500 text-white' : 'text-gray-700 dark:text-gray-400 hover:text-black dark:hover:text-white' }} {{ in_array($proyecto->estado_obra, ['en_revision', 'activo', 'pausado']) ? 'opacity-50 cursor-not-allowed' : '' }}">
                 Ejecución
             </button>
         </div>
@@ -127,15 +127,15 @@
             <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
             </svg>
-            <input type="text"
-                   placeholder="Filtrar rubros..."
-                   class="pl-7 pr-3 py-1.5 bg-white/5 border border-white/5 rounded-lg text-base text-white placeholder-gray-600 outline-none focus:border-white/20 w-full sm:w-48 transition-all">
+                 <input type="text"
+                     placeholder="Filtrar rubros..."
+                     class="pl-7 pr-3 py-1.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-lg text-base text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:border-gray-300 dark:focus:border-white/20 w-full sm:w-48 transition-all">
         </div>
 
         {{-- Botón Agregar Rubro --}}
         @if(!$modoLectura && $vistaActiva === 'presupuesto' && !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
         <button wire:click="abrirModalRubro"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 text-sm font-black uppercase tracking-wider transition-all">
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 dark:bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-400 hover:bg-purple-500/30 dark:hover:bg-purple-500/20 text-sm font-black uppercase tracking-wider transition-all">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
             Agregar Rubro
         </button>
@@ -150,8 +150,8 @@
             wire:click="toggleBeneficio"
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-black uppercase tracking-wider transition-all
                 {{ $mostrarBeneficio 
-                    ? 'bg-green-500/20 border-green-500/30 text-green-400' 
-                    : 'bg-white/5 border-white/5 text-gray-500' }}">
+                    ? 'bg-green-500/20 dark:bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400' 
+                    : 'bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-700 dark:text-gray-400' }}">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
@@ -160,7 +160,7 @@
 
         {{-- Dropdown Exportar / Importar --}}
         <div class="relative">
-            <button wire:click="toggleDropdownExportar" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 text-sm font-black uppercase tracking-wider transition-all">
+            <button wire:click="toggleDropdownExportar" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 text-gray-700 dark:text-gray-400 hover:text-black dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 text-sm font-black uppercase tracking-wider transition-all">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>
@@ -288,7 +288,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
   <div class="flex gap-3 overflow-x-auto pb-1 md:grid md:grid-cols-3 {{ $mostrarBeneficio ? 'lg:grid-cols-5' : 'lg:grid-cols-4' }} md:overflow-visible">
 
     {{-- Subtotal --}}
-    <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center shrink-0 w-40 md:w-auto">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-center shrink-0 w-40 md:w-auto text-black dark:text-white">
         <p class="text-xs text-gray-500 font-black uppercase mb-2">Subtotal</p>
         <p class="text-base font-black text-white leading-tight">
             USD {{ number_format($subtotalBase, 0, ',', '.') }}
@@ -297,7 +297,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
     {{-- Beneficio --}}
     @if($mostrarBeneficio)
-    <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center shrink-0 w-44 md:w-auto">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-center shrink-0 w-44 md:w-auto text-black dark:text-white">
         <p class="text-xs text-gray-500 font-black uppercase mb-2">
             Benef. ({{ number_format($proyecto->beneficio ?? 0, 0) }}%)
         </p>
@@ -308,7 +308,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
     @endif
 
     {{-- Impuestos --}}
-    <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center shrink-0 w-44 md:w-auto">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-center shrink-0 w-44 md:w-auto text-black dark:text-white">
         <p class="text-xs text-gray-500 font-black uppercase mb-2">
             IVA ({{ $proyecto->impuestos ?? 22 }}%)
         </p>
@@ -318,7 +318,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
     </div>
 
     {{-- Precio Final --}}
-    <div class="bg-white rounded-2xl p-4 text-center shadow-lg shadow-white/5 shrink-0 w-48 md:w-auto">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-center shadow-lg shadow-white/5 shrink-0 w-48 md:w-auto text-black dark:text-white">
         <p class="text-xs text-gray-400 font-black uppercase mb-2">Precio Final</p>
         <p class="text-xl font-black text-black leading-tight">
             USD {{ number_format($totalFinal, 0, ',', '.') }}
@@ -326,7 +326,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
     </div>
 
     {{-- Carga Social --}}
-    <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center shrink-0 w-40 md:w-auto {{ $cargaSocialCalculada > 0 ? '' : 'opacity-50' }}">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-center shrink-0 w-40 md:w-auto text-black dark:text-white {{ $cargaSocialCalculada > 0 ? '' : 'opacity-50' }}">
         <p class="text-xs text-gray-500 font-black uppercase mb-2">C. Social</p>
         <p class="text-base font-black text-blue-400 leading-tight">
             USD {{ number_format($cargaSocialCalculada, 0, ',', '.') }}
@@ -336,11 +336,11 @@ $totalFinal = $subtotalConBeneficio + $iva;
 </div>
     {{-- TABLA PRESUPUESTO --}}
     @if($vistaActiva === 'presupuesto')
-    <div class="bg-[#111] border border-white/5 rounded-2xl overflow-hidden">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden text-black dark:text-white">
         <div class="overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
         <div class="min-w-[760px]">
 
-        <div class="grid grid-cols-12 px-4 py-3 border-b border-white/5 bg-white/[0.01]">
+        <div class="grid grid-cols-12 px-4 py-3 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.01]">
             <div class="col-span-1 text-sm text-gray-600 font-black">#</div>
             <div class="col-span-5 text-sm text-gray-600 font-black uppercase tracking-widest">Descripción</div>
             <div class="col-span-1 text-sm text-gray-600 font-black text-center">Ud.</div>
@@ -359,9 +359,9 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
             @endphp
 
             {{-- CATEGORÍA --}}
-            <div class="border-b border-white/5" wire:key="{{ 'cat-' . Str::slug($nombreCategoria) }}">
+            <div class="border-b border-gray-200 dark:border-white/5" wire:key="{{ 'cat-' . Str::slug($nombreCategoria) }}">
 
-                <div class="grid grid-cols-12 px-4 py-3 bg-white/[0.02] items-center group">
+                <div class="grid grid-cols-12 px-4 py-3 bg-gray-100 dark:bg-white/[0.02] items-center group">
 
                     <div class="col-span-1 text-xs text-gray-600 font-mono">
                         {{ $loop->iteration }}
@@ -376,10 +376,10 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
                             </svg>
                             <div class="min-w-0">
-                                <p class="text-base text-white font-black uppercase tracking-widest truncate">
+                                <p class="text-base font-black uppercase tracking-widest truncate">
                                     {{ $nombreCategoria }}
                                 </p>
-                                <p class="text-xs text-gray-600 font-bold uppercase">
+                                <p class="text-xs text-gray-700 dark:text-gray-600 font-bold uppercase">
                                     {{ $nodosReales->count() }} rubros
                                 </p>
                             </div>

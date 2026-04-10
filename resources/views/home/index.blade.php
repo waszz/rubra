@@ -419,7 +419,7 @@
         @endphp
 
         @foreach($features as $f)
-        <div class="feature-card group relative bg-[#111111]/60 border border-white/5 rounded-2xl p-8 overflow-hidden
+        <div class="feature-card group relative bg-white/[0.04] border border-white/10 rounded-2xl p-8 overflow-hidden
                     hover:border-[#d15330]/30 hover:bg-[#111111]/90 transition-all duration-500 cursor-default">
 
             {{-- Número grande de fondo --}}
@@ -513,8 +513,8 @@
                     @endphp
  
                     @foreach($steps as $i => $step)
-                    <div class="proceso-step group flex items-start gap-5 border border-white/5 rounded-2xl px-6 py-5
-                                bg-[#0d0d0d]/60 hover:border-[#d15330]/30 hover:bg-[#111]/80
+                    <div class="proceso-step group flex items-start gap-5 border border-white/10 rounded-2xl px-6 py-5
+                                bg-white/[0.04] hover:border-[#d15330]/30 hover:bg-white/[0.06]
                                 transition-all duration-300 cursor-default">
  
                         {{-- Badge número --}}
@@ -603,7 +603,7 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="impacto-card bg-[#111111]/40 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 flex flex-col items-center text-center">
+        <div class="impacto-card bg-white/[0.04] backdrop-blur-sm border border-white/10 rounded-[40px] p-8 flex flex-col items-center text-center">
             <div class="relative w-32 h-32 mb-8">
                 <svg class="w-full h-full transform -rotate-90">
                     <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" class="text-white/5" />
@@ -617,7 +617,7 @@
             <p class="text-[10px] uppercase tracking-widest font-bold opacity-50">Menos tiempo operativo</p>
         </div>
 
-        <div class="impacto-card bg-[#111111]/40 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 flex flex-col items-center text-center">
+        <div class="impacto-card bg-white/[0.04] backdrop-blur-sm border border-white/10 rounded-[40px] p-8 flex flex-col items-center text-center">
             <div class="relative w-32 h-32 mb-8">
                 <svg class="w-full h-full transform -rotate-90">
                     <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" class="text-white/5" />
@@ -631,7 +631,7 @@
             <p class="text-[10px] uppercase tracking-widest font-bold opacity-50">Más velocidad para cotizar</p>
         </div>
 
-        <div class="impacto-card bg-[#111111]/40 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 flex flex-col items-center text-center">
+        <div class="impacto-card bg-white/[0.04] backdrop-blur-sm border border-white/10 rounded-[40px] p-8 flex flex-col items-center text-center">
             <div class="relative w-32 h-32 mb-8">
                 <svg class="w-full h-full transform -rotate-90">
                     <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" class="text-white/5" />
@@ -645,7 +645,7 @@
             <p class="text-[10px] uppercase tracking-widest font-bold opacity-50">Acceso desde cualquier lugar</p>
         </div>
 
-        <div class="impacto-card bg-[#111111]/40 backdrop-blur-sm border border-white/5 rounded-[40px] p-8 flex flex-col items-center text-center">
+        <div class="impacto-card bg-white/[0.04] backdrop-blur-sm border border-white/10 rounded-[40px] p-8 flex flex-col items-center text-center">
             <div class="relative w-32 h-32 mb-8">
                 <svg class="w-full h-full transform -rotate-90">
                     <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" class="text-white/5" />
@@ -776,7 +776,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        <div class="testimonio-card bg-[#111111]/40 backdrop-blur-md border border-white/5 rounded-[40px] p-10 relative overflow-hidden group">
+        <div class="testimonio-card bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-[40px] p-10 relative overflow-hidden group">
             <div class="absolute -top-10 -right-10 w-32 h-32 bg-[#d15330]/5 blur-[60px] rounded-full group-hover:bg-[#d15330]/10 transition-all duration-700"></div>
             
             <div class="mb-8">
@@ -795,7 +795,7 @@
             </div>
         </div>
 
-        <div class="testimonio-card bg-[#111111]/40 backdrop-blur-md border border-white/5 rounded-[40px] p-10 relative overflow-hidden group">
+        <div class="testimonio-card bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-[40px] p-10 relative overflow-hidden group">
             <div class="absolute -top-10 -right-10 w-32 h-32 bg-[#d15330]/5 blur-[60px] rounded-full group-hover:bg-[#d15330]/10 transition-all duration-700"></div>
             
             <div class="mb-8">
@@ -814,7 +814,7 @@
             </div>
         </div>
 
-        <div class="testimonio-card bg-[#111111]/40 backdrop-blur-md border border-white/5 rounded-[40px] p-10 relative overflow-hidden group">
+        <div class="testimonio-card bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-[40px] p-10 relative overflow-hidden group">
             <div class="absolute -top-10 -right-10 w-32 h-32 bg-[#d15330]/5 blur-[60px] rounded-full group-hover:bg-[#d15330]/10 transition-all duration-700"></div>
             
             <div class="mb-8">
@@ -862,7 +862,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
 
         <!-- PLAN GRATIS -->
-        <div class="price-card bg-[#111111]/40 backdrop-blur-md border border-white/5 rounded-[24px] p-6 md:p-8 flex flex-col justify-between">
+        <div class="price-card bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-[24px] p-6 md:p-8 flex flex-col justify-between">
 
             <div>
                 <span class="text-[9px] uppercase tracking-[0.3em] text-white/30 font-bold">
@@ -911,7 +911,7 @@
         </div>
 
         <!-- PLAN BÁSICO -->
-        <div class="price-card bg-[#111111]/40 backdrop-blur-md border border-white/5 rounded-[24px] p-6 md:p-8 flex flex-col justify-between">
+        <div class="price-card bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-[24px] p-6 md:p-8 flex flex-col justify-between">
 
             <div>
                 <span class="text-[9px] uppercase tracking-[0.3em] text-white/30 font-bold">
@@ -968,7 +968,7 @@
         </div>
 
         <!-- PLAN PROFESIONAL (DESTACADO) -->
-        <div class="price-card bg-[#d15330] rounded-[24px] p-6 md:p-8 flex flex-col justify-between relative shadow-[0_0_40px_rgba(209,83,48,0.25)] sm:-translate-y-2">
+        <div class="price-card bg-[#111111]/40 backdrop-blur-md border border-[#d15330]/60 rounded-[24px] p-6 md:p-8 flex flex-col justify-between relative shadow-[0_0_40px_rgba(209,83,48,0.25)] sm:-translate-y-2">
 
             <div class="absolute top-4 right-4 bg-white text-[#d15330] text-[8px] font-black uppercase px-3 py-1 rounded-full tracking-widest">
                 Más elegido
@@ -1022,14 +1022,14 @@
             </div>
 
             <a href="{{ auth()->check() ? route('pago.checkout', 'profesional') : route('register') }}"
-               class="mt-8 block w-full py-3 bg-white text-[#d15330] text-center text-[10px] font-black uppercase tracking-widest hover:bg-white/90 transition-all rounded-lg">
+               class="mt-8 block w-full py-3 border border-white/10 text-center text-[10px] font-black uppercase tracking-widest hover:text-[#d15330] hover:border-[#d15330]/40 transition-all">
                 Empezar
             </a>
 
         </div>
 
         <!-- PLAN ENTERPRISE -->
-        <div class="price-card bg-[#111111]/40 backdrop-blur-md border border-white/5 rounded-[24px] p-6 md:p-8 flex flex-col justify-between">
+        <div class="price-card bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-[24px] p-6 md:p-8 flex flex-col justify-between">
 
             <div>
                 <span class="text-[9px] uppercase tracking-[0.3em] text-white/30 font-bold">
@@ -1692,6 +1692,14 @@ gsap.from("#cta-final a, #cta-final button", {
         transform: translateY(0);
     }
 
+</style>
+<style>
+/* Forzar texto blanco en cards de proyectos en curso y estado, sin hover */
+.proyectos-curso-card,
+.proyectos-curso-card * {
+    color: #fff !important;
+    transition: none !important;
+}
 </style>
 
 <!-- FOOTER -->

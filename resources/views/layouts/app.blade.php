@@ -1,6 +1,14 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
+    <script>
+        (function(){
+            var t = localStorage.getItem('rubra_theme');
+            var h = document.documentElement;
+            if (t === 'light') { h.classList.remove('dark'); h.classList.add('light'); }
+            else { h.classList.remove('light'); h.classList.add('dark'); }
+        })();
+    </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -66,6 +74,230 @@
             left: 50%;
             transition: top .05s linear, left .05s linear;
         }
+
+        /* ── MODO CLARO ── */
+        html.light { color-scheme: light; }
+        html.light body { background-color: #f4f4f5 !important; color: #18181b !important; }
+        html.light body::before { opacity: 0.15; }
+        html.light #mouse-glow { opacity: 0; }
+        html.light ::-webkit-scrollbar-track { background: #e4e4e7; }
+        html.light ::-webkit-scrollbar-thumb { background: #a1a1aa; }
+
+        /* Fondos */
+        html.light .bg-\[\#0a0a0a\], html.light .bg-\[\#090909\] { background-color: #f4f4f5 !important; }
+        html.light .bg-\[\#0d0d0d\] { background-color: #ffffff !important; }
+        html.light .bg-\[\#0f0f0f\] { background-color: #ebebeb !important; }
+        html.light .bg-\[\#0f1115\] { background-color: #f8f8f8 !important; }
+        html.light .bg-\[\#1a1a1a\] { background-color: #e4e4e7 !important; }
+        html.light .bg-white\/\[0\.02\] { background-color: rgba(0,0,0,0.03) !important; }
+        html.light .bg-white\/\[0\.03\] { background-color: rgba(0,0,0,0.04) !important; }
+        html.light .bg-white\/\[0\.04\] { background-color: rgba(0,0,0,0.05) !important; }
+        html.light .bg-white\/5  { background-color: rgba(0,0,0,0.05) !important; }
+        html.light .bg-white\/10 { background-color: rgba(0,0,0,0.08) !important; }
+        html.light .bg-black\/30 { background-color: rgba(0,0,0,0.04) !important; }
+        html.light .bg-black\/80 { background-color: rgba(240,240,240,0.95) !important; }
+
+        /* Hover fondos */
+        html.light .hover\:bg-white\/5:hover  { background-color: rgba(0,0,0,0.05) !important; }
+        html.light .hover\:bg-white\/10:hover { background-color: rgba(0,0,0,0.08) !important; }
+        html.light .hover\:bg-white\/\[0\.04\]:hover { background-color: rgba(0,0,0,0.06) !important; }
+        html.light .hover\:bg-white\/\[0\.03\]:hover { background-color: rgba(0,0,0,0.04) !important; }
+        html.light .hover\:bg-\[\#1a1a1a\]:hover { background-color: #d4d4d8 !important; }
+
+        /* Bordes */
+        html.light .border-white\/5  { border-color: rgba(0,0,0,0.1) !important; }
+        html.light .border-white\/10 { border-color: rgba(0,0,0,0.14) !important; }
+        html.light .border-white\/\[0\.025\] { border-color: rgba(0,0,0,0.08) !important; }
+        html.light .border-white\/\[0\.04\]  { border-color: rgba(0,0,0,0.1) !important; }
+        html.light .border-white\/\[0\.05\]  { border-color: rgba(0,0,0,0.1) !important; }
+        html.light .border-gray-800     { border-color: #d4d4d8 !important; }
+        html.light .border-gray-800\/50 { border-color: rgba(212,212,216,0.5) !important; }
+
+        /* Textos */
+        html.light .text-white   { color: #18181b !important; }
+        html.light .text-gray-200 { color: #3f3f46 !important; }
+        html.light .text-gray-300 { color: #52525b !important; }
+        html.light .text-gray-400 { color: #71717a !important; }
+        html.light .text-gray-500 { color: #a1a1aa !important; }
+        html.light .text-gray-600 { color: #71717a !important; }
+        html.light .hover\:text-white:hover { color: #18181b !important; }
+        html.light aside { background-color: #ebebeb !important; border-right-color: #d4d4d8 !important; }
+
+        /* Landing: textos con opacidad */
+        html.light .text-white\/40 { color: rgba(0,0,0,0.45) !important; }
+        html.light .text-white\/60 { color: rgba(0,0,0,0.55) !important; }
+        html.light .text-white\/80 { color: rgba(0,0,0,0.7) !important; }
+        html.light .text-white\/90 { color: rgba(0,0,0,0.85) !important; }
+
+        /* Landing header sticky fondo */
+        html.light header.sticky { background-color: rgba(244,244,245,0.97) !important; }
+        html.light .min-h-screen.bg-\[\#0a0a0a\] > header { background-color: rgba(244,244,245,0.97) !important; }
+
+        /* Landing: cards fondos claros y texto oscuro */
+        html.light .feature-card,
+        html.light .impacto-card,
+        html.light .testimonio-card,
+        html.light .proceso-step {
+            background-color: #ffffff !important;
+            border-color: rgba(0,0,0,0.08) !important;
+            color: #18181b !important;
+        }
+        html.light .price-card:not(.border-\[\#d15330\]\/60) {
+            background-color: #ffffff !important;
+            border-color: rgba(0,0,0,0.1) !important;
+            color: #18181b !important;
+        }
+        html.light .price-card.border-\[\#d15330\]\/60 {
+            background-color: #ffffff !important;
+        }
+        html.light .price-card:not(.bg-\[\#d15330\]) .text-white { color: #18181b !important; }
+
+        /* Texto dentro de otros cards */
+        html.light .feature-card .text-white,
+        html.light .impacto-card .text-white,
+        html.light .testimonio-card .text-white,
+        html.light .proceso-step .text-white { color: #18181b !important; }
+        html.light .feature-card .text-gray-400,
+        html.light .impacto-card .text-gray-400,
+        html.light .testimonio-card .text-gray-400,
+        html.light .proceso-step .text-gray-400 { color: #52525b !important; }
+        html.light .feature-card .text-gray-500,
+        html.light .impacto-card .text-gray-500,
+        html.light .testimonio-card .text-gray-500,
+        html.light .proceso-step .text-gray-500 { color: #71717a !important; }
+        html.light .impacto-card .text-white\/80,
+        html.light .impacto-card .text-white\/60 { color: #3f3f46 !important; }
+        html.light .testimonio-card .bg-white\/10 { background-color: rgba(0,0,0,0.06) !important; }
+
+        /* Listas de checks en price cards */
+        html.light .price-card:not(.bg-\[\#d15330\]) .text-white\/70,
+        html.light .price-card:not(.bg-\[\#d15330\]) .text-white\/80,
+        html.light .price-card:not(.bg-\[\#d15330\]) .text-white\/60 { color: #52525b !important; }
+        html.light .price-card:not(.bg-\[\#d15330\]) .text-white\/30 { color: #a1a1aa !important; }
+        html.light .price-card:not(.bg-\[\#d15330\]) .border-white\/10,
+        html.light .price-card:not(.bg-\[\#d15330\]) .border-white\/5,
+        html.light .price-card:not(.bg-\[\#d15330\]) .border-white\/20 { border-color: rgba(0,0,0,0.1) !important; }
+
+        /* Proceso: número de paso */
+        html.light .proceso-step .text-\[\#d15330\] { color: #d15330 !important; }
+
+        /* Dashboard preview: side panel */
+        html.light .dashboard-right {
+            background-color: #ffffff !important;
+            border-color: rgba(0,0,0,0.08) !important;
+        }
+        html.light .dashboard-right h4 { color: #18181b !important; }
+        html.light .dashboard-right .text-white\/50 { color: rgba(0,0,0,0.5) !important; }
+        html.light .dashboard-right .text-white\/70 { color: rgba(0,0,0,0.65) !important; }
+        html.light .dashboard-right .border-white\/10 { border-color: rgba(0,0,0,0.12) !important; }
+        html.light .dashboard-right button.border { color: #18181b !important; }
+        html.light .dashboard-right .hover\:bg-white\/5:hover { background-color: rgba(0,0,0,0.05) !important; }
+
+        /* Landing: secciones grandes con fondo oscuro */
+        html.light #vision-card,
+        html.light #narrativa > div,
+        html.light #scroll-terminal-section > div,
+        html.light #logo-3d-section > div,
+        html.light #proceso > div {
+            background-color: #ffffff !important;
+            border-color: rgba(0,0,0,0.08) !important;
+        }
+        html.light #vision-card h2,
+        html.light #narrativa h2,
+        html.light #scroll-terminal-section h2,
+        html.light #logo-3d-section h2,
+        html.light #proceso h2 { color: #18181b !important; }
+
+        html.light #vision-card p,
+        html.light #narrativa p,
+        html.light #scroll-terminal-section p,
+        html.light #logo-3d-section p,
+        html.light #proceso p { color: #52525b !important; opacity: 1 !important; }
+
+        /* Vision words */
+        html.light .vision-word { color: rgba(0,0,0,0.15) !important; }
+
+        /* Scramble / narrativa texto */
+        html.light #scramble-text { color: #18181b !important; }
+
+        /* Terminal: mantener fondo negro */
+        html.light .relative.bg-black { background-color: #1a1a1a !important; }
+
+        /* Logo 3D canvas container */
+        html.light #canvas-container { background: linear-gradient(135deg, #e4e4e7, #f4f4f5) !important; }
+
+        /* Producto header */
+        html.light #producto h2 { color: #18181b !important; }
+        html.light #producto p.text-gray-400 { color: #52525b !important; opacity: 1 !important; }
+
+        /* ── MOSTRAR PROYECTOS ── */
+        /* Banner de bienvenida */
+        html.light .bg-\[\#0d0d0d\].border.border-white\/5 { background-color: #ffffff !important; border-color: rgba(0,0,0,0.08) !important; }
+        html.light .bg-\[\#0d0d0d\] h2 { color: #18181b !important; }
+        html.light .bg-\[\#0d0d0d\] p { color: #71717a !important; }
+
+        /* KPI cards, accesos rápidos y tabla */
+        html.light .bg-\[\#111111\] {
+            background-color: #ffffff !important;
+        }
+        html.light .bg-\[\#0f0f0f\] {
+            background-color: #f4f4f5 !important;
+        }
+        html.light .border-gray-800\/50 { border-color: rgba(0,0,0,0.08) !important; }
+        html.light .border-gray-800    { border-color: rgba(0,0,0,0.1) !important; }
+        html.light .divide-gray-800\/50 > * { border-color: rgba(0,0,0,0.06) !important; }
+
+        /* Textos dentro */
+        html.light .bg-\[\#111111\] h3,
+        html.light .bg-\[\#111111\] p.text-white,
+        html.light .bg-\[\#111111\] span.text-white { color: #18181b !important; }
+        html.light .bg-\[\#111111\] .text-gray-300,
+        html.light .bg-\[\#111111\] .text-gray-400,
+        html.light .bg-\[\#111111\] .text-gray-500 { color: #71717a !important; }
+        html.light .bg-\[\#111111\] .hover\:text-white:hover { color: #18181b !important; }
+
+        /* Hover de cards */
+        html.light .hover\:bg-\[\#161616\]:hover { background-color: #f0f0f0 !important; }
+
+        /* Tabla header */
+        html.light .bg-\[\#111111\]\/50 { background-color: rgba(0,0,0,0.03) !important; }
+
+        /* Número de cantidad en Estado de Proyectos */
+        html.light .bg-\[\#111111\] span.text-\[10px\].text-white.font-black { color: #18181b !important; }
+        html.light .bg-\[\#111111\] span.text-\[10px\].text-gray-400 { color: #71717a !important; }
+
+        /* Filas de lista de proyectos: texto negro y hover visible */
+        html.light .divide-gray-800\/50 > div .text-white { color: #18181b !important; }
+        html.light .divide-gray-800\/50 > div .text-gray-500 { color: #71717a !important; }
+        html.light .hover\:bg-white\/\[0\.02\]:hover { background-color: rgba(0,0,0,0.03) !important; }
+
+        /* USD precio en lista */
+        html.light .divide-gray-800\/50 > div p.text-xs.font-black.text-white { color: #18181b !important; }
+
+        /* Footer */
+        html.light footer {
+            background-color: #ebebeb !important;
+            border-top-color: rgba(0,0,0,0.08) !important;
+        }
+        html.light footer h3,
+        html.light footer h4 { color: #18181b !important; }
+        html.light footer .text-white\/40 { color: rgba(0,0,0,0.45) !important; }
+        html.light footer .text-white\/50 { color: rgba(0,0,0,0.5) !important; }
+        html.light footer .text-white\/25 { color: rgba(0,0,0,0.35) !important; }
+        html.light footer .border-white\/5 { border-color: rgba(0,0,0,0.08) !important; }
+
+        /* CTA final */
+        html.light #cta-final .bg-gradient-to-br,
+        html.light #cta-final [class*="from-\[#1a1a1a\]"] {
+            background: #ffffff !important;
+            border-color: rgba(0,0,0,0.10) !important;
+        }
+        html.light #cta-final h2 { color: #18181b !important; }
+        html.light #cta-final p.text-gray-400 { color: #52525b !important; }
+        html.light #cta-final .text-white\/60 { color: rgba(0,0,0,0.5) !important; }
+        html.light #cta-final .text-white\/30 { color: rgba(0,0,0,0.35) !important; }
+        html.light #cta-final .border-white\/10 { border-color: rgba(0,0,0,0.12) !important; }
+        html.light #cta-final .hover\:text-white:hover { color: #18181b !important; }
     </style>
 </head>
 <body class="font-sans antialiased bg-[#0a0a0a] text-gray-200 overflow-x-hidden">
@@ -151,6 +383,17 @@
                                     </a>
                                 </div>
                             @endauth
+
+                            {{-- Toggle tema --}}
+                            <button onclick="toggleRubraTheme()" title="Cambiar tema"
+                                class="flex items-center justify-center w-8 h-8 rounded-full border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-all">
+                                <svg id="rubra-icon-moon-landing" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                                </svg>
+                                <svg id="rubra-icon-sun-landing" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                </svg>
+                            </button>
                         </div>
 
                     </div>
@@ -167,6 +410,36 @@
     @livewireScripts
     @stack('scripts')
      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+{{-- ── THEME TOGGLE GLOBAL ─────────────────────────────────────────────────── --}}
+<script>
+function toggleRubraTheme() {
+    var h = document.documentElement;
+    var isLight = h.classList.contains('light');
+    if (isLight) {
+        h.classList.remove('light'); h.classList.add('dark');
+        localStorage.setItem('rubra_theme', 'dark');
+    } else {
+        h.classList.remove('dark'); h.classList.add('light');
+        localStorage.setItem('rubra_theme', 'light');
+    }
+    updateRubraThemeUI();
+}
+function updateRubraThemeUI() {
+    var isLight = document.documentElement.classList.contains('light');
+    // Sidebar icons
+    var moon  = document.getElementById('rubra-icon-moon');
+    var sun   = document.getElementById('rubra-icon-sun');
+    var label = document.getElementById('rubra-theme-label');
+    if (moon)  { moon.classList.toggle('hidden', isLight);  sun.classList.toggle('hidden', !isLight); }
+    if (label) { label.textContent = isLight ? 'Modo Oscuro' : 'Modo Claro'; }
+    // Landing icons
+    var moonL = document.getElementById('rubra-icon-moon-landing');
+    var sunL  = document.getElementById('rubra-icon-sun-landing');
+    if (moonL) { moonL.classList.toggle('hidden', isLight); sunL.classList.toggle('hidden', !isLight); }
+}
+document.addEventListener('DOMContentLoaded', updateRubraThemeUI);
+</script>
 
 {{-- ── CURSOR EFFECT ──────────────────────────────────────────────────────── --}}
 <canvas id="cursor-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:9999;"></canvas>
