@@ -15,11 +15,11 @@
             <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-white font-black text-sm uppercase tracking-widest truncate">{{ $proyecto->nombre_proyecto }}</h1>
-                    <span class="bg-green-500/10 text-green-500 text-[10px] font-black px-2 py-0.5 rounded border border-green-500/20 flex items-center gap-1 shrink-0">
+                    <span class="bg-green-500/10 text-green-500 text-sm font-black px-2 py-0.5 rounded border border-green-500/20 flex items-center gap-1 shrink-0">
                         <span class="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span> ONLINE
                     </span>
                 </div>
-                <p class="text-[10px] text-gray-600 uppercase tracking-widest font-bold">ESTADÍSTICAS ▾</p>
+                <p class="text-sm text-gray-600 uppercase tracking-widest font-bold">ESTADÍSTICAS ▾</p>
             </div>
         </div>
 
@@ -36,7 +36,7 @@
                     @continue
                 @endif
                 <a href="{{ $tab['route'] }}"
-                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap shrink-0
+                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-black uppercase tracking-wider transition-all whitespace-nowrap shrink-0
                        {{ $tab['active'] ? 'bg-white text-black' : 'text-gray-500 hover:text-white hover:bg-white/5' }}">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $tab['icon'] }}"/>
@@ -52,7 +52,7 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-black text-white uppercase tracking-[0.2em]">Estadísticas</h1>
-            <p class="text-[11px] text-gray-500 uppercase tracking-widest mt-1">Análisis detallado de costos, desviaciones y progreso temporal.</p>
+            <p class="text-base text-gray-500 uppercase tracking-widest mt-1">Análisis detallado de costos, desviaciones y progreso temporal.</p>
         </div>
 
         <div class="flex items-center gap-3 flex-wrap">
@@ -89,7 +89,7 @@
 
     @if(!$proyecto || !$stats)
         <div class="flex items-center justify-center h-64 border-2 border-dashed border-gray-800 rounded-3xl">
-            <p class="text-gray-600 text-[11px] font-bold uppercase tracking-widest">Seleccioná un proyecto para ver sus estadísticas</p>
+            <p class="text-gray-600 text-base font-bold uppercase tracking-widest">Seleccioná un proyecto para ver sus estadísticas</p>
         </div>
     @else
 
@@ -100,7 +100,7 @@
         <div class="bg-[#111] border border-gray-800/50 rounded-2xl p-5">
             <div class="flex items-center gap-2 mb-3">
                 <span class="text-blue-400 text-lg">$</span>
-                <p class="text-[9px] text-gray-500 font-black uppercase tracking-[0.15em]">Presupuesto Total</p>
+                <p class="text-xs text-gray-500 font-black uppercase tracking-[0.15em]">Presupuesto Total</p>
             </div>
             <p class="text-2xl font-black text-white tracking-tighter">{{ number_format($stats['presupuesto'], 0, ',', '.') }}</p>
         </div>
@@ -109,7 +109,7 @@
         <div class="bg-[#111] border border-gray-800/50 rounded-2xl p-5">
             <div class="flex items-center gap-2 mb-3">
                 <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                <p class="text-[9px] text-gray-500 font-black uppercase tracking-[0.15em]">Avance Financiero</p>
+                <p class="text-xs text-gray-500 font-black uppercase tracking-[0.15em]">Avance Financiero</p>
             </div>
             <p class="text-2xl font-black text-cyan-400 tracking-tighter">{{ number_format($stats['avanceFinanciero'], 1) }}%</p>
             <div class="mt-2 h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -121,15 +121,15 @@
         <div class="bg-[#111] border border-gray-800/50 rounded-2xl p-5">
             <div class="flex items-center gap-2 mb-3">
                 <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <p class="text-[9px] text-gray-500 font-black uppercase tracking-[0.15em]">Precio Final (Real)</p>
+                <p class="text-xs text-gray-500 font-black uppercase tracking-[0.15em]">Precio Final (Real)</p>
             </div>
             <p class="text-2xl font-black text-white tracking-tighter">{{ number_format($stats['costoReal'], 0, ',', '.') }}</p>
             @php $desv = $stats['desviacion']; @endphp
-            <p class="text-[10px] mt-1 font-bold {{ $desv > 0 ? 'text-red-400' : 'text-emerald-400' }}">
+            <p class="text-sm mt-1 font-bold {{ $desv > 0 ? 'text-red-400' : 'text-emerald-400' }}">
                 {{ $desv > 0 ? '▲' : '▼' }} Desv. USD {{ number_format(abs($desv), 0, ',', '.') }}
             </p>
             @if($stats['ivaEjecutado'] > 0)
-            <div class="text-[9px] text-gray-600 mt-2 pt-2 border-t border-gray-700/50">
+            <div class="text-xs text-gray-600 mt-2 pt-2 border-t border-gray-700/50">
                 <p>Subtotal: USD {{ number_format($stats['costoRealSubtotal'], 0, ',', '.') }}</p>
                 <p>+ IVA: USD {{ number_format($stats['ivaEjecutado'], 0, ',', '.') }}</p>
             </div>
@@ -142,7 +142,7 @@
 
         {{-- Distribución de costos --}}
 <div class="bg-[#111] border border-gray-800/50 rounded-2xl p-6">
-    <h2 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-5">Distribución de Costos</h2>
+    <h2 class="text-sm font-black text-gray-400 uppercase tracking-[0.2em] mb-5">Distribución de Costos</h2>
     @if($stats['distribucion']->count())
         <div class="flex flex-col items-center gap-5">
             <div id="data-dist" wire:key="data-dist-{{ $proyecto->id }}" data-value='@json($stats["distribucion"])' class="hidden"></div>
@@ -155,7 +155,7 @@
                     $labelDist = ['material'=>'Materiales','labor'=>'Mano de Obra','equipment'=>'Equipos','composition'=>'Composiciones'];
                 @endphp
                 @foreach($stats['distribucion'] as $dist)
-                <div class="flex justify-between items-center text-[11px]">
+                <div class="flex justify-between items-center text-base">
                     <div class="flex items-center gap-2">
                         <div class="w-2 h-2 rounded-full" style="background:{{ $colDist[$dist->tipo] ?? '#6b7280' }}"></div>
                         <span class="text-gray-400 font-bold uppercase">{{ $labelDist[$dist->tipo] ?? $dist->tipo }}</span>
@@ -166,30 +166,30 @@
             </div>
         </div>
     @else
-        <div class="flex items-center justify-center h-40 text-gray-700 text-[11px] font-bold uppercase">Sin datos</div>
+        <div class="flex items-center justify-center h-40 text-gray-700 text-base font-bold uppercase">Sin datos</div>
     @endif
 </div>
 
         {{-- Top 5 partidas --}}
         <div class="bg-[#111] border border-gray-800/50 rounded-2xl p-6">
-            <h2 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-5">Mayores Desviaciones (Top 5)</h2>
+            <h2 class="text-sm font-black text-gray-400 uppercase tracking-[0.2em] mb-5">Mayores Desviaciones (Top 5)</h2>
             @if($stats['topPartidas']->count())
                 <div id="data-partidas" wire:key="data-partidas-{{ $proyecto->id }}" data-value='@json($stats["topPartidas"])' class="hidden"></div>
                 <div class="space-y-3" wire:ignore>
                     <canvas id="bar-partidas" height="180"></canvas>
                 </div>
             @else
-                <div class="flex items-center justify-center h-40 text-gray-700 text-[11px] font-bold uppercase">Sin datos</div>
+                <div class="flex items-center justify-center h-40 text-gray-700 text-base font-bold uppercase">Sin datos</div>
             @endif
         </div>
     </div>
 
     {{-- MAYORES MATERIALES CONSUMIDOS --}}
     <div class="bg-[#111] border border-gray-800/50 rounded-2xl p-6">
-        <h2 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-5">Mayores Materiales Consumidos (Top 10)</h2>
+        <h2 class="text-sm font-black text-gray-400 uppercase tracking-[0.2em] mb-5">Mayores Materiales Consumidos (Top 10)</h2>
         @if($stats['mayoresMateriales']->count())
             <div class="overflow-x-auto">
-                <table class="w-full text-[11px]">
+                <table class="w-full text-base">
                     <thead>
                         <tr class="border-b border-gray-700/50">
                             <th class="text-left px-4 py-3 text-gray-500 font-black uppercase tracking-widest">#</th>
@@ -221,18 +221,18 @@
                 </table>
             </div>
             <div class="mt-4 pt-4 border-t border-gray-700/50 flex justify-between items-center">
-                <span class="text-[10px] text-gray-500 font-black uppercase">TOTAL MATERIALES</span>
+                <span class="text-sm text-gray-500 font-black uppercase">TOTAL MATERIALES</span>
                 <span class="text-lg font-black text-orange-400">USD {{ number_format($totalMateriales, 0, ',', '.') }}</span>
             </div>
         @else
-            <div class="flex items-center justify-center h-40 text-gray-700 text-[11px] font-bold uppercase">Sin materiales cargados</div>
+            <div class="flex items-center justify-center h-40 text-gray-700 text-base font-bold uppercase">Sin materiales cargados</div>
         @endif
     </div>
 
     {{-- EVOLUCIÓN TEMPORAL --}}
     @if($stats['evolucion']->count())
     <div class="bg-[#111] border border-gray-800/50 rounded-2xl p-6">
-        <h2 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-5">Evolución de Costos en el Tiempo</h2>
+        <h2 class="text-sm font-black text-gray-400 uppercase tracking-[0.2em] mb-5">Evolución de Costos en el Tiempo</h2>
         <div id="data-evolucion" wire:key="data-evolucion-{{ $proyecto->id }}" data-value='@json($stats["evolucion"])' class="hidden"></div>
         <div wire:ignore>
             <canvas id="line-evolucion" height="80"></canvas>

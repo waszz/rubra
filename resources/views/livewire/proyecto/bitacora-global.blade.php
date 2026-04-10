@@ -12,11 +12,11 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-white font-black text-sm uppercase tracking-widest">{{ $proyecto->nombre_proyecto }}</h1>
-                    <span class="bg-green-500/10 text-green-500 text-[10px] font-black px-2 py-0.5 rounded border border-green-500/20 flex items-center gap-1">
+                    <span class="bg-green-500/10 text-green-500 text-sm font-black px-2 py-0.5 rounded border border-green-500/20 flex items-center gap-1">
                         <span class="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span> ONLINE
                     </span>
                 </div>
-                <p class="text-[10px] text-gray-600 uppercase tracking-widest font-bold">BITÁCORA ▾</p>
+                <p class="text-sm text-gray-600 uppercase tracking-widest font-bold">BITÁCORA ▾</p>
             </div>
         </div>
 
@@ -32,7 +32,7 @@
                     @continue
                 @endif
                 <a href="{{ $tab['route'] }}"
-                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all
+                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-black uppercase tracking-wider transition-all
                        {{ $tab['active'] ? 'bg-white text-black' : 'text-gray-500 hover:text-white hover:bg-white/5' }}">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $tab['icon'] }}"/>
@@ -53,7 +53,7 @@
             <div class="flex justify-between items-center mb-8">
                 <div>
                     <h1 class="text-3xl font-black uppercase tracking-tighter italic">Bitácora de Obra</h1>
-                    <p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Historial de movimientos del proyecto</p>
+                    <p class="text-gray-500 text-sm uppercase font-bold tracking-widest">Historial de movimientos del proyecto</p>
                 </div>
             </div>
 
@@ -63,7 +63,7 @@
                 {{-- Selector de proyecto (solo modo global) --}}
                 @if(!$modoProyecto)
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-[9px] text-gray-500 uppercase font-black ml-1 tracking-widest">Proyecto</label>
+                    <label class="text-xs text-gray-500 uppercase font-black ml-1 tracking-widest">Proyecto</label>
                     <select wire:model.live="proyectoId"
                         class="bg-[#0a0a0a] border border-white/10 rounded-xl text-xs text-white px-4 py-2 focus:border-blue-500 outline-none transition w-64">
                         @foreach($proyectos as $p)
@@ -74,13 +74,13 @@
                 @endif
 
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-[9px] text-gray-500 uppercase font-black ml-1 tracking-widest">Fecha del reporte</label>
+                    <label class="text-xs text-gray-500 uppercase font-black ml-1 tracking-widest">Fecha del reporte</label>
                     <input type="date" wire:model.live="searchFecha"
                         class="bg-[#0a0a0a] border border-white/10 rounded-xl text-xs text-white px-4 py-2 focus:border-blue-500 outline-none transition w-44">
                 </div>
 
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-[9px] text-gray-500 uppercase font-black ml-1 tracking-widest">Filtrar por rubro</label>
+                    <label class="text-xs text-gray-500 uppercase font-black ml-1 tracking-widest">Filtrar por rubro</label>
                     <select wire:model.live="searchRubro"
                         class="bg-[#0a0a0a] border border-white/10 rounded-xl text-xs text-white px-4 py-2 focus:border-blue-500 outline-none transition w-64">
                         <option value="">Todos los rubros</option>
@@ -92,7 +92,7 @@
 
                 @if($searchFecha || $searchRubro)
                     <button wire:click="limpiarFiltros"
-                        class="mt-5 text-[10px] text-red-500/80 uppercase font-black hover:text-red-400 transition flex items-center gap-1">
+                        class="mt-5 text-sm text-red-500/80 uppercase font-black hover:text-red-400 transition flex items-center gap-1">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         Limpiar
                     </button>
@@ -102,7 +102,7 @@
             {{-- LÍNEA DE TIEMPO --}}
             @if(!$proyecto)
                 <div class="flex items-center justify-center h-64 border-2 border-dashed border-gray-800 rounded-3xl">
-                    <p class="text-gray-600 text-[11px] font-bold uppercase tracking-widest">Seleccioná un proyecto para ver su bitácora</p>
+                    <p class="text-gray-600 text-base font-bold uppercase tracking-widest">Seleccioná un proyecto para ver su bitácora</p>
                 </div>
             @else
             <div class="relative border-l border-white/10 ml-4 space-y-12 pb-20">
@@ -120,12 +120,12 @@
                                     </div>
                                     <div>
                                         <h4 class="font-bold text-sm">Residente de Obra</h4>
-                                        <p class="text-[9px] text-gray-500 uppercase font-black tracking-widest">
+                                        <p class="text-xs text-gray-500 uppercase font-black tracking-widest">
                                             Reporte: <span class="text-blue-400">{{ $registro->recurso->nombre }}</span>
                                         </p>
                                     </div>
                                 </div>
-                                <span class="text-[10px] text-gray-600 font-mono bg-black/40 px-3 py-1 rounded-full border border-white/5">
+                                <span class="text-sm text-gray-600 font-mono bg-black/40 px-3 py-1 rounded-full border border-white/5">
                                     {{ $registro->created_at->format('d/m/Y H:i') }}
                                 </span>
                             </div>
@@ -136,13 +136,13 @@
                                         "{{ $registro->notas ?? 'Sin comentarios adicionales.' }}"
                                     </p>
                                     <div class="mt-4 flex flex-wrap gap-2">
-                                        <span class="text-[10px] bg-white/5 px-3 py-1 rounded-full text-gray-300 border border-white/5">
+                                        <span class="text-sm bg-white/5 px-3 py-1 rounded-full text-gray-300 border border-white/5">
                                             Avance: <strong class="text-[#00ff88]">{{ $registro->avance_fisico }}%</strong>
                                         </span>
-                                        <span class="text-[10px] bg-white/5 px-3 py-1 rounded-full text-gray-400 border border-white/5">
+                                        <span class="text-sm bg-white/5 px-3 py-1 rounded-full text-gray-400 border border-white/5">
                                             {{ $registro->cantidad_hoy }} (M2)
                                         </span>
-                                        <span class="text-[10px] bg-white/5 px-3 py-1 rounded-full text-gray-400 border border-white/5">
+                                        <span class="text-sm bg-white/5 px-3 py-1 rounded-full text-gray-400 border border-white/5">
                                             ${{ number_format($registro->costo_hoy, 2) }}
                                         </span>
                                     </div>
