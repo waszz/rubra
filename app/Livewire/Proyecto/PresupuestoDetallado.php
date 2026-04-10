@@ -89,6 +89,9 @@ public $rolCompartir = 'supervisor'; // Rol que elegirá quien genera el link
     public $incluirCantidad = true;
     public $incluirPrecio = true;
 
+    // Alcance de exportación: 'completo' | 'rubros_subrubros'
+    public $exportScope = 'completo';
+
     // Modal exportación Excel
     public $mostrarModalExcel = false;
     public $tituloExcel = 'REPORTE DE PRESUPUESTO';
@@ -199,7 +202,7 @@ public function cerrarModalExcel()
 public function exportarPDF()
 {
     try {
-        $datos  = $this->obtenerDatosPresupuesto();
+        $datos  = $this->obtenerDatosPresupuesto($this->exportScope);
         $config = ConfiguracionGeneral::instancia();
 
         $subtotalBase         = $datos['total'];
@@ -259,6 +262,7 @@ public function exportarPDF()
                 'incluirUnidad'       => $this->incluirUnidad,
                 'incluirCantidad'     => $this->incluirCantidad,
                 'incluirPrecio'       => $this->incluirPrecio,
+                'exportScope'         => $this->exportScope,
             ],
             'alcance'      => $this->incluirAlcance     ? $this->alcancePresupuesto  : '',
             'condiciones'  => $this->incluirCondiciones ? $this->condicionesGenerales : '',
@@ -302,7 +306,7 @@ public function exportarPDF()
 public function exportarExcel()
 {
     try {
-        $datos  = $this->obtenerDatosPresupuesto();
+        $datos  = $this->obtenerDatosPresupuesto($this->exportScope);
         $config = ConfiguracionGeneral::instancia();
 
         $subtotalBase         = $datos['total'];
@@ -726,29 +730,42 @@ public function exportarExcel()
 /**
  * Obtiene los datos del presupuesto formateados para exportación
  */
-private function obtenerDatosPresupuesto()
+private function obtenerDatosPresupuesto($scope = 'completo')
 {
     $items = [];
     $total = 0;
-    
+
     $this->recorrerNodos($this->proyecto->proyectoRecursos->whereNull('parent_id'), '', $items, $total);
 
-    // Subtotal por categoría: sumar ítems hoja + subtotal propio de subrubros (sin duplicar hijos)
+    // Subtotal por categoría.
     $catSubtotales = [];
     foreach ($items as $item) {
         $cat = $item['categoria'] ?? '';
         if ($item['tipo'] === 'item') {
             $catSubtotales[$cat] = ($catSubtotales[$cat] ?? 0) + ($item['subtotal'] ?? 0);
         } elseif ($item['tipo'] === 'subrubro') {
-            // sumar solo el propio del subrubro (precio * cantidad), no sus hijos (ya contados como 'item')
-            $own = ($item['precio_usd'] ?? 0) * ($item['cantidad'] ?? 0);
-            $catSubtotales[$cat] = ($catSubtotales[$cat] ?? 0) + $own;
+            if ($scope === 'completo') {
+                // En vista completa sólo sumar la parte propia del subrubro (evitar duplicar hijos)
+                $own = ($item['precio_own'] ?? 0) * ($item['cantidad'] ?? 0);
+                $catSubtotales[$cat] = ($catSubtotales[$cat] ?? 0) + $own;
+            } else {
+                // En vista rubros/subrubros sumar el subtotal completo del subrubro
+                $catSubtotales[$cat] = ($catSubtotales[$cat] ?? 0) + ($item['subtotal'] ?? 0);
+            }
         }
+    }
+
+    // Total general es la suma de los subtotales por categoría
+    $totalGeneral = array_sum($catSubtotales);
+
+    // Si el alcance es 'rubros_subrubros' filtramos los items para no incluir materiales
+    if ($scope === 'rubros_subrubros') {
+        $items = array_values(array_filter($items, fn($i) => $i['tipo'] === 'subrubro'));
     }
 
     return [
         'items'          => $items,
-        'total'          => $total,
+        'total'          => $totalGeneral,
         'cat_subtotales' => $catSubtotales,
     ];
 }
@@ -855,7 +872,10 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
                 'descripcion' => '',
                 'unidad'      => $nodo->unidad ?? '',
                 'cantidad'    => $nodo->cantidad ?? null,
-                'precio_usd'  => $computePerUnit($nodo), // precio por unidad basado en lo que contiene
+                // precio_usd: precio POR UNIDAD calculado en base a lo que contiene (para mostrar)
+                'precio_usd'  => $computePerUnit($nodo),
+                // precio_own: precio propio asignado al nodo (sin sumar hijos)
+                'precio_own'  => $nodo->precio_usd ?? $nodo->precio_unitario ?? 0,
                 'subtotal'    => $subrubroSubtotal,
             ];
 

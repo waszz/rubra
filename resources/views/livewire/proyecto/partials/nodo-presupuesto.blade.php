@@ -18,95 +18,51 @@
     $recursosDir  = $hijos->whereNotNull('recurso_id');
     $totalNodo    = ($nodo->precio_unitario ?? $nodo->precio_usd ?? 0) * $nodo->cantidad;
     $esComposicion = $esRecurso && $nodo->recurso?->tipo === 'composition';
+    $nivel = $nivel ?? 0;
+    $bgFila = $bgFila ?? '';
+    $colorTexto = $colorTexto ?? 'text-white';
+    $dotColor = $dotColor ?? 'bg-gray-400';
+    $itemsComposicion = $itemsComposicion ?? collect($nodo->recurso?->items ?? []);
 
-    $indent = match($nivel) {
-        1 => 'pl-6',
-        2 => 'pl-12',
-        3 => 'pl-20',
-        4 => 'pl-28',
-        default => 'pl-36',
-    };
+    // compute per unit recursively (sum of contents per single unidad)
+    $computePerUnit = function ($node) use (&$computePerUnit) {
+        $precioPropio = $node->precio_usd ?? $node->precio_unitario ?? 0;
 
-    $colorTexto = match($nivel) {
-        1 => 'text-gray-200',
-        2 => 'text-gray-300',
-        3 => 'text-gray-400',
-        default => 'text-gray-500',
-    };
-
-    $bgFila = match($nivel) {
-        1 => 'bg-black/10',
-        2 => 'bg-black/20',
-        3 => 'bg-black/30',
-        default => 'bg-black/40',
-    };
-
-    $dotColor = match($nivel) {
-        1 => 'bg-purple-500/40',
-        2 => 'bg-blue-500/40',
-        3 => 'bg-white/20',
-        default => 'bg-white/10',
-    };
-
-    // Carga directa de items si es composición abierta
-    $itemsComposicion = ($esComposicion && $nodoAbierto && $nodo->recurso)
-        ? \App\Models\ComposicionItem::with('recursoBase')
-            ->where('composicion_id', $nodo->recurso->id)
-            ->get()
-        : collect();
-
-    // Calcular subtotal del nodo: primero calculamos el costo "por unidad" y luego multiplicamos
-    // por la cantidad del nodo. Esto permite que la cantidad del subrubro multiplique
-    // lo que tenga agregado (hijos y/o composición).
-    $computePerUnit = function($node) use (&$computePerUnit) {
-        $perUnit = 0;
-
-        // Precio propio por unidad
-        $pOwnUnit = $node->precio_unitario ?? $node->precio_usd ?? 0;
-        $perUnit += $pOwnUnit;
-
-        // Si es composición, sumar sus items por unidad
-        if ($node->recurso && ($node->recurso->tipo ?? null) === 'composition') {
-            foreach ($node->recurso->items ?? [] as $it) {
-                if (!$it->recursoBase) continue;
-                $pBase = $it->recursoBase->precio_usd ?? 0;
-                $isLabor = in_array($it->recursoBase->tipo, ['labor', 'mano_obra']);
-                $carga = $isLabor ? ($pBase * (($it->recursoBase->social_charges_percentage ?? 0) / 100)) : 0;
-                $perUnit += ($it->cantidad) * ($pBase + $carga);
+        if (!empty($node->composicion_items) && count($node->composicion_items)) {
+            $apuTotal = 0;
+            foreach ($node->composicion_items as $ci) {
+                $apuTotal += ($ci->cantidad * ($ci->recurso->precio_unitario ?? 0));
             }
+            $precioPropio += $apuTotal;
         }
 
-        // Hijos: sumar la contribución por unidad de cada hijo
-        if ($node->hijos && count($node->hijos) > 0) {
-            foreach ($node->hijos as $child) {
-                if (is_null($child->recurso_id)) {
-                    // Subrubro hijo: su contribución por unidad es su costo por unidad * su cantidad
-                    $perUnit += $computePerUnit($child) * ($child->cantidad ?? 1);
+        if (!empty($node->hijos) && count($node->hijos)) {
+            foreach ($node->hijos as $h) {
+                if (($h->es_recurso ?? false)) {
+                    // child is a resource: its contribution to parent's per-unit is child.cantidad * child.unit_price
+                    $precioPropio += ($h->cantidad ?? 1) * ($h->precio_usd ?? $h->precio_unitario ?? 0);
                 } else {
-                    // Recurso directo: cantidad * precio por unidad
-                    $pChild = $child->precio_usd ?? 0;
-                    $cantChild = $child->cantidad ?? 1;
-                    $perUnit += $cantChild * $pChild;
-                    // Si el recurso es composición, agregar sus items internos por la cantidad del hijo
-                    if ($child->recurso && ($child->recurso->tipo ?? null) === 'composition') {
-                        foreach ($child->recurso->items ?? [] as $it) {
-                            if (!$it->recursoBase) continue;
-                            $pBase = $it->recursoBase->precio_usd ?? 0;
-                            $isLabor = in_array($it->recursoBase->tipo, ['labor', 'mano_obra']);
-                            $carga = $isLabor ? ($pBase * (($it->recursoBase->social_charges_percentage ?? 0) / 100)) : 0;
-                            $perUnit += ($it->cantidad) * ($pBase + $carga) * $cantChild;
-                        }
-                    }
+                    // child is subrubro: its per-unit value contributes multiplied by its own cantidad
+                    $precioPropio += $computePerUnit($h) * ($h->cantidad ?? 1);
                 }
             }
         }
 
-        return $perUnit;
+        return $precioPropio;
     };
 
+    // subtotal displayed in row: per-unit * nodo.cantidad (if any)
     $subtotalNodo = $computePerUnit($nodo) * ($nodo->cantidad ?? 1);
+
+    // indentation classes based on level
+    $indent = match($nivel) {
+        0 => 'pl-0',
+        1 => 'pl-3',
+        default => 'pl-6',
+    };
 @endphp
 
+@if(!$esRecurso || $esComposicion)
 <div class="border-t border-white/[0.025]" wire:key="{{ 'node-' . $nodo->id }}">
 
     {{-- FILA DEL NODO --}}
@@ -144,20 +100,7 @@
                     <p class="text-base {{ $colorTexto }} font-semibold uppercase truncate">
                         {{ $nodo->nombre }}
                     </p>
-                    @if($esComposicion)
-                        <span class="shrink-0 text-xs font-black px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded uppercase tracking-wide">APU</span>
-                    @endif
                 </div>
-            </div>
-
-            {{-- Botones icono-only (ocultos en modo lectura) --}}
-            @if(!$modoLectura)
-            <div class="flex items-center gap-1 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button wire:click.stop="subirNodo({{ $nodo->id }})"
-                    title="Subir"
-                    class="w-7 h-7 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
-                </button>
                 <button wire:click.stop="bajarNodo({{ $nodo->id }})"
                     title="Bajar"
                     class="w-7 h-7 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
@@ -186,7 +129,6 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
             </div>
-            @endif
 
         </div>
 
@@ -324,3 +266,4 @@
     @endif
 
 </div>
+@endif

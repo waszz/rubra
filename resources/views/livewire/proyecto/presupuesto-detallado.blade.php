@@ -1301,6 +1301,21 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                 </div>
             </div>
 
+            {{-- ALCANCE DE EXPORTACIÓN --}}
+            <div class="border-t border-gray-700 pt-4">
+                <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-3">Alcance de Exportación</p>
+                <div class="flex flex-col gap-2">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="exportScope" wire:model="exportScope" value="rubros_subrubros" class="w-4 h-4 rounded">
+                        <span class="text-gray-300 text-sm">VER RUBROS y SUB RUBROS (solo totales por rubro/subrubro)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="exportScope" wire:model="exportScope" value="completo" class="w-4 h-4 rounded">
+                        <span class="text-gray-300 text-sm">VER COMPLETO (detalle completo: rubros, subrubros y recursos)</span>
+                    </label>
+                </div>
+            </div>
+
         </div>
 
         {{-- FOOTER / BOTONES --}}
@@ -1398,6 +1413,21 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" wire:model="excelIncluirPrecio" class="w-4 h-4 rounded">
                         <span class="text-gray-300 text-xs">Precio</span>
+                    </label>
+                </div>
+            </div>
+
+            {{-- ALCANCE DE EXPORTACIÓN --}}
+            <div class="border-t border-gray-700 pt-4">
+                <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-3">Alcance de Exportación</p>
+                <div class="flex flex-col gap-2">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="exportScope" wire:model="exportScope" value="rubros_subrubros" class="w-4 h-4 rounded">
+                        <span class="text-gray-300 text-sm">VER RUBROS y SUB RUBROS (solo totales por rubro/subrubro)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="exportScope" wire:model="exportScope" value="completo" class="w-4 h-4 rounded">
+                        <span class="text-gray-300 text-sm">VER COMPLETO (detalle completo: rubros, subrubros y recursos)</span>
                     </label>
                 </div>
             </div>
