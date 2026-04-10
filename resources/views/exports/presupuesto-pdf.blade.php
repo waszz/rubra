@@ -551,11 +551,25 @@
                 @endif
 
                 @if($item['tipo'] === 'subrubro')
-                    {{-- Sub-encabezado: sin cantidad ni precio --}}
+                    {{-- Subrubro: mostrar unidad, cantidad y precio (propio) --}}
                     <tr class="subrubro-row">
-                        <td colspan="{{ $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + ($opciones['incluirPrecio'] ? 4 : 2) }}">
-                            {{ $item['nombre'] }}
-                        </td>
+                        <td><strong>{{ $item['nombre'] }}</strong></td>
+                        <td>{{ $item['descripcion'] ?? '—' }}</td>
+                        @if($opciones['incluirUnidad'])
+                            <td class="text-center">{{ $item['unidad'] ?? '—' }}</td>
+                        @endif
+                        @if($opciones['incluirCantidad'])
+                            <td class="text-right">{{ number_format($item['cantidad'] ?? 0, 2, ',', '.') }}</td>
+                        @endif
+                        @if($opciones['incluirPrecio'])
+                            <td class="text-right">$ {{ number_format($precioConBeneficio, 2, ',', '.') }}</td>
+                            <td class="text-right">$ {{ number_format($subtotalConBeneficio, 2, ',', '.') }}</td>
+                            @php
+                                // sumar solo la parte propia del subrubro al total general (evitar duplicar hijos)
+                                $ownCon = ($item['precio_usd'] ?? 0) * $factorBeneficio * ($item['cantidad'] ?? 0);
+                                $totalGeneral += $ownCon;
+                            @endphp
+                        @endif
                     </tr>
                 @else
                     {{-- Ítem normal --}}

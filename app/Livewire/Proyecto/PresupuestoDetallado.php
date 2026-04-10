@@ -588,8 +588,22 @@ public function exportarExcel()
                     'fill'      => ['fillType' => $Fill, 'startColor' => ['rgb' => 'F5F5F5']],
                     'alignment' => ['horizontal' => $Left, 'indent' => 2],
                 ];
-                $sheet->setCellValue('A' . $row, $item['nombre']);
-                $sheet->mergeCells('A' . $row . ':' . $lastColLetter . $row);
+                $col = 1;
+                $sheet->setCellValueByColumnAndRow($col++, $row, $item['categoria']);
+                $sheet->setCellValueByColumnAndRow($col++, $row, $item['nombre']);
+                $sheet->setCellValueByColumnAndRow($col++, $row, $item['descripcion'] ?? '');
+                if ($this->excelIncluirUnidad)   $sheet->setCellValueByColumnAndRow($col++, $row, $item['unidad'] ?? '');
+                if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $item['cantidad'] ?? 0);
+                if ($this->excelIncluirPrecio) {
+                    $precioConBeneficioExcel   = ($item['precio_usd'] ?? 0) * (1 + $pctBeneficio / 100);
+                    $subtotalConBeneficioExcel = ($item['subtotal'] ?? 0)   * (1 + $pctBeneficio / 100);
+                    $sheet->setCellValueByColumnAndRow($col++, $row, $precioConBeneficioExcel);
+                    $sheet->setCellValueByColumnAndRow($col++, $row, $subtotalConBeneficioExcel);
+                    $penult = $lastCol - 1;
+                    $penultLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($penult);
+                    $sheet->getStyle($penultLetter . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                    $sheet->getStyle($lastColLetter . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                }
                 $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleSubrubro);
                 $row++;
                 continue;
@@ -719,12 +733,16 @@ private function obtenerDatosPresupuesto()
     
     $this->recorrerNodos($this->proyecto->proyectoRecursos->whereNull('parent_id'), '', $items, $total);
 
-    // Subtotal por categoría (solo ítems hoja, sin subrubros)
+    // Subtotal por categoría: sumar ítems hoja + subtotal propio de subrubros (sin duplicar hijos)
     $catSubtotales = [];
     foreach ($items as $item) {
+        $cat = $item['categoria'] ?? '';
         if ($item['tipo'] === 'item') {
-            $cat = $item['categoria'];
-            $catSubtotales[$cat] = ($catSubtotales[$cat] ?? 0) + $item['subtotal'];
+            $catSubtotales[$cat] = ($catSubtotales[$cat] ?? 0) + ($item['subtotal'] ?? 0);
+        } elseif ($item['tipo'] === 'subrubro') {
+            // sumar solo el propio del subrubro (precio * cantidad), no sus hijos (ya contados como 'item')
+            $own = ($item['precio_usd'] ?? 0) * ($item['cantidad'] ?? 0);
+            $catSubtotales[$cat] = ($catSubtotales[$cat] ?? 0) + $own;
         }
     }
 
@@ -793,17 +811,54 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
             // Nodo top-level con hijos → actúa como CATEGORÍA (fila gris), no se agrega como ítem
             $this->recorrerNodos($nodo->hijos, $catEste, $items, $total);
         } elseif (is_null($nodo->recurso_id)) {
-            // Sin recurso_id → SUBRUBRO (sub-encabezado, aunque no tenga hijos todavía)
+            // Sin recurso_id → SUBRUBRO (sub-encabezado)
+            // Calculamos el costo por unidad del subrubro y luego multiplicamos por su cantidad.
+            $computePerUnit = function($node) use (&$computePerUnit) {
+                $perUnit = 0;
+
+                // propio por unidad
+                $pNodeUnit = $node->precio_usd ?? $node->precio_unitario ?? 0;
+                $perUnit += $pNodeUnit;
+
+                // hijos
+                if ($node->hijos && count($node->hijos) > 0) {
+                    foreach ($node->hijos as $child) {
+                        if (is_null($child->recurso_id)) {
+                            // subrubro hijo: su contribución por unidad = su costo por unidad * su cantidad
+                            $perUnit += $computePerUnit($child) * ($child->cantidad ?? 1);
+                        } else {
+                            $p = $child->precio_usd ?? 0;
+                            $cant = $child->cantidad ?? 1;
+                            $perUnit += $p * $cant;
+                            if ($child->recurso && ($child->recurso->tipo ?? null) === 'composition') {
+                                foreach ($child->recurso->items ?? [] as $it) {
+                                    if (!$it->recursoBase) continue;
+                                    $pBase = $it->recursoBase->precio_usd ?? 0;
+                                    $isLabor = in_array($it->recursoBase->tipo, ['labor', 'mano_obra']);
+                                    $carga = $isLabor ? ($pBase * (($it->recursoBase->social_charges_percentage ?? 0) / 100)) : 0;
+                                    $perUnit += ($it->cantidad) * ($pBase + $carga) * $cant;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return $perUnit;
+            };
+
+            $subrubroSubtotal = $computePerUnit($nodo) * ($nodo->cantidad ?? 1);
+
             $items[] = [
                 'tipo'        => 'subrubro',
                 'categoria'   => $catEste,
                 'nombre'      => $nodo->nombre,
                 'descripcion' => '',
-                'unidad'      => '',
-                'cantidad'    => null,
-                'precio_usd'  => null,
-                'subtotal'    => 0,
+                'unidad'      => $nodo->unidad ?? '',
+                'cantidad'    => $nodo->cantidad ?? null,
+                'precio_usd'  => $nodo->precio_usd ?? $nodo->precio_unitario ?? 0,
+                'subtotal'    => $subrubroSubtotal,
             ];
+
             if ($tieneHijos) {
                 $this->recorrerNodos($nodo->hijos, $catEste, $items, $total);
             }

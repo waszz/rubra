@@ -217,15 +217,59 @@
 {{-- CARDS TOTALES ACTUALIZADAS --}}
 @php
     // Función recursiva para calcular subtotal de todos los recursos en el árbol
+    // Ahora calcula el costo "por unidad" de cada nodo y luego multiplica por su cantidad,
+    // de forma que la cantidad de un subrubro multiplique lo que tenga agregado.
     function calcularSubtotalRecursivo($nodos) {
+        $computePerUnit = function($node) use (&$computePerUnit) {
+            $perUnit = 0;
+            $precioUnitario = $node->precio_unitario ?? $node->precio_usd ?? 0;
+            $perUnit += $precioUnitario;
+
+            // Si es composición, sumar items por unidad
+            if ($node->recurso && ($node->recurso->tipo ?? null) === 'composition') {
+                $itemsInternos = \App\Models\ComposicionItem::where('composicion_id', $node->recurso_id)->get();
+                foreach ($itemsInternos as $interno) {
+                    $resBase = $interno->recursoBase;
+                    if (!$resBase) continue;
+                    $pBase = $resBase->precio_usd ?? 0;
+                    $isLabor = in_array($resBase->tipo, ['labor', 'mano_obra']);
+                    $carga = $isLabor ? ($pBase * (($resBase->social_charges_percentage ?? 0) / 100)) : 0;
+                    $perUnit += ($interno->cantidad) * ($pBase + $carga);
+                }
+            }
+
+            // Hijos: su contribución se agrega en función de su cantidad por unidad
+            if ($node->hijos && $node->hijos->count() > 0) {
+                foreach ($node->hijos as $child) {
+                    if (is_null($child->recurso_id)) {
+                        $perUnit += $computePerUnit($child) * ($child->cantidad ?? 1);
+                    } else {
+                        $pChild = $child->precio_unitario ?? $child->precio_usd ?? 0;
+                        $cantChild = $child->cantidad ?? 1;
+                        $perUnit += $cantChild * $pChild;
+                        if ($child->recurso && ($child->recurso->tipo ?? null) === 'composition') {
+                            $itemsInternos = \App\Models\ComposicionItem::where('composicion_id', $child->recurso_id)->get();
+                            foreach ($itemsInternos as $interno) {
+                                $resBase = $interno->recursoBase;
+                                if (!$resBase) continue;
+                                $pBase = $resBase->precio_usd ?? 0;
+                                $isLabor = in_array($resBase->tipo, ['labor', 'mano_obra']);
+                                $carga = $isLabor ? ($pBase * (($resBase->social_charges_percentage ?? 0) / 100)) : 0;
+                                $perUnit += ($interno->cantidad) * ($pBase + $carga) * $cantChild;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return $perUnit;
+        };
+
         $total = 0;
         foreach ($nodos as $nodo) {
-            $precioUnitario = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
-            $total += $nodo->cantidad * $precioUnitario;
-            if ($nodo->hijos && $nodo->hijos->count() > 0) {
-                $total += calcularSubtotalRecursivo($nodo->hijos);
-            }
+            $total += ($nodo->cantidad ?? 1) * $computePerUnit($nodo);
         }
+
         return $total;
     }
 
@@ -320,7 +364,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
     {{-- Precio Final --}}
     <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-center shadow-lg shadow-white/5 shrink-0 w-48 md:w-auto text-black dark:text-white">
         <p class="text-xs text-gray-400 font-black uppercase mb-2">Precio Final</p>
-        <p class="text-xl font-black text-black leading-tight">
+        <p class="text-xl font-black text-black dark:text-white leading-tight">
             USD {{ number_format($totalFinal, 0, ',', '.') }}
         </p>
     </div>
@@ -423,16 +467,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
                     </div>
 
-                   <div class="col-span-1 text-sm text-gray-600 font-bold text-center">
-    {{ $nodoPadre->unidad ?? 'gl' }}
-</div>
-                    <div class="col-span-1 text-center text-white font-black text-xs">1</div>
-
-                    <div class="col-span-2 text-center text-xs text-gray-500 font-mono">
-                        {{ number_format($totalCategoria, 2, ',', '.') }}
-                    </div>
-
-                    <div class="col-span-2 text-right text-sm font-black text-white font-mono">
+                    <div class="col-span-6 text-right text-sm font-black text-white font-mono">
                         {{ number_format($totalCategoria, 2, ',', '.') }}
                     </div>
 
