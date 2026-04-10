@@ -16,11 +16,11 @@
             <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-white font-black text-sm uppercase tracking-widest truncate">{{ $proyecto->nombre_proyecto }}</h1>
-                    <span class="bg-green-500/10 text-green-500 text-[10px] font-black px-2 py-0.5 rounded border border-green-500/20 flex items-center gap-1 shrink-0">
+                    <span class="bg-green-500/10 text-green-500 text-sm font-black px-2 py-0.5 rounded border border-green-500/20 flex items-center gap-1 shrink-0">
                         <span class="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span> ONLINE
                     </span>
                 </div>
-                <p class="text-[10px] text-gray-600 uppercase tracking-widest font-bold">PRESUPUESTO DETALLADO ▾</p>
+                <p class="text-xs text-gray-600 uppercase tracking-widest font-bold">PRESUPUESTO DETALLADO ▾</p>
             </div>
         </div>
 
@@ -53,20 +53,20 @@
             <div class="hidden sm:flex items-center">
                 <div class="flex -space-x-1.5">
                     @foreach($proyecto->usuarios as $user)
-                        <div class="w-6 h-6 rounded-full bg-purple-500 border-2 border-[#0d0d0d] flex items-center justify-center text-[8px] font-black text-white">
+                        <div class="w-6 h-6 rounded-full bg-purple-500 border-2 border-[#0d0d0d] flex items-center justify-center text-xs font-black text-white">
                             {{ strtoupper(substr($user->name, 0, 1)) }}
                         </div>
                     @endforeach
                 </div>
                 @if(auth()->user()?->role === 'supervisor')
-                    <button wire:click="abrirModalInvitar" class="ml-1.5 text-[10px] font-black text-gray-600 hover:text-white transition-colors uppercase">
+                    <button wire:click="abrirModalInvitar" class="ml-1.5 text-sm font-black text-gray-600 hover:text-white transition-colors uppercase">
                         + Invitar
                     </button>
                 @endif
             </div>
 
             {{-- Compartir (oculto en xs) --}}
-            <button wire:click="abrirModalCompartir" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 text-[10px] font-black uppercase tracking-wider transition-all">
+            <button wire:click="abrirModalCompartir" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 text-sm font-black uppercase tracking-wider transition-all">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
                 </svg>
@@ -89,7 +89,7 @@
                 @continue
             @endif
             <a href="{{ $tab['route'] ?? '#' }}"
-               class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap shrink-0
+               class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-black uppercase tracking-wider transition-all whitespace-nowrap shrink-0
                    {{ $tab['active'] ? 'bg-white text-black' : 'text-gray-500 hover:text-white hover:bg-white/5' }}">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $tab['icon'] }}"/>
@@ -111,13 +111,13 @@
         <div class="flex items-center bg-white/5 rounded-lg p-0.5 border border-white/5">
             <button
                 wire:click="cambiarVista('presupuesto')"
-                class="px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider transition-all {{ $vistaActiva === 'presupuesto' ? 'bg-white text-black' : 'text-gray-500 hover:text-white' }}">
+                class="px-3 py-1 rounded text-sm font-black uppercase tracking-wider transition-all {{ $vistaActiva === 'presupuesto' ? 'bg-white text-black' : 'text-gray-500 hover:text-white' }}">
                 Presupuesto
             </button>
             <button
                 wire:click="cambiarVista('ejecucion')"
                 @disabled(in_array($proyecto->estado_obra, ['en_revision', 'activo', 'pausado']))
-                class="px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider transition-all {{ $vistaActiva === 'ejecucion' ? 'bg-orange-500 text-white' : 'text-gray-500 hover:text-white' }} {{ in_array($proyecto->estado_obra, ['en_revision', 'activo', 'pausado']) ? 'opacity-50 cursor-not-allowed' : '' }}">
+                class="px-3 py-1 rounded text-sm font-black uppercase tracking-wider transition-all {{ $vistaActiva === 'ejecucion' ? 'bg-orange-500 text-white' : 'text-gray-500 hover:text-white' }} {{ in_array($proyecto->estado_obra, ['en_revision', 'activo', 'pausado']) ? 'opacity-50 cursor-not-allowed' : '' }}">
                 Ejecución
             </button>
         </div>
@@ -129,13 +129,13 @@
             </svg>
             <input type="text"
                    placeholder="Filtrar rubros..."
-                   class="pl-7 pr-3 py-1.5 bg-white/5 border border-white/5 rounded-lg text-[11px] text-white placeholder-gray-600 outline-none focus:border-white/20 w-full sm:w-48 transition-all">
+                   class="pl-7 pr-3 py-1.5 bg-white/5 border border-white/5 rounded-lg text-base text-white placeholder-gray-600 outline-none focus:border-white/20 w-full sm:w-48 transition-all">
         </div>
 
         {{-- Botón Agregar Rubro --}}
         @if(!$modoLectura && $vistaActiva === 'presupuesto' && !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
         <button wire:click="abrirModalRubro"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 text-[10px] font-black uppercase tracking-wider transition-all">
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 text-sm font-black uppercase tracking-wider transition-all">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
             Agregar Rubro
         </button>
@@ -148,7 +148,7 @@
         {{-- Toggle Beneficio --}}
         <button
             wire:click="toggleBeneficio"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-black uppercase tracking-wider transition-all
                 {{ $mostrarBeneficio 
                     ? 'bg-green-500/20 border-green-500/30 text-green-400' 
                     : 'bg-white/5 border-white/5 text-gray-500' }}">
@@ -160,7 +160,7 @@
 
         {{-- Dropdown Exportar / Importar --}}
         <div class="relative">
-            <button wire:click="toggleDropdownExportar" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 text-[10px] font-black uppercase tracking-wider transition-all">
+            <button wire:click="toggleDropdownExportar" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 text-sm font-black uppercase tracking-wider transition-all">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>
@@ -170,14 +170,14 @@
             {{-- Dropdown Menu --}}
             @if($mostrarDropdownExportar)
             <div class="absolute top-full right-0 mt-2 bg-[#1a1a1a] border border-gray-700 rounded-lg shadow-xl z-40 min-w-[200px] overflow-hidden">
-                <button wire:click="abrirModalPDF" class="w-full flex items-center gap-2 px-4 py-2.5 text-white hover:bg-white/10 transition-all text-left text-[10px] font-black uppercase tracking-wider border-b border-gray-700">
+                <button wire:click="abrirModalPDF" class="w-full flex items-center gap-2 px-4 py-2.5 text-white hover:bg-white/10 transition-all text-left text-sm font-black uppercase tracking-wider border-b border-gray-700">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                     </svg>
                     PDF
                 </button>
                 @if(auth()->user()->plan !== 'gratis')
-                <button wire:click="abrirModalExcel" class="w-full flex items-center gap-2 px-4 py-2.5 text-white hover:bg-white/10 transition-all text-left text-[10px] font-black uppercase tracking-wider">
+                <button wire:click="abrirModalExcel" class="w-full flex items-center gap-2 px-4 py-2.5 text-white hover:bg-white/10 transition-all text-left text-sm font-black uppercase tracking-wider">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
@@ -201,14 +201,14 @@
     </svg>
     <div>
         @if($proyecto->estado_obra === 'finalizado')
-            <p class="text-gray-400 font-black text-[10px] uppercase tracking-widest">Proyecto finalizado — Presupuesto bloqueado</p>
-            <p class="text-gray-500 text-[10px]">El proyecto ha terminado. No se pueden realizar modificaciones. Solo modo lectura.</p>
+            <p class="text-gray-400 font-black text-sm uppercase tracking-widest">Proyecto finalizado — Presupuesto bloqueado</p>
+            <p class="text-gray-500 text-sm">El proyecto ha terminado. No se pueden realizar modificaciones. Solo modo lectura.</p>
         @elseif($proyecto->estado_obra === 'pausado')
-            <p class="text-orange-400 font-black text-[10px] uppercase tracking-widest">Proyecto pausado — Presupuesto bloqueado</p>
-            <p class="text-gray-500 text-[10px]">El proyecto está pausado. No se pueden realizar modificaciones en el presupuesto.</p>
+            <p class="text-orange-400 font-black text-sm uppercase tracking-widest">Proyecto pausado — Presupuesto bloqueado</p>
+            <p class="text-gray-500 text-sm">El proyecto está pausado. No se pueden realizar modificaciones en el presupuesto.</p>
         @else
-            <p class="text-orange-400 font-black text-[10px] uppercase tracking-widest">Proyecto en ejecución — Presupuesto bloqueado</p>
-            <p class="text-gray-500 text-[10px]">El presupuesto es solo lectura. Usá la vista de <strong class="text-orange-400">Ejecución</strong> para registrar costos reales.</p>
+            <p class="text-orange-400 font-black text-sm uppercase tracking-widest">Proyecto en ejecución — Presupuesto bloqueado</p>
+            <p class="text-gray-500 text-sm">El presupuesto es solo lectura. Usá la vista de <strong class="text-orange-400">Ejecución</strong> para registrar costos reales.</p>
         @endif
     </div>
 </div>
@@ -289,7 +289,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
     {{-- Subtotal --}}
     <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center shrink-0 w-40 md:w-auto">
-        <p class="text-[9px] text-gray-500 font-black uppercase mb-2">Subtotal</p>
+        <p class="text-xs text-gray-500 font-black uppercase mb-2">Subtotal</p>
         <p class="text-base font-black text-white leading-tight">
             USD {{ number_format($subtotalBase, 0, ',', '.') }}
         </p>
@@ -298,7 +298,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
     {{-- Beneficio --}}
     @if($mostrarBeneficio)
     <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center shrink-0 w-44 md:w-auto">
-        <p class="text-[9px] text-gray-500 font-black uppercase mb-2">
+        <p class="text-xs text-gray-500 font-black uppercase mb-2">
             Benef. ({{ number_format($proyecto->beneficio ?? 0, 0) }}%)
         </p>
         <p class="text-base font-black text-orange-400 leading-tight">
@@ -309,7 +309,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
     {{-- Impuestos --}}
     <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center shrink-0 w-44 md:w-auto">
-        <p class="text-[9px] text-gray-500 font-black uppercase mb-2">
+        <p class="text-xs text-gray-500 font-black uppercase mb-2">
             IVA ({{ $proyecto->impuestos ?? 22 }}%)
         </p>
         <p class="text-base font-black text-white leading-tight">
@@ -319,7 +319,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
     {{-- Precio Final --}}
     <div class="bg-white rounded-2xl p-4 text-center shadow-lg shadow-white/5 shrink-0 w-48 md:w-auto">
-        <p class="text-[9px] text-gray-400 font-black uppercase mb-2">Precio Final</p>
+        <p class="text-xs text-gray-400 font-black uppercase mb-2">Precio Final</p>
         <p class="text-xl font-black text-black leading-tight">
             USD {{ number_format($totalFinal, 0, ',', '.') }}
         </p>
@@ -327,7 +327,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
     {{-- Carga Social --}}
     <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center shrink-0 w-40 md:w-auto {{ $cargaSocialCalculada > 0 ? '' : 'opacity-50' }}">
-        <p class="text-[9px] text-gray-500 font-black uppercase mb-2">C. Social</p>
+        <p class="text-xs text-gray-500 font-black uppercase mb-2">C. Social</p>
         <p class="text-base font-black text-blue-400 leading-tight">
             USD {{ number_format($cargaSocialCalculada, 0, ',', '.') }}
         </p>
@@ -341,12 +341,12 @@ $totalFinal = $subtotalConBeneficio + $iva;
         <div class="min-w-[760px]">
 
         <div class="grid grid-cols-12 px-4 py-3 border-b border-white/5 bg-white/[0.01]">
-            <div class="col-span-1 text-[10px] text-gray-600 font-black">#</div>
-            <div class="col-span-5 text-[10px] text-gray-600 font-black uppercase tracking-widest">Descripción</div>
-            <div class="col-span-1 text-[10px] text-gray-600 font-black text-center">Ud.</div>
-            <div class="col-span-1 text-[10px] text-gray-600 font-black text-center">Cant.</div>
-            <div class="col-span-2 text-[10px] text-gray-600 font-black text-center">P. Unit.</div>
-            <div class="col-span-2 text-right text-[10px] text-gray-600 font-black">Total</div>
+            <div class="col-span-1 text-sm text-gray-600 font-black">#</div>
+            <div class="col-span-5 text-sm text-gray-600 font-black uppercase tracking-widest">Descripción</div>
+            <div class="col-span-1 text-sm text-gray-600 font-black text-center">Ud.</div>
+            <div class="col-span-1 text-sm text-gray-600 font-black text-center">Cant.</div>
+            <div class="col-span-2 text-sm text-gray-600 font-black text-center">P. Unit.</div>
+            <div class="col-span-2 text-right text-sm text-gray-600 font-black">Total</div>
         </div>
 
         @forelse($categorias as $nombreCategoria => $nodosRaiz)
@@ -376,10 +376,10 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
                             </svg>
                             <div class="min-w-0">
-                                <p class="text-[11px] text-white font-black uppercase tracking-widest truncate">
+                                <p class="text-base text-white font-black uppercase tracking-widest truncate">
                                     {{ $nombreCategoria }}
                                 </p>
-                                <p class="text-[9px] text-gray-600 font-bold uppercase">
+                                <p class="text-xs text-gray-600 font-bold uppercase">
                                     {{ $nodosReales->count() }} rubros
                                 </p>
                             </div>
@@ -390,32 +390,32 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                         <div class="flex items-center gap-1 shrink-0 ml-1">
                             <button wire:click.stop="subirNodo({{ $nodosRaiz->first()->id }})"
                                 title="Subir categoría"
-                                class="w-6 h-6 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                                class="w-8 h-8 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
                             </button>
                             <button wire:click.stop="bajarNodo({{ $nodosRaiz->first()->id }})"
                                 title="Bajar categoría"
-                                class="w-6 h-6 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
+                                class="w-8 h-8 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                             </button>
                             <button wire:click.stop="abrirModalSubrubro({{ $nodosRaiz->first()->id }}, '{{ $nombreCategoria }}', '{{ $nombreCategoria }}')"
                                 title="+ Rubro"
-                                class="w-6 h-6 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/40 transition">
+                                class="w-8 h-8 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/40 transition">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                             </button>
                             <button wire:click.stop="abrirModalRecursos({{ $nodosRaiz->first()->id }}, '{{ $nombreCategoria }}', '{{ $nombreCategoria }}')"
                                 title="+ Recurso"
-                                class="w-6 h-6 flex items-center justify-center bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/40 transition">
+                                class="w-8 h-8 flex items-center justify-center bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/40 transition">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                             </button>
                             <button wire:click.stop="abrirModalEditar({{ $nodosRaiz->first()->id }})"
                                 title="Editar"
-                                class="w-6 h-6 flex items-center justify-center bg-yellow-500/20 text-yellow-400 rounded hover:bg-yellow-500/40 transition">
+                                class="w-8 h-8 flex items-center justify-center bg-yellow-500/20 text-yellow-400 rounded hover:bg-yellow-500/40 transition">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             </button>
                             <button wire:click.stop="abrirModalEliminar({{ $nodosRaiz->first()->id }})"
                                 title="Eliminar"
-                                class="w-6 h-6 flex items-center justify-center bg-red-500/20 text-red-400 rounded hover:bg-red-500/40 transition">
+                                class="w-8 h-8 flex items-center justify-center bg-red-500/20 text-red-400 rounded hover:bg-red-500/40 transition">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                             </button>
                         </div>
@@ -423,7 +423,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
                     </div>
 
-                   <div class="col-span-1 text-[10px] text-gray-600 font-bold text-center">
+                   <div class="col-span-1 text-sm text-gray-600 font-bold text-center">
     {{ $nodoPadre->unidad ?? 'gl' }}
 </div>
                     <div class="col-span-1 text-center text-white font-black text-xs">1</div>
@@ -457,7 +457,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
         @empty
             <div class="py-20 text-center space-y-4">
-                <p class="text-gray-700 text-[10px] uppercase font-bold tracking-widest">Sin rubros cargados</p>
+                <p class="text-gray-700 text-sm uppercase font-bold tracking-widest">Sin rubros cargados</p>
                 @if(!$modoLectura && !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
                 <button wire:click="abrirModalRubro"
                     class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 text-xs font-black uppercase tracking-wider transition-all">
@@ -485,11 +485,11 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
         </svg>
         <div>
             @if($proyecto->estado_obra === 'finalizado')
-                <p class="text-gray-400 font-black text-[10px] uppercase tracking-widest">Proyecto finalizado — Ejecución bloqueada</p>
-                <p class="text-gray-500 text-[10px]">El proyecto ha terminado. No se pueden registrar nuevos costos reales. Solo modo lectura.</p>
+                <p class="text-gray-400 font-black text-sm uppercase tracking-widest">Proyecto finalizado — Ejecución bloqueada</p>
+                <p class="text-gray-500 text-sm">El proyecto ha terminado. No se pueden registrar nuevos costos reales. Solo modo lectura.</p>
             @elseif($proyecto->estado_obra === 'pausado')
-                <p class="text-orange-400 font-black text-[10px] uppercase tracking-widest">Proyecto pausado — Ejecución bloqueada</p>
-                <p class="text-gray-500 text-[10px]">El proyecto está pausado. No se pueden registrar nuevos costos reales.</p>
+                <p class="text-orange-400 font-black text-sm uppercase tracking-widest">Proyecto pausado — Ejecución bloqueada</p>
+                <p class="text-gray-500 text-sm">El proyecto está pausado. No se pueden registrar nuevos costos reales.</p>
             @endif
         </div>
     </div>
@@ -553,19 +553,19 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
         {{-- Total Presupuestado --}}
         <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center">
-            <p class="text-[9px] text-gray-500 font-black uppercase mb-1">Total Presupuestado</p>
+            <p class="text-xs text-gray-500 font-black uppercase mb-1">Total Presupuestado</p>
             <p class="text-base font-black text-white font-mono">USD {{ number_format($totalPresupuestado, 0, ',', '.') }}</p>
         </div>
 
         {{-- IVA sobre Ejecutado --}}
         <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center">
-            <p class="text-[9px] text-gray-500 font-black uppercase mb-1">IVA ({{ number_format($pctImpuestos, 0) }}%)</p>
+            <p class="text-xs text-gray-500 font-black uppercase mb-1">IVA ({{ number_format($pctImpuestos, 0) }}%)</p>
             <p class="text-base font-black text-white font-mono">USD {{ number_format($ivaEjecutado, 0, ',', '.') }}</p>
         </div>
 
         {{-- Precio Final Ejecutado --}}
         <div class="bg-white rounded-2xl p-4 text-center shadow-lg shadow-white/5 shrink-0">
-            <p class="text-[9px] text-gray-400 font-black uppercase mb-2">Precio Final</p>
+            <p class="text-xs text-gray-400 font-black uppercase mb-2">Precio Final</p>
             <p class="text-xl font-black text-black leading-tight">
                 USD {{ number_format($precioFinalEjecutado, 0, ',', '.') }}
             </p>
@@ -573,7 +573,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
         {{-- Total Ejecutado --}}
         <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center">
-            <p class="text-[9px] text-gray-500 font-black uppercase mb-1">Total Ejecutado</p>
+            <p class="text-xs text-gray-500 font-black uppercase mb-1">Total Ejecutado</p>
             <p class="text-base font-black {{ $totalReal > $totalPresupuestado ? 'text-red-400' : 'text-green-400' }} font-mono">
                 USD {{ number_format($totalReal, 0, ',', '.') }}
             </p>
@@ -581,7 +581,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
         {{-- Diferencia --}}
         <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center">
-            <p class="text-[9px] text-gray-500 font-black uppercase mb-1">Diferencia</p>
+            <p class="text-xs text-gray-500 font-black uppercase mb-1">Diferencia</p>
             <p class="text-base font-black {{ $diferencia > 0 ? 'text-green-400' : ($diferencia < 0 ? 'text-red-400' : 'text-gray-400') }} font-mono">
                 {{ $diferencia >= 0 ? '+' : '' }}USD {{ number_format($diferencia, 0, ',', '.') }}
             </p>
@@ -595,13 +595,13 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
         {{-- Cabecera --}}
         <div class="grid px-4 py-3 border-b border-white/5 bg-white/[0.01]" style="grid-template-columns: 2fr 60px 70px 120px 140px 110px 90px;">
-            <div class="text-[10px] text-gray-600 font-black uppercase tracking-widest">Descripción</div>
-            <div class="text-[10px] text-gray-600 font-black text-center">Ud.</div>
-            <div class="text-[10px] text-gray-600 font-black text-center">Cant.</div>
-            <div class="text-[10px] text-gray-600 font-black text-right">Presupuestado</div>
-            <div class="text-[10px] text-orange-500 font-black text-right pr-2">Costo Real</div>
-            <div class="text-[10px] text-gray-600 font-black text-right">Diferencia</div>
-            <div class="text-[10px] text-gray-600 font-black text-right">Desvío</div>
+            <div class="text-sm text-gray-600 font-black uppercase tracking-widest">Descripción</div>
+            <div class="text-sm text-gray-600 font-black text-center">Ud.</div>
+            <div class="text-sm text-gray-600 font-black text-center">Cant.</div>
+            <div class="text-sm text-gray-600 font-black text-right">Presupuestado</div>
+            <div class="text-sm text-orange-500 font-black text-right pr-2">Costo Real</div>
+            <div class="text-sm text-gray-600 font-black text-right">Diferencia</div>
+            <div class="text-sm text-gray-600 font-black text-right">Desvío</div>
         </div>
 
         @forelse($hojasPorCategoria as $cat => $items)
@@ -614,17 +614,17 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
             {{-- Fila categoría --}}
             <div class="grid px-4 py-2.5 bg-white/[0.025] border-b border-white/5" style="grid-template-columns: 2fr 60px 70px 120px 140px 110px 90px;">
-                <div class="text-[11px] text-white font-black uppercase tracking-widest">{{ $cat }}</div>
+                <div class="text-base text-white font-black uppercase tracking-widest">{{ $cat }}</div>
                 <div></div>
                 <div></div>
-                <div class="text-right text-[11px] text-gray-300 font-black font-mono">{{ number_format($catPresupuestado, 0, ',', '.') }}</div>
-                <div class="text-right text-[11px] {{ $catReal > $catPresupuestado ? 'text-red-400' : 'text-green-400' }} font-black font-mono pr-2">
+                <div class="text-right text-base text-gray-300 font-black font-mono">{{ number_format($catPresupuestado, 0, ',', '.') }}</div>
+                <div class="text-right text-base {{ $catReal > $catPresupuestado ? 'text-red-400' : 'text-green-400' }} font-black font-mono pr-2">
                     {{ $catReal > 0 ? number_format($catReal, 0, ',', '.') : '—' }}
                 </div>
-                <div class="text-right text-[11px] {{ $catDiff > 0 ? 'text-red-400' : ($catDiff < 0 ? 'text-green-400' : 'text-gray-500') }} font-black font-mono">
+                <div class="text-right text-base {{ $catDiff > 0 ? 'text-red-400' : ($catDiff < 0 ? 'text-green-400' : 'text-gray-500') }} font-black font-mono">
                     {{ $catReal > 0 ? (($catDiff >= 0 ? '+' : '') . number_format($catDiff, 0, ',', '.')) : '—' }}
                 </div>
-                <div class="text-right text-[11px] {{ $catPct > 0 ? 'text-red-400' : ($catPct < 0 ? 'text-green-400' : 'text-gray-500') }} font-black">
+                <div class="text-right text-base {{ $catPct > 0 ? 'text-red-400' : ($catPct < 0 ? 'text-green-400' : 'text-gray-500') }} font-black">
                     {{ $catReal > 0 ? (($catPct >= 0 ? '+' : '') . number_format($catPct, 1) . '%') : '—' }}
                 </div>
             </div>
@@ -641,16 +641,16 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                      style="grid-template-columns: 2fr 60px 70px 120px 140px 110px 90px;"
                      wire:key="ej-{{ $hoja['id'] }}">
                     {{-- Nombre --}}
-                    <div class="pl-4 text-[11px] text-gray-300 font-medium truncate">{{ $hoja['nombre'] }}</div>
+                    <div class="pl-4 text-base text-gray-300 font-medium truncate">{{ $hoja['nombre'] }}</div>
 
                     {{-- Unidad --}}
-                    <div class="text-[10px] text-gray-600 text-center uppercase">{{ $hoja['unidad'] }}</div>
+                    <div class="text-sm text-gray-600 text-center uppercase">{{ $hoja['unidad'] }}</div>
 
                     {{-- Cantidad --}}
-                    <div class="text-[10px] text-gray-500 text-center font-mono">{{ number_format($hoja['cantidad'], 2) }}</div>
+                    <div class="text-sm text-gray-500 text-center font-mono">{{ number_format($hoja['cantidad'], 2) }}</div>
 
                     {{-- Presupuestado --}}
-                    <div class="text-right text-[11px] text-gray-400 font-mono">{{ number_format($hjPres, 2, ',', '.') }}</div>
+                    <div class="text-right text-base text-gray-400 font-mono">{{ number_format($hjPres, 2, ',', '.') }}</div>
 
                     {{-- Costo Real (input editable) --}}
                     <div class="flex justify-end pr-2">
@@ -662,11 +662,11 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                             value="{{ $hjReal !== null ? number_format($hjReal, 2, '.', '') : '' }}"
                             wire:change="actualizarCostoReal({{ $hoja['id'] }}, $event.target.value)"
                             @disabled(!in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
-                            class="w-32 bg-[#0a0a0a] border {{ !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']) ? 'border-gray-600/30 text-gray-600 cursor-not-allowed opacity-50' : 'border-orange-500/30 text-orange-300' }} rounded-lg px-2 py-1 text-[11px] font-mono text-right focus:border-orange-500 focus:outline-none placeholder-gray-700">
+                            class="w-32 bg-[#0a0a0a] border {{ !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']) ? 'border-gray-600/30 text-gray-600 cursor-not-allowed opacity-50' : 'border-orange-500/30 text-orange-300' }} rounded-lg px-2 py-1 text-base font-mono text-right focus:border-orange-500 focus:outline-none placeholder-gray-700">
                     </div>
 
                     {{-- Diferencia --}}
-                    <div class="text-right text-[11px] font-mono
+                    <div class="text-right text-base font-mono
                         {{ $hjDiff === null ? 'text-gray-700' :
                            ($hjDiff > 0 ? 'text-red-400' : ($hjDiff < 0 ? 'text-green-400' : 'text-gray-500')) }}">
                         @if($hjDiff !== null)
@@ -677,7 +677,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                     </div>
 
                     {{-- % Desvío --}}
-                    <div class="text-right text-[10px] font-black
+                    <div class="text-right text-sm font-black
                         {{ $hjPct === null ? 'text-gray-700' :
                            ($hjPct > 5 ? 'text-red-400' : ($hjPct < -5 ? 'text-green-400' : 'text-yellow-400')) }}">
                         @if($hjPct !== null)
@@ -690,7 +690,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
             @endforeach
 
         @empty
-            <div class="py-16 text-center text-gray-700 text-[10px] uppercase font-bold tracking-widest">
+            <div class="py-16 text-center text-gray-700 text-sm uppercase font-bold tracking-widest">
                 Sin recursos cargados
             </div>
         @endforelse
@@ -710,20 +710,20 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
         <div class="w-full max-w-md border border-white/10 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl">
 
             <div class="text-center">
-                <p class="text-[9px] text-gray-600 uppercase font-black mb-1">Nuevo Rubro</p>
+                <p class="text-xs text-gray-600 uppercase font-black mb-1">Nuevo Rubro</p>
                 <h2 class="text-purple-400 font-extrabold text-sm uppercase">Agregar Rubro</h2>
             </div>
 
             <div>
-                <label class="text-[10px] text-gray-500 uppercase font-black">Nombre del Rubro</label>
+                <label class="text-sm text-gray-500 uppercase font-black">Nombre del Rubro</label>
                 <input type="text" wire:model="nombreRubro"
                     placeholder="Ej: 01. Preliminares"
                     class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] border border-white/10 text-white text-sm outline-none focus:border-purple-500/50">
-                @error('nombreRubro') <p class="text-red-400 text-[10px] mt-1">{{ $message }}</p> @enderror
+                @error('nombreRubro') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div>
-                <label class="text-[10px] text-gray-500 uppercase font-black">Unidad</label>
+                <label class="text-sm text-gray-500 uppercase font-black">Unidad</label>
                 <select wire:model="unidadRubro"
                     class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 text-sm outline-none focus:border-purple-500/50">
                     <option value="gl">gl (Global)</option>
@@ -762,19 +762,19 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
     <div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
         <div class="w-full max-w-sm border border-white/10 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl">
             <div class="text-center">
-                <p class="text-[9px] text-gray-600 uppercase font-black mb-1">Nuevo Sub-Rubro en</p>
+                <p class="text-xs text-gray-600 uppercase font-black mb-1">Nuevo Sub-Rubro en</p>
                 <h2 class="text-purple-400 font-extrabold text-sm uppercase">{{ $nombreCtx }}</h2>
             </div>
 
             <div class="space-y-3">
                 <div>
-                    <label class="text-[10px] text-gray-500 uppercase font-black">Nombre</label>
+                    <label class="text-sm text-gray-500 uppercase font-black">Nombre</label>
                     <input type="text" wire:model.live="nombreSubrubro"
                         class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 text-sm focus:border-purple-500/50 outline-none"
                         placeholder="Ej: Mampostería">
                 </div>
                 <div>
-                    <label class="text-[10px] text-gray-500 uppercase font-black">Unidad</label>
+                    <label class="text-sm text-gray-500 uppercase font-black">Unidad</label>
                     <select wire:model.live="unidadSubrubro"
                         class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 text-sm outline-none">
                         <option value="gl">gl (Global)</option>
@@ -814,12 +814,12 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
     <div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
         <div class="w-full max-w-md border border-white/10 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl">
             <div class="text-center">
-                <p class="text-[9px] text-gray-600 uppercase font-black mb-1">Recursos en</p>
+                <p class="text-xs text-gray-600 uppercase font-black mb-1">Recursos en</p>
                 <h2 class="text-blue-400 font-extrabold text-sm uppercase">{{ $nombreCtx }}</h2>
             </div>
 
             <button wire:click="$set('modalSelectorRecursos', true)"
-                class="w-full py-3 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 text-[10px] font-black hover:bg-blue-600/30 transition-all">
+                class="w-full py-3 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 text-sm font-black hover:bg-blue-600/30 transition-all">
                 + BUSCAR Y AGREGAR RECURSOS
             </button>
 
@@ -830,11 +830,11 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                     <div class="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/[0.02]"
                          wire:key="{{ 'ri-' . $index }}">
                         <div class="flex-1 min-w-0">
-                            <p class="text-white text-[11px] font-bold truncate uppercase">{{ $item['nombre'] }}</p>
-                            <p class="text-gray-500 text-[9px] uppercase">USD {{ number_format($item['precio_usd'] ?? 0, 2) }}</p>
+                            <p class="text-white text-base font-bold truncate uppercase">{{ $item['nombre'] }}</p>
+                            <p class="text-gray-500 text-xs uppercase">USD {{ number_format($item['precio_usd'] ?? 0, 2) }}</p>
                         </div>
                         <input type="number" step="0.01" wire:model="itemsRecursos.{{ $index }}.cantidad"
-                            class="w-16 bg-[#0f1115] border border-white/10 rounded-lg px-2 py-1 text-white text-[11px] text-center">
+                            class="w-16 bg-[#0f1115] border border-white/10 rounded-lg px-2 py-1 text-white text-base text-center">
                         <button wire:click="quitarItemRecurso({{ $index }})" class="text-gray-600 hover:text-red-400 transition-colors px-1 text-lg">×</button>
                     </div>
                 @endforeach
@@ -865,7 +865,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                 <div class="flex justify-between items-start mb-6">
                     <div>
                         <h3 class="text-white font-black tracking-widest text-lg uppercase">Seleccionar Recursos</h3>
-                        <p class="text-gray-500 text-[10px] uppercase font-bold mt-1">Para: <span class="text-blue-400">{{ $nombreCtx }}</span></p>
+                        <p class="text-gray-500 text-sm uppercase font-bold mt-1">Para: <span class="text-blue-400">{{ $nombreCtx }}</span></p>
                     </div>
                     <button wire:click="$set('modalSelectorRecursos', false)" class="text-gray-500 hover:text-white transition-colors text-2xl leading-none">×</button>
                 </div>
@@ -876,7 +876,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                 <div class="flex flex-wrap gap-2">
                     @foreach(['Todos', 'Materiales', 'Mano de Obra', 'Equipos', 'Composiciones'] as $f)
                         <button wire:click="setFiltro('{{ $f }}')"
-                            class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase border transition-all {{ ($filtroTipo ?? 'Todos') == $f ? 'bg-white text-black border-white' : 'bg-[#1a1a1a] text-gray-400 border-white/5' }}">
+                            class="px-4 py-1.5 rounded-lg text-sm font-black uppercase border transition-all {{ ($filtroTipo ?? 'Todos') == $f ? 'bg-white text-black border-white' : 'bg-[#1a1a1a] text-gray-400 border-white/5' }}">
                             {{ $f }}
                         </button>
                     @endforeach
@@ -896,7 +896,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                             </div>
                             <div class="flex-1 min-w-0">
                                 <p class="text-white text-[12px] font-black uppercase truncate">{{ $recurso->nombre }}</p>
-                                <p class="text-gray-500 text-[9px] font-bold uppercase">{{ $recurso->unidad }} · {{ $recurso->tipo }}</p>
+                                <p class="text-gray-500 text-xs font-bold uppercase">{{ $recurso->unidad }} · {{ $recurso->tipo }}</p>
                             </div>
                             <div class="flex items-center gap-2 bg-black/20 p-1 rounded-xl border border-white/5">
                                 <input type="number" id="qty-r-{{ $recurso->id }}" value="1"
@@ -929,13 +929,13 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
     <div class="w-full max-w-md border border-white/10 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl">
 
         <div class="text-center">
-            <p class="text-[9px] text-gray-600 uppercase font-black mb-1">Editar</p>
+            <p class="text-xs text-gray-600 uppercase font-black mb-1">Editar</p>
             <h2 class="text-yellow-400 font-extrabold text-sm uppercase" x-text="nombreLocal || '{{ $editNombre }}'"></h2>
         </div>
 
         {{-- Nombre --}}
         <div>
-            <label class="text-[10px] text-gray-500 uppercase font-black">Nombre</label>
+            <label class="text-sm text-gray-500 uppercase font-black">Nombre</label>
             <input type="text"
                 wire:model="editNombre"
                 @input="nombreLocal = $event.target.value"
@@ -944,7 +944,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
         {{-- Unidad --}} 
         <div>
-            <label class="text-[10px] text-gray-500 uppercase font-black">Unidad</label>
+            <label class="text-sm text-gray-500 uppercase font-black">Unidad</label>
             <select wire:model="editUnidad"
                 class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 text-sm outline-none focus:border-yellow-500/50">
                 <option value="gl">gl (Global)</option>
@@ -983,7 +983,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
     <div class="w-full max-w-md border border-red-500/20 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl text-center">
 
         <div>
-            <p class="text-[9px] text-gray-600 uppercase font-black mb-1">Confirmación</p>
+            <p class="text-xs text-gray-600 uppercase font-black mb-1">Confirmación</p>
             <h2 class="text-red-400 font-extrabold text-sm uppercase">Eliminar</h2>
         </div>
 
@@ -1085,21 +1085,21 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                             <input type="radio" name="rol_compartir" value="supervisor" :checked="rol === 'supervisor'" class="w-4 h-4" />
                             <div class="flex-1 min-w-0">
                                 <div class="text-xs font-bold text-white">Supervisor</div>
-                                <div class="text-[10px] text-gray-500">Acceso completo a todo</div>
+                                <div class="text-sm text-gray-500">Acceso completo a todo</div>
                             </div>
                         </label>
                         <label @click="rol = 'presupuestador'" class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors" :class="rol === 'presupuestador' ? 'border-[#d15330] bg-[#d15330]/10' : 'border-gray-800 hover:bg-white/5'">
                             <input type="radio" name="rol_compartir" value="presupuestador" :checked="rol === 'presupuestador'" class="w-4 h-4" />
                             <div class="flex-1 min-w-0">
                                 <div class="text-xs font-bold text-white">Presupuestador</div>
-                                <div class="text-[10px] text-gray-500">Editar presupuestos y recursos</div>
+                                <div class="text-sm text-gray-500">Editar presupuestos y recursos</div>
                             </div>
                         </label>
                         <label @click="rol = 'jefe_obra'" class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors" :class="rol === 'jefe_obra' ? 'border-[#d15330] bg-[#d15330]/10' : 'border-gray-800 hover:bg-white/5'">
                             <input type="radio" name="rol_compartir" value="jefe_obra" :checked="rol === 'jefe_obra'" class="w-4 h-4" />
                             <div class="flex-1 min-w-0">
                                 <div class="text-xs font-bold text-white">Jefe de Obra</div>
-                                <div class="text-[10px] text-gray-500">Seguimiento de ejecución</div>
+                                <div class="text-sm text-gray-500">Seguimiento de ejecución</div>
                             </div>
                         </label>
                     </div>
@@ -1317,7 +1317,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
             {{-- ALCANCE --}}
             <div class="flex flex-col gap-1.5">
                 <label class="text-gray-400 text-xs font-bold uppercase tracking-wider">Alcance del Presupuesto</label>
-                <p class="text-gray-500 text-[10px]">Lo que se consideró presupuestar y lo que no</p>
+                <p class="text-gray-500 text-sm">Lo que se consideró presupuestar y lo que no</p>
                 <textarea
                     wire:model="alcanceExcel"
                     placeholder="Ej: Incluye materiales, mano de obra y equipos para la fase de cimentación..."
@@ -1328,7 +1328,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
             {{-- CONDICIONES --}}
             <div class="flex flex-col gap-1.5">
                 <label class="text-gray-400 text-xs font-bold uppercase tracking-wider">Condiciones</label>
-                <p class="text-gray-500 text-[10px]">Modo de pago, moneda y condiciones comerciales</p>
+                <p class="text-gray-500 text-sm">Modo de pago, moneda y condiciones comerciales</p>
                 <textarea
                     wire:model="condicionesExcel"
                     placeholder="Ej: Pago 50% anticipado, saldo contra entrega. Precios en USD..."
@@ -1339,7 +1339,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
             {{-- VALIDEZ --}}
             <div class="flex flex-col gap-1.5">
                 <label class="text-gray-400 text-xs font-bold uppercase tracking-wider">Validez</label>
-                <p class="text-gray-500 text-[10px]">Tiempo de vigencia del presupuesto</p>
+                <p class="text-gray-500 text-sm">Tiempo de vigencia del presupuesto</p>
                 <input
                     type="text"
                     wire:model="validezExcel"

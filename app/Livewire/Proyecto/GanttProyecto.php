@@ -52,29 +52,20 @@ class GanttProyecto extends Component
             ->pluck('fecha_fin')
             ->map(fn($f) => Carbon::parse($f));
 
+        // El mínimo es el 31 de diciembre del año de inicio del proyecto
+        $finMinimo = $inicio->copy()->endOfYear();
+
         $fechaFin = $todasLasFechas->count()
-            ? $todasLasFechas->max()
-            : $inicio->copy()->addWeeks(12);
+            ? $todasLasFechas->max()->max($finMinimo)
+            : $finMinimo;
 
         // Generar semanas entre inicio y fin
-        $semanas     = [];
-        $cursor      = $inicio->copy()->startOfWeek();
-        $fin         = Carbon::parse($fechaFin)->endOfWeek();
+        $semanas      = [];
+        $cursor       = $inicio->copy()->startOfWeek();
+        $fin          = Carbon::parse($fechaFin)->endOfWeek();
         $totalSemanas = 0;
 
         while ($cursor->lte($fin)) {
-            $semanas[] = [
-                'label' => 'S' . $cursor->weekOfYear,
-                'mes'   => $cursor->translatedFormat('M'),
-                'inicio'=> $cursor->format('Y-m-d'),
-                'fin'   => $cursor->copy()->endOfWeek()->format('Y-m-d'),
-            ];
-            $cursor->addWeek();
-            $totalSemanas++;
-        }
-
-        // Mínimo 12 semanas
-        while ($totalSemanas < 12) {
             $semanas[] = [
                 'label' => 'S' . $cursor->weekOfYear,
                 'mes'   => $cursor->translatedFormat('M'),

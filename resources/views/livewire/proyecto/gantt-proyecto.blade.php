@@ -14,11 +14,11 @@
                 <div class="min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
                         <h1 class="text-white font-black text-sm uppercase tracking-widest truncate">{{ $proyecto->nombre_proyecto }}</h1>
-                        <span class="bg-green-500/10 text-green-500 text-[10px] font-black px-2 py-0.5 rounded border border-green-500/20 flex items-center gap-1 shrink-0">
+                        <span class="bg-green-500/10 text-green-500 text-sm font-black px-2 py-0.5 rounded border border-green-500/20 flex items-center gap-1 shrink-0">
                             <span class="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span> ONLINE
                         </span>
                     </div>
-                    <p class="text-[10px] text-gray-600 uppercase tracking-widest font-bold">GANTT ▾</p>
+                    <p class="text-sm text-gray-600 uppercase tracking-widest font-bold">GANTT ▾</p>
                 </div>
             </div>
         </div>
@@ -33,7 +33,7 @@
                 ['label' => 'Estadísticas','icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', 'active' => false, 'route' => route('estadisticas', ['proyectoId' => $proyecto->id])],
             ] as $tab)
                 <a href="{{ $tab['route'] }}"
-                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap shrink-0
+                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-black uppercase tracking-wider transition-all whitespace-nowrap shrink-0
                        {{ $tab['active'] ? 'bg-white text-black' : 'text-gray-500 hover:text-white hover:bg-white/5' }}">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $tab['icon'] }}"/>
@@ -49,7 +49,7 @@
     @php $mesesAgrupados = collect($semanas)->groupBy('mes'); $totalPx = count($semanas) * 48; @endphp
 
     @if(count($rubros) === 0)
-        <div class="py-32 text-center text-gray-700 text-[10px] uppercase font-bold tracking-widest">
+        <div class="py-32 text-center text-gray-700 text-sm uppercase font-bold tracking-widest">
             Sin rubros cargados
         </div>
     @else
@@ -60,7 +60,7 @@
 
             {{-- Cabecera meses (placeholder para alinear altura) --}}
             <div class="px-4 py-2 bg-white/[0.02] border-b border-white/5 flex items-center" style="height:33px">
-                <span class="text-[9px] text-gray-600 font-black uppercase tracking-widest">Rubro</span>
+                <span class="text-sm text-gray-600 font-black uppercase tracking-widest">Rubro</span>
             </div>
             {{-- Cabecera semanas (placeholder) --}}
             <div class="border-b border-white/5 bg-black/30" style="height:29px"></div>
@@ -79,7 +79,7 @@
                         @else
                             <div class="w-1 h-1 rounded-full bg-blue-500/40 shrink-0 ml-1"></div>
                         @endif
-                        <span class="text-[11px] truncate
+                        <span class="text-base truncate
                                      {{ $fila['es_categoria'] ? 'text-white font-black uppercase tracking-wide' : 'text-gray-400 font-medium' }}">
                             {{ $fila['nombre'] }}
                         </span>
@@ -105,7 +105,7 @@
                 @foreach($mesesAgrupados as $mes => $semanasDelMes)
                     <div class="border-r border-white/5 px-2 flex items-center justify-center shrink-0"
                          style="width:{{ count($semanasDelMes) * 48 }}px">
-                        <span class="text-[9px] text-gray-500 font-black uppercase tracking-widest">{{ $mes }}</span>
+                        <span class="text-sm text-gray-500 font-black uppercase tracking-widest">{{ $mes }}</span>
                     </div>
                 @endforeach
             </div>
@@ -114,7 +114,7 @@
             <div class="flex border-b border-white/5 bg-black/30" style="min-width:{{ $totalPx }}px; height:29px">
                 @foreach($semanas as $semana)
                     <div class="w-12 shrink-0 border-r border-white/[0.04] flex items-center justify-center">
-                        <span class="text-[8px] text-gray-600 font-bold">{{ $semana['label'] }}</span>
+                        <span class="text-sm text-gray-600 font-bold">{{ $semana['label'] }}</span>
                     </div>
                 @endforeach
             </div>
@@ -156,7 +156,7 @@
                              style="left:{{ $barStart }}px; width:{{ $barWidth }}px"
                              wire:click="abrirModalFechas({{ $fila['id'] }})">
                             @if($barWidth > 44)
-                                <span class="text-[8px] font-black text-white truncate whitespace-nowrap">
+                                <span class="text-sm font-black text-white truncate whitespace-nowrap">
                                     {{ \Carbon\Carbon::parse($fila['fecha_inicio'])->format('d/m') }}–{{ \Carbon\Carbon::parse($fila['fecha_fin'])->format('d/m') }}
                                 </span>
                             @endif
@@ -164,7 +164,7 @@
                     @else
                         <button wire:click="abrirModalFechas({{ $fila['id'] }})"
                                 class="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
-                                       transition-opacity text-[9px] text-gray-600 hover:text-gray-400 font-bold uppercase">
+                                       transition-opacity text-sm text-gray-600 hover:text-gray-400 font-bold uppercase">
                             + Asignar fechas
                         </button>
                     @endif
@@ -181,10 +181,10 @@
     <div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
         <div class="w-full max-w-sm border border-white/10 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl">
             <div class="text-center">
-                <p class="text-[9px] text-gray-600 uppercase font-black mb-1">Asignar fechas</p>
+                <p class="text-sm text-gray-600 uppercase font-black mb-1">Asignar fechas</p>
                 <h2 class="text-white font-extrabold text-sm uppercase truncate">{{ $editNombre }}</h2>
                 @if($proyecto->fecha_inicio)
-                    <p class="text-[9px] text-gray-600 mt-1">
+                    <p class="text-sm text-gray-600 mt-1">
                         Proyecto desde {{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->format('d/m/Y') }}
                     </p>
                 @endif
@@ -192,32 +192,32 @@
 
             <div class="space-y-3">
                 <div>
-                    <label class="text-[10px] text-gray-500 uppercase font-black">Fecha Inicio</label>
+                    <label class="text-sm text-gray-500 uppercase font-black">Fecha Inicio</label>
                     <input type="date" wire:model="editFechaInicio"
                         min="{{ $proyecto->fecha_inicio?->format('Y-m-d') }}"
                         class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 text-sm focus:border-purple-500/50 outline-none">
                     @error('editFechaInicio')
-                        <p class="text-red-400 text-[9px] mt-1">{{ $message }}</p>
+                        <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
                 <div>
-                    <label class="text-[10px] text-gray-500 uppercase font-black">Fecha Fin</label>
+                    <label class="text-sm text-gray-500 uppercase font-black">Fecha Fin</label>
                     <input type="date" wire:model="editFechaFin"
                         min="{{ $proyecto->fecha_inicio?->format('Y-m-d') }}"
                         class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 text-sm focus:border-purple-500/50 outline-none">
                     @error('editFechaFin')
-                        <p class="text-red-400 text-[9px] mt-1">{{ $message }}</p>
+                        <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
             </div>
 
             <div class="flex gap-3 pt-1">
                 <button wire:click="$set('mostrarModalFechas', false)"
-                    class="w-1/2 py-3 rounded-xl border border-white/10 text-white text-xs font-bold hover:bg-white/5 transition-all">
+                    class="w-1/2 py-3 rounded-xl border border-white/10 text-white text-sm font-bold hover:bg-white/5 transition-all">
                     CANCELAR
                 </button>
                 <button wire:click="guardarFechas"
-                    class="w-1/2 bg-white text-black py-3 rounded-xl font-black text-xs hover:bg-gray-100 transition-all">
+                    class="w-1/2 bg-white text-black py-3 rounded-xl font-black text-sm hover:bg-gray-100 transition-all">
                     GUARDAR
                 </button>
             </div>
