@@ -62,7 +62,6 @@
     };
 @endphp
 
-@if(!$esRecurso || $esComposicion)
 <div class="border-t border-white/[0.025]" wire:key="{{ 'node-' . $nodo->id }}">
 
     {{-- FILA DEL NODO --}}
@@ -266,4 +265,3 @@
     @endif
 
 </div>
-@endif
