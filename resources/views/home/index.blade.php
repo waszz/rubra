@@ -308,9 +308,50 @@
             </div>
 
         </div>
+        {{-- Modal explicativo de roles (global para la sección Precios) --}}
+        <div id="roles-explain-modal" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0" aria-hidden="true">
+            <div class="fixed inset-0 bg-black/60 js-close-roles-modal"></div>
+            <div class="bg-white dark:bg-[#141414] border border-gray-200 dark:border-[#222] rounded-2xl p-6 w-full max-w-2xl z-50 shadow-2xl text-black dark:text-white">
+                <div class="flex items-start justify-between gap-3 mb-4">
+                    <div>
+                        <h3 class="text-sm font-semibold">Roles y funciones</h3>
+                        <p class="text-xs text-neutral-500 mt-1">Descripción breve de cada rol disponible en los planes.</p>
+                    </div>
+                    <button class="text-neutral-400 hover:text-neutral-600 js-close-roles-modal">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-neutral-700 dark:text-neutral-300">
+                    <div>
+                        <h4 class="text-xs font-black uppercase mb-2">Supervisor</h4>
+                        <p class="text-xs">Coordina tareas en obra, valida avances y controla calidad. Acceso a visualizaciones y reportes clave.</p>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-black uppercase mb-2">Presupuestador</h4>
+                        <p class="text-xs">Gestiona presupuestos, importa recursos, edita cómputos y precios unitarios.</p>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-black uppercase mb-2">Jefe de Obra</h4>
+                        <p class="text-xs">Supervisa la ejecución diaria, asigna tareas y reporta el estado del proyecto desde el terreno.</p>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-black uppercase mb-2">Administrativo</h4>
+                        <p class="text-xs">Gestiona documentación, permisos y tareas administrativas del proyecto.</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button class="px-4 py-2 bg-[#d15330] hover:bg-[#c64b26] text-white rounded-lg js-close-roles-modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
 </section>
+
+<!-- modal moved inside 'precios' section -->
 
         <section id="logo-3d-section" class="relative z-10 max-w-[1200px] mx-auto px-10 mt-24 pb-24">
     <div class="bg-[#111111]/40 backdrop-blur-sm border border-white/5 rounded-[40px] p-12 md:p-20 relative overflow-hidden grid md:grid-cols-2 gap-12 items-center">
@@ -835,7 +876,7 @@
     </div>
 </section>
 
-<section id="precios" class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-16 md:py-24">
+<section id="precios" class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-16 md:py-24" x-data="{ roleModalOpen: false }">
 
     <!-- HEADER -->
     <div class="mb-10 md:mb-16 text-left">
@@ -855,6 +896,22 @@
         <p class="text-gray-400 max-w-2xl text-sm md:text-base leading-relaxed">
             Empezá gratis y crecé según tus necesidades. Todos los planes incluyen acceso completo a la plataforma.
         </p>
+
+        @php
+            $roleLabels = [
+                'supervisor'     => 'Supervisor',
+                'presupuestador' => 'Presupuestador',
+                'jefe_obra'      => 'Jefe de Obra',
+                'administrativo' => 'Administrativo',
+            ];
+
+            $roleLimitsMap = [
+                'gratis' => ['supervisor' => 1, 'presupuestador' => 0, 'jefe_obra' => 0, 'administrativo' => 0],
+                'basico' => ['supervisor' => 1, 'presupuestador' => 0, 'jefe_obra' => 2, 'administrativo' => 0],
+                'profesional' => ['supervisor' => 1, 'presupuestador' => 3, 'jefe_obra' => 6, 'administrativo' => 0],
+                'enterprise' => ['supervisor' => 2, 'presupuestador' => 6, 'jefe_obra' => 12, 'administrativo' => 5],
+            ];
+        @endphp
 
     </div>
 
@@ -885,8 +942,28 @@
                     <li class="flex items-center gap-2 border-b border-white/5 pb-2">
                         <span class="text-[#d15330]">✓</span> Acceso a la plataforma
                     </li>
-                    <li class="flex items-center gap-2 border-b border-white/5 pb-2">
-                        <span class="text-[#d15330]">✓</span> Roles: 1 Supervisor
+                    {{-- Roles detallados con ticks + modal explicativo --}}
+                    @php $planKey = 'gratis'; $planRoles = $roleLimitsMap[$planKey]; @endphp
+                    <li class="border-b border-white/5 pb-2">
+                        <div class="text-[10px] uppercase tracking-wider text-white/60 mb-2">Roles</div>
+                        <div class="space-y-1 text-[10px] text-white/70">
+                                    @foreach($roleLabels as $rKey => $rLabel)
+                                        @php $count = $planRoles[$rKey] ?? 0; @endphp
+                                        @if($count > 0)
+                                            <div class="flex items-center gap-2 py-0.5">
+                                                <span class="text-white font-bold">✓</span>
+                                                <span class="text-white font-bold">{{ $count }}</span>
+                                                <span class="uppercase text-[10px] ml-1 text-white">{{ $rLabel }}</span>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" @click="roleModalOpen = true" class="text-white/70 hover:text-white text-sm inline-flex items-center gap-2 js-open-roles-modal">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                <span class="text-[10px] uppercase tracking-wider">Qué hace cada rol</span>
+                            </button>
+                        </div>
                     </li>
                     <li class="flex items-center gap-2 border-b border-white/5 pb-2">
                         <span class="text-[#d15330]">✓</span> Recursos, presupuestos, ejecución
@@ -939,8 +1016,27 @@
                     <li class="flex items-center gap-2 border-b border-white/5 pb-2">
                         <span class="text-[#d15330]">✓</span> Acceso completo a la plataforma
                     </li>
-                    <li class="flex items-center gap-2 border-b border-white/5 pb-2">
-                        <span class="text-[#d15330]">✓</span> Roles: 1 Supervisor, 2 Jefe de Obra
+                    @php $planKey = 'basico'; $planRoles = $roleLimitsMap[$planKey]; @endphp
+                    <li class="border-b border-white/5 pb-2">
+                        <div class="text-[10px] uppercase tracking-wider text-white/60 mb-2">Roles</div>
+                        <div class="space-y-1 text-[10px] text-white/70">
+                            @foreach($roleLabels as $rKey => $rLabel)
+                                @php $count = $planRoles[$rKey] ?? 0; @endphp
+                                @if($count > 0)
+                                    <div class="flex items-center gap-2 py-0.5">
+                                        <span class="text-white font-bold">✓</span>
+                                        <span class="text-white font-bold">{{ $count }}</span>
+                                        <span class="uppercase text-[10px] ml-1 text-white">{{ $rLabel }}</span>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" @click="roleModalOpen = true" class="text-white/70 hover:text-white text-sm inline-flex items-center gap-2 js-open-roles-modal">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                <span class="text-[10px] uppercase tracking-wider">Qué hace cada rol</span>
+                            </button>
+                        </div>
                     </li>
                     <li class="flex items-center gap-2 border-b border-white/5 pb-2">
                         <span class="text-[#d15330]">✓</span> Recursos, Presupuestos, Ejecución
@@ -1000,8 +1096,27 @@
                     <li class="flex items-center gap-2 border-b border-white/20 pb-2">
                         <span class="text-white">✓</span> Acceso completo a la plataforma
                     </li>
-                    <li class="flex items-center gap-2 border-b border-white/20 pb-2">
-                        <span class="text-white">✓</span> Roles: 1 Supervisor, 3 Presupuestadores, 6 Jefe de Obra
+                    @php $planKey = 'profesional'; $planRoles = $roleLimitsMap[$planKey]; @endphp
+                    <li class="border-b border-white/20 pb-2">
+                        <div class="text-[10px] uppercase tracking-wider text-white/60 mb-2">Roles</div>
+                        <div class="space-y-1 text-[10px] text-white/70">
+                            @foreach($roleLabels as $rKey => $rLabel)
+                                @php $count = $planRoles[$rKey] ?? 0; @endphp
+                                @if($count > 0)
+                                    <div class="flex items-center gap-2 py-0.5">
+                                        <span class="text-white font-bold">✓</span>
+                                        <span class="text-white font-bold">{{ $count }}</span>
+                                        <span class="uppercase text-[10px] ml-1 text-white">{{ $rLabel }}</span>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" @click="roleModalOpen = true" class="text-white/70 hover:text-white text-sm inline-flex items-center gap-2 js-open-roles-modal">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                <span class="text-[10px] uppercase tracking-wider">Qué hace cada rol</span>
+                            </button>
+                        </div>
                     </li>
                     <li class="flex items-center gap-2 border-b border-white/20 pb-2">
                         <span class="text-white">✓</span> Recursos, Presupuestos, Ejecución
@@ -1057,8 +1172,27 @@
                     <li class="flex items-center gap-2 border-b border-white/5 pb-2">
                         <span class="text-[#d15330]">✓</span> Acceso completo a la plataforma
                     </li>
-                    <li class="flex items-center gap-2 border-b border-white/5 pb-2">
-                        <span class="text-[#d15330]">✓</span> Roles: 2 Supervisores, 6 Presupuestadores, 12 Jefe de Obra, 5 Administrativos
+                    @php $planKey = 'enterprise'; $planRoles = $roleLimitsMap[$planKey]; @endphp
+                    <li class="border-b border-white/5 pb-2">
+                        <div class="text-[10px] uppercase tracking-wider text-white/60 mb-2">Roles</div>
+                        <div class="space-y-1 text-[10px] text-white/70">
+                            @foreach($roleLabels as $rKey => $rLabel)
+                                @php $count = $planRoles[$rKey] ?? 0; @endphp
+                                @if($count > 0)
+                                    <div class="flex items-center gap-2 py-0.5">
+                                        <span class="text-white font-bold">✓</span>
+                                        <span class="text-white font-bold">{{ $count }}</span>
+                                        <span class="uppercase text-[10px] ml-1 text-white">{{ $rLabel }}</span>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" @click="roleModalOpen = true" class="text-white/70 hover:text-white text-sm inline-flex items-center gap-2 js-open-roles-modal">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                <span class="text-[10px] uppercase tracking-wider">Qué hace cada rol</span>
+                            </button>
+                        </div>
                     </li>
                     <li class="flex items-center gap-2 border-b border-white/5 pb-2">
                         <span class="text-[#d15330]">✓</span> Recursos, Presupuestos, Ejecución
@@ -1478,6 +1612,38 @@ window.addEventListener('resize', () => {
     );
     if (section) observer.observe(section);
 })();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('roles-explain-modal');
+    if (!modal) return;
+
+    const openButtons = document.querySelectorAll('.js-open-roles-modal');
+    const closeButtons = modal.querySelectorAll('.js-close-roles-modal');
+
+    function openModal() {
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+    }
+
+    openButtons.forEach(btn => btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openModal();
+    }));
+
+    closeButtons.forEach(btn => btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeModal();
+    }));
+});
 </script>
 
 <script>
