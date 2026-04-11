@@ -55,8 +55,9 @@
     @else
     <div class="flex overflow-hidden border-t border-white/5">
 
-        {{-- ── Columna izquierda FIJA: nombres ── --}}
-        <div class="w-64 shrink-0 border-r border-white/5 flex flex-col bg-[#0d0d0d]">
+        {{-- ── Columna izquierda FIJA: nombres (resizable) ── --}}
+        <div id="gantt-left" class="shrink-0 border-r border-white/5 flex flex-col bg-[#0d0d0d]"
+             style="width:256px; min-width:160px; max-width:640px;">
 
             {{-- Cabecera meses (placeholder para alinear altura) --}}
             <div class="px-4 py-2 bg-white/[0.02] border-b border-white/5 flex items-center" style="height:33px">
@@ -97,8 +98,12 @@
 
         </div>
 
-        {{-- ── Área derecha scrollable (UN SOLO contenedor) ── --}}
-        <div class="flex-1 overflow-x-auto overflow-y-hidden">
+           {{-- Resizer draggable --}}
+           <div id="gantt-resizer" class="w-1 cursor-col-resize bg-transparent hover:bg-white/10 touch-none"
+               title="Arrastrar para redimensionar" style="user-select:none"></div>
+
+           {{-- ── Área derecha scrollable (UN SOLO contenedor) ── --}}
+           <div id="gantt-right" class="flex-1 overflow-x-auto overflow-y-hidden">
 
             {{-- Cabecera meses --}}
             <div class="flex border-b border-white/5 bg-[#0d0d0d]" style="min-width:{{ $totalPx }}px; height:33px">
@@ -175,6 +180,71 @@
         </div>
     </div>
     @endif
+
+<script>
+    (function(){
+        const left = document.getElementById('gantt-left');
+        const resizer = document.getElementById('gantt-resizer');
+        if (!left || !resizer) return;
+
+        const MIN = 160; // px
+        const MAX = 640; // px
+        const DEFAULT = 256; // px
+        const storageKey = 'gantt-left-width-{{ $proyecto->id }}';
+
+        function setWidth(w){
+            const width = Math.min(MAX, Math.max(MIN, Math.round(w)));
+            left.style.width = width + 'px';
+            try { localStorage.setItem(storageKey, width); } catch(e) {}
+        }
+
+        // load stored width (run immediately)
+        try {
+            const stored = parseInt(localStorage.getItem(storageKey));
+            if (!isNaN(stored)) setWidth(stored);
+            else setWidth(DEFAULT);
+        } catch(e) {
+            setWidth(DEFAULT);
+        }
+
+        let dragging = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        function onPointerDown(e){
+            e.preventDefault();
+            dragging = true;
+            startX = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0].clientX);
+            startWidth = left.getBoundingClientRect().width;
+            document.documentElement.style.cursor = 'col-resize';
+        }
+
+        function onPointerMove(e){
+            if (!dragging) return;
+            const clientX = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0].clientX);
+            const dx = clientX - startX;
+            setWidth(startWidth + dx);
+        }
+
+        function stopDragging(){
+            if (!dragging) return;
+            dragging = false;
+            document.documentElement.style.cursor = '';
+        }
+
+        resizer.addEventListener('mousedown', onPointerDown);
+        document.addEventListener('mousemove', onPointerMove);
+        document.addEventListener('mouseup', stopDragging);
+
+        // touch support
+        resizer.addEventListener('touchstart', onPointerDown, {passive:false});
+        document.addEventListener('touchmove', onPointerMove, {passive:false});
+        document.addEventListener('touchend', stopDragging);
+
+        // double click to reset
+        resizer.addEventListener('dblclick', function(){ setWidth(DEFAULT); });
+    })();
+</script>
 
 {{-- MODAL FECHAS --}}
 @if($mostrarModalFechas)
