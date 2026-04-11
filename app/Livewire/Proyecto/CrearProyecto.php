@@ -75,9 +75,15 @@ class CrearProyecto extends Component
         }
 
         // Cálculo rápido (ajustar según tu lógica de costos)
-        $costo_base = $this->metros_cuadrados * 1200;
-        $ganancia   = $costo_base * ($this->beneficio / 100);
-        $impuesto   = $costo_base * ($this->impuestos / 100);
+        // Forzar tipos numéricos para evitar errores al dividir strings no numéricos
+        $metros = (float) str_replace(',', '.', (string) $this->metros_cuadrados);
+        $costo_base = $metros * 1200;
+
+        $beneficioPct = (float) str_replace(',', '.', (string) $this->beneficio);
+        $impuestosPct = (float) str_replace(',', '.', (string) $this->impuestos);
+
+        $ganancia   = $costo_base * ($beneficioPct / 100);
+        $impuesto   = $costo_base * ($impuestosPct / 100);
         $total      = $costo_base + $ganancia + $impuesto;
 
         // 1. Creamos el Proyecto
