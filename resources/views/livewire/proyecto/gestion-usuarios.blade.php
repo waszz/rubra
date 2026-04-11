@@ -12,22 +12,18 @@
                 <p class="text-sm text-gray-500 dark:text-neutral-500 mt-0.5">Administra los roles y categorías de los miembros de tu equipo.</p>
             </div>
         </div>
-                @foreach($roles as $val => $label)
-                    @php
-                        $allowed = $planLimits[$val] ?? 0;
-                        $count = $roleCounts[$val] ?? 0;
-                        $isCurrent = $rolEnPivot === $val;
-                        // Mostrar si es el rol actual o el plan permite ese rol (aunque esté lleno)
-                        $show = $isCurrent || $allowed > 0;
-                        // Deshabilitar cuando el rol está permitido por el plan pero ya alcanzó el límite (y no es el rol actual)
-                        $disabled = !$isCurrent && $allowed > 0 && $count >= $allowed;
-                    @endphp
-                    @if($show)
-                        <option value="{{ $val }}" {{ $isCurrent ? 'selected' : '' }} @if($disabled) disabled @endif>
-                            {{ $label }}@if($allowed > 0) ({{ $count }}/{{ $allowed }})@endif @if($disabled) - Límite alcanzado @endif
-                        </option>
-                    @endif
-                @endforeach
+
+        {{-- Tabs + Botón --}}
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-xl p-1">
+                <button
+                    wire:click="$set('tab', 'usuarios')"
+                    class="px-4 py-1.5 text-sm rounded-lg transition-colors {{ $tab === 'usuarios' ? 'bg-white dark:bg-white text-black dark:text-black font-medium' : 'text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white' }}"
+                >
+                    Usuarios
+                </button>
+                <button
+                    wire:click="$set('tab', 'permisos')"
                     class="px-4 py-1.5 text-sm rounded-lg transition-colors {{ $tab === 'permisos' ? 'bg-white dark:bg-white text-black dark:text-black font-medium' : 'text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white' }}"
                 >
                     Permisos
