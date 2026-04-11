@@ -128,6 +128,11 @@ public function invitar(): void
         ->distinct()
         ->count('user_id');
 
+    // Contar al propietario como usuario del rol si corresponde
+    if ($owner->role === $role) {
+        $acceptedCount += 1;
+    }
+
     // Contar invitaciones vigentes para ese rol
     $pendingCount = Invitacion::where('invited_by', $owner->id)
         ->where('rol', $role)
@@ -301,6 +306,11 @@ public function eliminarUsuarioConfirmado()
                 ->where('rol', $rolKey)
                 ->where('expires_at', '>', now())
                 ->count();
+
+            // Contar al propietario como usuario del rol si corresponde
+            if ($user->role === $rolKey) {
+                $accepted += 1;
+            }
 
             $roleCounts[$rolKey] = $accepted + $pending;
         }
