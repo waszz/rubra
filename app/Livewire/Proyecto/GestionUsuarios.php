@@ -176,18 +176,20 @@ public function invitar(): void
 
     $token = Str::random(48);
 
-    // Borrar invitaciones anteriores para ese email antes de crear una nueva
-    Invitacion::where('email', $this->invitar_email)->delete();
+    // Si el usuario NO existe en el sistema, crear una invitación (pendiente)
+    if (!$user) {
+        // Borrar invitaciones anteriores para ese email antes de crear una nueva
+        Invitacion::where('email', $this->invitar_email)->delete();
 
-    Invitacion::create([
-        'email'      => $this->invitar_email,
-        'rol'        => $this->invitar_rol,
-        'token'      => $token,
-        'expires_at' => now()->addDays(7),
-        'invited_by' => $owner->id,
-    ]);
-
-    if ($user) {
+        Invitacion::create([
+            'email'      => $this->invitar_email,
+            'rol'        => $this->invitar_rol,
+            'token'      => $token,
+            'expires_at' => now()->addDays(7),
+            'invited_by' => $owner->id,
+        ]);
+    } else {
+        // Usuario ya existe: anexarlo directamente a proyectos del invitador
         foreach ($proyectosDelInvitador as $proyectoId) {
             if (!$user->proyectos()->where('proyecto_id', $proyectoId)->exists()) {
                 $user->proyectos()->attach($proyectoId, ['rol' => $this->invitar_rol]);
@@ -196,6 +198,7 @@ public function invitar(): void
         $user->update(['invited_by' => $owner->id]);
     }
 
+    // Enviar notificación — el mail muestra distinto contenido según si el usuario existe
     Mail::to($this->invitar_email)->send(
         new \App\Mail\InvitacionUsuario($token, $this->invitar_rol, (bool) $user)
     );
