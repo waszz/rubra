@@ -50,7 +50,7 @@
             </div>
 
             {{-- Avatares (ocultos en xs) --}}
-            <div class="hidden sm:flex items-center">
+                <div class="hidden sm:flex items-center">
                 <div class="flex -space-x-1.5">
                     @foreach($proyecto->usuarios as $user)
                         <div class="w-6 h-6 rounded-full bg-purple-500 border-2 border-[#0d0d0d] flex items-center justify-center text-xs font-black text-white">
@@ -58,7 +58,7 @@
                         </div>
                     @endforeach
                 </div>
-                @if(auth()->user()?->role === 'supervisor')
+                @if(auth()->id() === $proyecto->user_id)
                     <button wire:click="abrirModalInvitar" class="ml-1.5 text-sm font-black text-gray-600 hover:text-white transition-colors uppercase">
                         + Invitar
                     </button>
@@ -66,12 +66,14 @@
             </div>
 
             {{-- Compartir (oculto en xs) --}}
+            @if(auth()->id() === $proyecto->user_id)
             <button wire:click="abrirModalCompartir" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 text-sm font-black uppercase tracking-wider transition-all">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
                 </svg>
                 Compartir
             </button>
+            @endif
 
         </div>
     </div>

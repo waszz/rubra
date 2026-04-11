@@ -144,6 +144,12 @@ public $rolCompartir = 'supervisor'; // Rol que elegirá quien genera el link
 
     public function abrirModalInvitar()
     {
+        // Solo el dueño del proyecto puede invitar
+        if (auth()->id() !== $this->proyecto->user_id) {
+            session()->flash('error', 'Solo el dueño del proyecto puede invitar miembros.');
+            return;
+        }
+
         $this->mostrarModalInvitar = true;
         $this->cargarUsuarios();
     }
@@ -920,6 +926,12 @@ public function cargarUsuarios()
 
 public function invitarUsuariosSeleccionados()
 {
+    // Solo el dueño del proyecto puede invitar
+    if (auth()->id() !== $this->proyecto->user_id) {
+        session()->flash('error', 'Solo el dueño del proyecto puede invitar miembros.');
+        return;
+    }
+
     foreach ($this->usuariosSeleccionados as $userId) {
 
         if ($this->proyecto->usuarios()->where('user_id', $userId)->exists()) {
@@ -1428,6 +1440,12 @@ public function actualizarCostoReal($id, $valor)
      */
     public function abrirModalCompartir()
     {
+        // Solo el dueño del proyecto puede generar links de compartir
+        if (auth()->id() !== $this->proyecto->user_id) {
+            session()->flash('error', 'Solo el dueño del proyecto puede compartirlo.');
+            return;
+        }
+
         $this->rolCompartir = 'supervisor'; // Reset rol a valor por defecto
         $this->mostrarModalCompartir = true;
         $this->linkCompartible = '';
@@ -1436,6 +1454,12 @@ public function actualizarCostoReal($id, $valor)
 
     public function generarLinkCompartir()
     {
+        // Verificar que solo el dueño pueda generar links
+        if (auth()->id() !== $this->proyecto->user_id) {
+            session()->flash('error', 'Solo el dueño del proyecto puede generar links de compartir.');
+            return;
+        }
+
         try {
             // Validar que se haya seleccionado un rol válido
             $rolesValidos = ['supervisor', 'presupuestador', 'jefe_obra'];
