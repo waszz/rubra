@@ -886,7 +886,7 @@
                         <span class="text-[#d15330]">✓</span> Acceso a la plataforma
                     </li>
                     <li class="flex items-center gap-2 border-b border-white/5 pb-2">
-                        <span class="text-[#d15330]">✓</span> Hasta 1 colaborador
+                        <span class="text-[#d15330]">✓</span> Roles: 1 Supervisor
                     </li>
                     <li class="flex items-center gap-2 border-b border-white/5 pb-2">
                         <span class="text-[#d15330]">✓</span> Recursos, presupuestos, ejecución
@@ -940,7 +940,7 @@
                         <span class="text-[#d15330]">✓</span> Acceso completo a la plataforma
                     </li>
                     <li class="flex items-center gap-2 border-b border-white/5 pb-2">
-                        <span class="text-[#d15330]">✓</span> Hasta 3 Colaboradores
+                        <span class="text-[#d15330]">✓</span> Roles: 1 Supervisor, 2 Jefe de Obra
                     </li>
                     <li class="flex items-center gap-2 border-b border-white/5 pb-2">
                         <span class="text-[#d15330]">✓</span> Recursos, Presupuestos, Ejecución
@@ -1001,7 +1001,7 @@
                         <span class="text-white">✓</span> Acceso completo a la plataforma
                     </li>
                     <li class="flex items-center gap-2 border-b border-white/20 pb-2">
-                        <span class="text-white">✓</span> Hasta 20 Colaboradores
+                        <span class="text-white">✓</span> Roles: 1 Supervisor, 3 Presupuestadores, 6 Jefe de Obra
                     </li>
                     <li class="flex items-center gap-2 border-b border-white/20 pb-2">
                         <span class="text-white">✓</span> Recursos, Presupuestos, Ejecución
@@ -1058,7 +1058,7 @@
                         <span class="text-[#d15330]">✓</span> Acceso completo a la plataforma
                     </li>
                     <li class="flex items-center gap-2 border-b border-white/5 pb-2">
-                        <span class="text-[#d15330]">✓</span> Hasta 50 Colaboradores
+                        <span class="text-[#d15330]">✓</span> Roles: 2 Supervisores, 6 Presupuestadores, 12 Jefe de Obra, 5 Administrativos
                     </li>
                     <li class="flex items-center gap-2 border-b border-white/5 pb-2">
                         <span class="text-[#d15330]">✓</span> Recursos, Presupuestos, Ejecución

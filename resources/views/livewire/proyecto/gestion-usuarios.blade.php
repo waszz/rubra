@@ -34,9 +34,8 @@
             <div class="flex flex-col items-start gap-2">
                 <button
                     wire:click="abrirModalInvitar"
-                    @if($colaboradoresActivos >= $limitePlan) disabled @endif
-                    class="flex items-center gap-2 transition-all text-sm font-medium rounded-xl px-4 py-2 {{ $colaboradoresActivos >= $limitePlan ? 'bg-gray-200 dark:bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 dark:bg-[#e85d27] dark:hover:bg-[#d04e1f] active:scale-95 text-white' }}"
-                    title="{{ $colaboradoresActivos >= $limitePlan ? 'Límite de colaboradores alcanzado' : 'Invitar un nuevo usuario' }}"
+                    class="flex items-center gap-2 transition-all text-sm font-medium rounded-xl px-4 py-2 bg-orange-500 hover:bg-orange-600 dark:bg-[#e85d27] dark:hover:bg-[#d04e1f] active:scale-95 text-white"
+                    title="Invitar un nuevo usuario"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
@@ -44,11 +43,12 @@
                     Invitar Usuario
                 </button>
                 <p class="text-[10px] text-gray-500 dark:text-neutral-500 font-bold">
-                    Tu plan permite hasta <span class="text-[#e85d27] font-black">{{ $limitePlan }}</span> colaborador{{ $limitePlan !== 1 ? 'es' : '' }}
-                    <span class="text-gray-400 dark:text-neutral-600">({{ $colaboradoresActivos }}/{{ $limitePlan }} invitados)</span>
-                    @if($colaboradoresActivos >= $limitePlan)
-                        <span class="block text-red-400 font-bold mt-1">⚠ Límite alcanzado</span>
-                    @endif
+                    Límites por rol:
+                    @foreach($planLimits as $r => $limit)
+                        <span class="text-[#e85d27] font-black">{{ $limit }}</span> {{ $roles[$r] ?? ucfirst($r) }}
+                        <span class="text-gray-400 dark:text-neutral-600">({{ $roleCounts[$r] ?? 0 }}/{{ $limit }})</span>
+                        @if(!$loop->last)<span class="mx-1">•</span>@endif
+                    @endforeach
                 </p>
             </div>
             @endif
@@ -144,11 +144,11 @@
             wire:change="cambiarRol({{ $usuario->id }}, $event.target.value)"
             class="bg-gray-100 dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#2a2a2a] rounded-lg px-2 py-1 text-xs text-black dark:text-neutral-300 focus:outline-none focus:border-orange-500 dark:focus:border-[#e85d27] transition-colors cursor-pointer"
         >
-            @foreach(['supervisor' => 'Supervisor', 'presupuestador' => 'Presupuestador', 'jefe_obra' => 'Jefe de Obra'] as $val => $label)
-                <option value="{{ $val }}" {{ $rolEnPivot === $val ? 'selected' : '' }}>
-                    {{ $label }}
-                </option>
-            @endforeach
+                @foreach($roles as $val => $label)
+                    <option value="{{ $val }}" {{ $rolEnPivot === $val ? 'selected' : '' }}>
+                        {{ $label }}
+                    </option>
+                @endforeach
         </select>
     @endif
 </td>
@@ -186,11 +186,12 @@
     </div>
 
     {{-- Cards de roles --}}
-    <div class="mx-4 sm:mx-10 mb-7 sm:mb-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="mx-4 sm:mx-10 mb-7 sm:mb-10 grid grid-cols-1 sm:grid-cols-4 gap-4">
         @foreach([
             ['supervisor',     'Supervisor',     '#a78bfa', 'Acceso total al sistema. Puede gestionar usuarios, categorías, ajustes globales y todos los proyectos.'],
             ['presupuestador', 'Presupuestador', '#60a5fa', 'Especializado en el control de recursos y armado de presupuestos. Acceso a catálogos y plantillas.'],
             ['jefe_obra',      'Jefe de Obra',   '#34d399', 'Enfocado en la ejecución. Acceso a presupuestos aprobados, estadísticas, bitácoras y mapas de obra.'],
+            ['administrativo', 'Administrativo', '#f59e0b', 'Gestiona tareas administrativas, reportes y soporte interno. Acceso a reportes y usuarios.'],
         ] as [$key, $label, $color, $desc])
         <div class="bg-white dark:bg-[#141414] border border-gray-200 dark:border-[#222] rounded-xl p-5">
             <div class="flex items-center gap-2 mb-2">
@@ -312,9 +313,15 @@
                         class="bg-[#111] border border-[#2a2a2a] rounded-lg px-3.5 py-2.5 text-sm text-neutral-200
                                focus:outline-none focus:border-[#e85d27] transition-colors cursor-pointer"
                     >
-                        <option value="supervisor">Supervisor</option>
-                        <option value="presupuestador">Presupuestador</option>
-                        <option value="jefe_obra">Jefe de Obra</option>
+                        @foreach($roles as $val => $label)
+                            @php
+                                $allowed = $planLimits[$val] ?? 0;
+                                $count = $roleCounts[$val] ?? 0;
+                            @endphp
+                            <option value="{{ $val }}" @if($count >= $allowed) disabled @endif>
+                                {{ $label }}@if($allowed > 0) ({{ $count }}/{{ $allowed }})@endif
+                            </option>
+                        @endforeach
                     </select>
                     @error('invitar_rol') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
                 </div>

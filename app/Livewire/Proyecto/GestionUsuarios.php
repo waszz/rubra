@@ -48,15 +48,16 @@ public $mostrarModalEliminar = false;
         'supervisor'      => 'Supervisor',
         'presupuestador'  => 'Presupuestador',
         'jefe_obra'       => 'Jefe de Obra',
+        'administrativo'  => 'Administrativo',
     ];
 
     // Feedback
     public string $successMsg = '';
     public string $errorMsg   = '';
 
-  protected array $rules = [
-    'invitar_email' => 'required|email',
-    'invitar_rol'   => 'required|in:supervisor,presupuestador,jefe_obra',
+    protected array $rules = [
+        'invitar_email' => 'required|email',
+        'invitar_rol'   => 'required|in:supervisor,presupuestador,jefe_obra,administrativo',
 ];
     protected array $messages = [
         'invitar_email.required' => 'El correo es obligatorio.',
@@ -104,31 +105,48 @@ public function invitar(): void
 {
     $this->validate();
 
-    // Validar límite de colaboradores según el plan
-    $limitesPlan = [
-        'gratis' => 1,
-        'basico' => 3,
-        'profesional' => 20,
-        'enterprise' => 50,
+    // Límites por rol según plan
+    $roleLimits = [
+        'gratis' => ['supervisor' => 1, 'presupuestador' => 0, 'jefe_obra' => 0, 'administrativo' => 0],
+        'basico' => ['supervisor' => 1, 'presupuestador' => 0, 'jefe_obra' => 2, 'administrativo' => 0],
+        'profesional' => ['supervisor' => 1, 'presupuestador' => 3, 'jefe_obra' => 6, 'administrativo' => 0],
+        'enterprise' => ['supervisor' => 2, 'presupuestador' => 6, 'jefe_obra' => 12, 'administrativo' => 5],
     ];
-    
-    $user = auth()->user();
-    $limitePlan = $limitesPlan[$user->plan] ?? 1;
-    
-    $userId = auth()->id();
-    // Contar solo los colaboradores invitados (no incluye al usuario actual)
-    $colaboradoresActivos = User::where('invited_by', $userId)->count();
-    
-    if ($colaboradoresActivos >= $limitePlan) {
-        $this->errorMsg = "Tu plan permite máximo {$limitePlan} colaborador(es). Ya has alcanzado el límite.";
+
+    $owner = auth()->user();
+    $plan = $owner->plan ?? 'gratis';
+    $planLimits = $roleLimits[$plan] ?? $roleLimits['gratis'];
+
+    $role = $this->invitar_rol;
+    $allowedForRole = $planLimits[$role] ?? 0;
+
+    // Contar usuarios ya asignados al rol en los proyectos del invitador (distinto por usuario)
+    $proyectosDelInvitador = Proyecto::where('user_id', $owner->id)->pluck('id');
+    $acceptedCount = DB::table('proyecto_user')
+        ->whereIn('proyecto_id', $proyectosDelInvitador)
+        ->where('rol', $role)
+        ->distinct()
+        ->count('user_id');
+
+    // Contar invitaciones vigentes para ese rol
+    $pendingCount = Invitacion::where('invited_by', $owner->id)
+        ->where('rol', $role)
+        ->where('expires_at', '>', now())
+        ->count();
+
+    $totalForRole = $acceptedCount + $pendingCount;
+
+    if ($totalForRole >= $allowedForRole) {
+        $label = $this->roles[$role] ?? $role;
+        $this->errorMsg = "Tu plan permite máximo {$allowedForRole} usuario(s) con rol {$label}. Ya has alcanzado el límite.";
         return;
     }
 
+    // Verificar usuario existente por email
     $user = User::where('email', $this->invitar_email)->first();
 
     // Si ya existe y ya está en mis proyectos → error
     if ($user) {
-        $proyectosDelInvitador = Proyecto::where('user_id', auth()->id())->pluck('id');
         $yaEstaEnMisProyectos = $user->proyectos()
             ->whereIn('proyecto_id', $proyectosDelInvitador)
             ->exists();
@@ -161,18 +179,16 @@ public function invitar(): void
         'rol'        => $this->invitar_rol,
         'token'      => $token,
         'expires_at' => now()->addDays(7),
-        'invited_by' => auth()->id(),
-        'user_id'    => $user?->id,
+        'invited_by' => $owner->id,
     ]);
 
     if ($user) {
-        $proyectosDelInvitador = Proyecto::where('user_id', auth()->id())->pluck('id');
         foreach ($proyectosDelInvitador as $proyectoId) {
             if (!$user->proyectos()->where('proyecto_id', $proyectoId)->exists()) {
                 $user->proyectos()->attach($proyectoId, ['rol' => $this->invitar_rol]);
             }
         }
-        $user->update(['invited_by' => auth()->id()]);
+        $user->update(['invited_by' => $owner->id]);
     }
 
     Mail::to($this->invitar_email)->send(
@@ -261,18 +277,33 @@ public function eliminarUsuarioConfirmado()
         $userId = auth()->id();
         $user = auth()->user();
 
-        // Límites de colaboradores por plan
-        $limitesPlan = [
-            'gratis' => 1,
-            'basico' => 3,
-            'profesional' => 20,
-            'enterprise' => 50,
+        // Límites por rol según plan (configurable aquí)
+        $roleLimits = [
+            'gratis' => ['supervisor' => 1, 'presupuestador' => 0, 'jefe_obra' => 0, 'administrativo' => 0],
+            'basico' => ['supervisor' => 1, 'presupuestador' => 0, 'jefe_obra' => 2, 'administrativo' => 0],
+            'profesional' => ['supervisor' => 1, 'presupuestador' => 3, 'jefe_obra' => 6, 'administrativo' => 0],
+            'enterprise' => ['supervisor' => 2, 'presupuestador' => 6, 'jefe_obra' => 12, 'administrativo' => 5],
         ];
-        
-        $limitePlan = $limitesPlan[$user->plan] ?? 1;
 
-        // Contar colaboradores activos ANTES de paginar
-        $colaboradoresActivos = User::where('invited_by', $userId)->count();
+        $planLimits = $roleLimits[$user->plan] ?? $roleLimits['gratis'];
+
+        // Contar usuarios por rol (aceptados en pivot) y pendientes (invitaciones vigentes)
+        $proyectosDelInvitador = Proyecto::where('user_id', $userId)->pluck('id');
+        $roleCounts = [];
+        foreach (array_keys($this->roles) as $rolKey) {
+            $accepted = DB::table('proyecto_user')
+                ->whereIn('proyecto_id', $proyectosDelInvitador)
+                ->where('rol', $rolKey)
+                ->distinct()
+                ->count('user_id');
+
+            $pending = Invitacion::where('invited_by', $userId)
+                ->where('rol', $rolKey)
+                ->where('expires_at', '>', now())
+                ->count();
+
+            $roleCounts[$rolKey] = $accepted + $pending;
+        }
 
         $usuarios = User::query()
             ->where(function ($q) use ($userId) {
@@ -291,8 +322,8 @@ public function eliminarUsuarioConfirmado()
         return view('livewire.proyecto.gestion-usuarios', [
             'usuarios'              => $usuarios,
             'totalActivos'          => $usuarios->total(),
-            'limitePlan'            => $limitePlan,
-            'colaboradoresActivos'  => $colaboradoresActivos,
+            'planLimits'            => $planLimits,
+            'roleCounts'            => $roleCounts,
         ])->layout('layouts.app');
     }
 }
