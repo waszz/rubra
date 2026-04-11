@@ -144,11 +144,20 @@
             wire:change="cambiarRol({{ $usuario->id }}, $event.target.value)"
             class="bg-gray-100 dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#2a2a2a] rounded-lg px-2 py-1 text-xs text-black dark:text-neutral-300 focus:outline-none focus:border-orange-500 dark:focus:border-[#e85d27] transition-colors cursor-pointer"
         >
-                @foreach($roles as $val => $label)
-                    <option value="{{ $val }}" {{ $rolEnPivot === $val ? 'selected' : '' }}>
-                        {{ $label }}
+            @foreach($roles as $val => $label)
+                @php
+                    $allowed = $planLimits[$val] ?? 0;
+                    $count = $roleCounts[$val] ?? 0;
+                    $isCurrent = $rolEnPivot === $val;
+                    $show = $isCurrent || $allowed > 0;
+                    $disabled = !$isCurrent && $allowed > 0 && $count >= $allowed;
+                @endphp
+                @if($show)
+                    <option value="{{ $val }}" {{ $isCurrent ? 'selected' : '' }} @if($disabled) disabled @endif>
+                        {{ $label }}@if($allowed > 0) ({{ $count }}/{{ $allowed }})@endif @if($disabled) - Límite alcanzado @endif
                     </option>
-                @endforeach
+                @endif
+            @endforeach
         </select>
     @endif
 </td>
