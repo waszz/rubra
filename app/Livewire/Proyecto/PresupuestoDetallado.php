@@ -653,6 +653,7 @@ public function exportarExcel()
                     $sheet->mergeCells('A' . $row . ':' . $lastColLetter . $row);
                     $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleCatRow);
                 }
+                $sheet->setCellValueByColumnAndRow(8, $row, 'CAT');
                 $row++;
             }
 
@@ -683,6 +684,7 @@ public function exportarExcel()
                     $sheet->getStyle($lastColLetter . $row)->getNumberFormat()->setFormatCode('#,##0.00');
                 }
                 $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleSubrubro);
+                $sheet->setCellValueByColumnAndRow(8, $row, 'SUB');
                 $row++;
                 continue;
             }
@@ -700,6 +702,7 @@ public function exportarExcel()
                 $sheet->setCellValueByColumnAndRow($col++, $row, $subtotalConBeneficioExcel);
             }
             $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleData);
+            $sheet->setCellValueByColumnAndRow(8, $row, 'REC');
             $row++;
         }
 
@@ -751,6 +754,7 @@ public function exportarExcel()
         $sheet->getColumnDimension('E')->setWidth(12);
         $sheet->getColumnDimension('F')->setWidth(16);
         $sheet->getColumnDimension('G')->setWidth(18);
+        $sheet->getColumnDimension('H')->setVisible(false); // hidden type marker column (CAT/SUB/REC)
 
         // ─────────────────────────────────────────────────────
         // CONFIGURACIÓN DE PÁGINA PARA EXPORTAR COMO PDF
@@ -1510,6 +1514,10 @@ public function invitarUsuariosSeleccionados()
 
             if (empty(array_filter($cells, fn($c) => $c !== '' && $c !== '0'))) continue;
 
+            // Type marker in column H (written by our exporter) — primary detection
+            // Falls back to background colour for files from older exports
+            $typeMarker = strtoupper(trim((string)($sheet->getCellByColumnAndRow(8, $rowIdx)->getValue() ?? '')));
+
             // Background: getRGB() returns 6-char hex; some builds return 8-char ARGB — take last 6
             $bg = strtoupper(substr(
                 $sheet->getStyleByColumnAndRow(1, $rowIdx)->getFill()->getStartColor()->getRGB() ?? '',
@@ -1530,16 +1538,16 @@ public function invitarUsuariosSeleccionados()
                 ? (float)$precioRaw
                 : (float)str_replace(',', '.', preg_replace('/[^\d,]/', '', $precioRaw));
 
-            if ($bg === 'E8E8E8') {
+            if ($typeMarker === 'CAT' || ($typeMarker === '' && $bg === 'E8E8E8')) {
                 // Category separator row
                 $nombre = $catVal ?: $itemVal;
                 if ($nombre !== '') {
                     $items[] = ['tipo' => 'categoria', 'nombre' => $nombre, 'unidad' => '', 'cantidad' => 1, 'precio' => 0];
                 }
-            } elseif ($bg === 'F5F5F5' && $itemVal !== '') {
+            } elseif ($typeMarker === 'SUB' || ($typeMarker === '' && $bg === 'F5F5F5' && $itemVal !== '')) {
                 // Subrubro row — Excel stores per-unit qty (cantidad_display)
                 $items[] = ['tipo' => 'subrubro', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $cantVal > 0 ? $cantVal : 1, 'precio' => $precioVal];
-            } elseif ($itemVal !== '') {
+            } elseif ($typeMarker === 'REC' || ($typeMarker === '' && $itemVal !== '')) {
                 // Resource row — Excel stores per-unit qty (cantidad_display); import as-is
                 $items[] = ['tipo' => 'recurso', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $cantVal > 0 ? $cantVal : 1, 'precio' => $precioVal];
             }
