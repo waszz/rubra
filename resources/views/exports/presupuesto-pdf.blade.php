@@ -512,6 +512,12 @@
     <div class="resumen-section">
         <div class="resumen-title">Resumen de Costos</div>
         <table class="resumen-table">
+            @if(($resumen['pct_beneficio'] ?? 0) > 0)
+            <tr>
+                <td class="resumen-label">Beneficio ({{ number_format($resumen['pct_beneficio'], 0) }}%)</td>
+                <td class="resumen-value">$ {{ number_format($resumen['beneficio'], 2, ',', '.') }}</td>
+            </tr>
+            @endif
             <tr>
                 <td class="resumen-label">Subtotal {{ $monedaBase }}</td>
                 <td class="resumen-value">$ {{ number_format($resumen['subtotal_con_beneficio'], 2, ',', '.') }}</td>

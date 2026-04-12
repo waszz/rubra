@@ -153,6 +153,11 @@
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
             Agregar Rubro
         </button>
+        <button wire:click="abrirModalEliminarTodo"
+            class="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 dark:text-red-400 hover:bg-red-500/20 text-[11px] font-black uppercase tracking-wider transition-all">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            Eliminar Todo
+        </button>
         @endif
     </div>
 
@@ -191,13 +196,19 @@
                     PDF
                 </button>
                 @if(auth()->user()->plan !== 'gratis')
-                <button wire:click="abrirModalExcel" class="w-full flex items-center gap-2 px-4 py-2.5 text-white hover:bg-white/10 transition-all text-left text-sm font-black uppercase tracking-wider">
+                <button wire:click="abrirModalExcel" class="w-full flex items-center gap-2 px-4 py-2.5 text-white hover:bg-white/10 transition-all text-left text-sm font-black uppercase tracking-wider border-b border-gray-700">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
                     Excel
                 </button>
                 @endif
+                <button wire:click="abrirModalImportarPresupuesto" class="w-full flex items-center gap-2 px-4 py-2.5 text-orange-400 hover:bg-orange-500/10 transition-all text-left text-sm font-black uppercase tracking-wider">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    Importar Presupuesto
+                </button>
             </div>
             @endif
         </div>
@@ -1799,6 +1810,151 @@ document.addEventListener('click', function(event) {
     }
 });
 </script>
+
+{{-- ════════════════════════════════════════════════════════
+     MODAL: IMPORTAR PRESUPUESTO
+════════════════════════════════════════════════════════ --}}
+@if($modalImportarPresupuesto)
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div class="w-full max-w-lg bg-[#111] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+
+        {{-- Header --}}
+        <div class="flex items-center justify-between px-6 py-4 border-b border-white/5">
+            <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                <h2 class="text-sm font-black text-white uppercase tracking-widest">Importar Presupuesto</h2>
+            </div>
+            <button wire:click="cerrarModalImportarPresupuesto" class="text-gray-500 hover:text-white transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+
+            {{-- Info --}}
+            <div class="bg-orange-500/10 border border-orange-500/20 rounded-lg px-4 py-3 text-[11px] text-orange-300 leading-relaxed">
+                Importa un presupuesto exportado desde Rubra en formato <strong>Excel (.xlsx)</strong> o <strong>PDF</strong>.
+                Los ítems se agregarán al proyecto manteniendo la estructura de categorías, rubros y subrubros.
+                Si un recurso coincide con el catálogo, se vinculará automáticamente.
+            </div>
+
+            {{-- Tipo --}}
+            <div class="flex gap-2">
+                <button wire:click="$set('tipoImportPresupuesto', 'excel')"
+                    class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all
+                        {{ $tipoImportPresupuesto === 'excel' ? 'bg-green-500/20 border-green-500/40 text-green-300' : 'border-white/10 text-gray-500 hover:border-white/20' }}">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Excel (.xlsx)
+                </button>
+                <button wire:click="$set('tipoImportPresupuesto', 'pdf')"
+                    class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all
+                        {{ $tipoImportPresupuesto === 'pdf' ? 'bg-red-500/20 border-red-500/40 text-red-300' : 'border-white/10 text-gray-500 hover:border-white/20' }}">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                    PDF
+                </button>
+            </div>
+
+            {{-- Upload zone --}}
+            <div class="relative">
+                <label class="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-white/10 rounded-xl cursor-pointer hover:border-orange-500/40 hover:bg-orange-500/5 transition-all group">
+                    <svg class="w-8 h-8 text-gray-600 group-hover:text-orange-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    @if($archivoImportPresupuesto)
+                        <span class="text-xs text-green-400 font-bold">{{ $archivoImportPresupuesto->getClientOriginalName() }}</span>
+                        <span class="text-[10px] text-gray-500">Click para cambiar</span>
+                    @else
+                        <span class="text-xs text-gray-400 font-bold">Arrastrá o hacé click para seleccionar</span>
+                        <span class="text-[10px] text-gray-600">
+                            {{ $tipoImportPresupuesto === 'excel' ? '.xlsx, .xls' : '.pdf' }} — Máx. 10 MB
+                        </span>
+                    @endif
+                    <input type="file"
+                           wire:model="archivoImportPresupuesto"
+                           accept="{{ $tipoImportPresupuesto === 'excel' ? '.xlsx,.xls' : '.pdf' }}"
+                           class="absolute inset-0 opacity-0 cursor-pointer">
+                </label>
+                @error('archivoImportPresupuesto')
+                    <p class="text-xs text-red-400 mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Resultado --}}
+            @if(!empty($importPresupuestoResult))
+                @if(isset($importPresupuestoResult['ok']))
+                    <div class="bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3 text-xs text-green-300 font-bold">
+                        ✓ Importación exitosa — {{ $importPresupuestoResult['creados'] }} ítems creados.
+                    </div>
+                @elseif(isset($importPresupuestoResult['error']))
+                    <div class="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 text-xs text-red-300">
+                        {{ $importPresupuestoResult['error'] }}
+                    </div>
+                @endif
+            @endif
+
+        </div>
+
+        {{-- Footer --}}
+        <div class="px-6 py-4 border-t border-white/5 flex justify-end gap-2">
+            <button wire:click="cerrarModalImportarPresupuesto"
+                class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider transition-all">
+                Cancelar
+            </button>
+            <button wire:click="importarPresupuesto"
+                wire:loading.attr="disabled"
+                wire:target="importarPresupuesto,archivoImportPresupuesto"
+                class="px-5 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-2">
+                <span wire:loading wire:target="importarPresupuesto">
+                    <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                </span>
+                Importar
+            </button>
+        </div>
+
+    </div>
+</div>
+@endif
+
+{{-- ════════════════════════════════════════════════════════
+     MODAL: ELIMINAR TODO EL PRESUPUESTO
+════════════════════════════════════════════════════════ --}}
+@if($modalEliminarTodo)
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div class="w-full max-w-sm bg-[#111] border border-red-500/30 rounded-2xl shadow-2xl overflow-hidden">
+        <div class="flex items-center gap-3 px-6 py-4 border-b border-white/5">
+            <div class="w-8 h-8 rounded-full bg-red-500/15 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+            </div>
+            <h2 class="text-sm font-black text-white uppercase tracking-widest">Eliminar todo el presupuesto</h2>
+        </div>
+        <div class="px-6 py-5">
+            <p class="text-sm text-gray-300 leading-relaxed">
+                Esto eliminará <strong class="text-white">todos los rubros, subrubros y recursos</strong> del presupuesto de forma irreversible.
+            </p>
+            <p class="text-xs text-red-400 mt-2 font-bold">Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="px-6 py-4 border-t border-white/5 flex justify-end gap-2">
+            <button wire:click="$set('modalEliminarTodo', false)"
+                class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider transition-all">
+                Cancelar
+            </button>
+            <button wire:click="confirmarEliminarTodo"
+                wire:loading.attr="disabled"
+                wire:target="confirmarEliminarTodo"
+                class="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-2">
+                <span wire:loading wire:target="confirmarEliminarTodo">
+                    <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                </span>
+                Sí, eliminar todo
+            </button>
+        </div>
+    </div>
+</div>
+@endif
 
 <livewire:proyecto.chatbot-rubi :proyecto="$proyecto" />
 </div>

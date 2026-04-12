@@ -3,6 +3,7 @@
 namespace App\Livewire\Proyecto;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use App\Models\Proyecto;
 use App\Livewire\Concerns\AutorizaProyecto;
 use App\Models\Recurso;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
 
 class PresupuestoDetallado extends Component
 {
-    use AutorizaProyecto;
+    use AutorizaProyecto, WithFileUploads;
 
     public Proyecto $proyecto;
 
@@ -135,6 +136,16 @@ public $rolCompartir = 'supervisor'; // Rol que elegirá quien genera el link
 
     // Nodo copiado para pegar
     public ?int $nodoCopiadoId = null;
+
+    // ── Modal importar presupuesto ────────────────────────────
+    public bool  $modalImportarPresupuesto = false;
+    public string $tipoImportPresupuesto   = 'excel';
+    public $archivoImportPresupuesto       = null;
+    public array $importPresupuestoResult  = [];
+    public bool  $importandoPresupuesto    = false;
+
+    // ── Modal eliminar todo ───────────────────────────────────
+    public bool $modalEliminarTodo = false;
 
     // Listeners para eventos
     protected $listeners = ['proyectoActualizado' => 'actualizarProyecto'];
@@ -535,6 +546,7 @@ public function exportarExcel()
         $row++;
 
         $resumenRows = [
+            ['Beneficio (' . number_format($pctBeneficio, 0) . '%)', $beneficioMonto],
             ['Subtotal ' . $monedaBase, $subtotalConBeneficio],
             ['Impuestos (' . number_format($pctImpuestos, 0) . '%)', $impuestosMonto],
         ];
@@ -1337,6 +1349,416 @@ public function invitarUsuariosSeleccionados()
         foreach ($nodo->hijos as $hijo) {
             $this->_duplicarNodoRecursivo($hijo, $nuevo->id);
         }
+    }
+
+    // ── IMPORTAR PRESUPUESTO ──────────────────────────────────
+
+    public function abrirModalImportarPresupuesto(): void
+    {
+        $this->modalImportarPresupuesto  = true;
+        $this->importPresupuestoResult   = [];
+        $this->archivoImportPresupuesto  = null;
+    }
+
+    public function cerrarModalImportarPresupuesto(): void
+    {
+        $this->modalImportarPresupuesto = false;
+        $this->importPresupuestoResult  = [];
+        $this->archivoImportPresupuesto = null;
+        $this->importandoPresupuesto    = false;
+    }
+
+    public function abrirModalEliminarTodo(): void
+    {
+        $this->modalEliminarTodo = true;
+    }
+
+    public function confirmarEliminarTodo(): void
+    {
+        ProyectoRecurso::where('proyecto_id', $this->proyecto->id)->delete();
+        $this->modalEliminarTodo = false;
+        $this->proyecto->refresh();
+        $this->cargarProyecto();
+        $this->guardarEstado();
+        $this->dispatch('notify', mensaje: 'Presupuesto eliminado completamente.', tipo: 'success');
+    }
+
+    public function importarPresupuesto(): void
+    {
+        $this->validate([
+            'archivoImportPresupuesto' => 'required|file|max:10240|mimes:xlsx,xls,pdf',
+        ]);
+
+        $this->importandoPresupuesto = true;
+        $path = $this->archivoImportPresupuesto->getRealPath();
+        $ext  = strtolower($this->archivoImportPresupuesto->getClientOriginalExtension());
+
+        try {
+            $parsed = $ext === 'pdf'
+                ? $this->_parsePDF($path)
+                : $this->_parseExcel($path);
+
+            $items              = $parsed['items'];
+            $beneficioExportado = (float)($parsed['beneficio'] ?? 0);
+
+            if (empty($items)) {
+                $this->importPresupuestoResult = ['error' => 'No se encontraron ítems en el archivo.'];
+                $this->importandoPresupuesto   = false;
+                return;
+            }
+
+            $creados = $this->_crearDesdeItems($items, $beneficioExportado);
+            $this->cargarProyecto();
+            $this->importPresupuestoResult = ['ok' => true, 'creados' => $creados];
+            $this->dispatch('notify', mensaje: "Presupuesto importado: {$creados} ítems creados.", tipo: 'success');
+        } catch (\Throwable $e) {
+            $this->importPresupuestoResult = ['error' => 'Error al procesar el archivo: ' . $e->getMessage()];
+        }
+
+        $this->importandoPresupuesto = false;
+    }
+
+    private function _parseExcel(string $path): array
+    {
+        $reader      = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
+        $reader->setReadDataOnly(false);
+        $spreadsheet = $reader->load($path);
+        $sheet       = $spreadsheet->getActiveSheet();
+
+        $items            = [];
+        $state            = 'pre'; // pre → header → data
+        $detectedBeneficio = 0.0;
+        $colCat    = 0;
+        $colItem   = 1;
+        $colUnid   = 3;
+        $colCant   = 4;
+        $colPrecio = 5;
+
+        foreach ($sheet->getRowIterator() as $rowObj) {
+            $rowIdx = $rowObj->getRowIndex();
+            $cells  = [];
+            foreach ($rowObj->getCellIterator('A', 'G') as $cell) {
+                $v = $cell->getValue();
+                $cells[] = is_numeric($v) ? (string)(float)$v : trim((string)($v ?? ''));
+            }
+
+            // ── Phase 1: skip everything until "TABLA DE PRESUPUESTO" ──
+            if ($state === 'pre') {
+                // Detect beneficio% from the resumen block: "Beneficio (35%)"
+                if (preg_match('/beneficio\s*\(\s*(\d+(?:[.,]\d+)?)\s*%\)/iu', $cells[0] ?? '', $bm)) {
+                    $detectedBeneficio = (float)str_replace(',', '.', $bm[1]);
+                }
+                if (str_contains(strtoupper($cells[0] ?? ''), 'TABLA DE PRESUPUESTO')) {
+                    $state = 'header';
+                }
+                continue;
+            }
+
+            // ── Phase 2: next row after marker = column headers ──
+            if ($state === 'header') {
+                foreach ($cells as $i => $v) {
+                    $vl = mb_strtolower(trim((string)$v));
+                    if (str_contains($vl, 'categor'))                                     $colCat    = $i;
+                    if ($vl === 'ítem' || $vl === 'item' || str_contains($vl, 'ítem'))   $colItem   = $i;
+                    if ($vl === 'unidad')                                                 $colUnid   = $i;
+                    if ($vl === 'cantidad')                                               $colCant   = $i;
+                    if (str_contains($vl, 'precio') && !str_contains($vl, 'final'))      $colPrecio = $i;
+                }
+                $state = 'data';
+                continue;
+            }
+
+            // ── Phase 3: data rows ──
+            $firstUpper = strtoupper($cells[0] ?? '');
+            if (str_contains($firstUpper, 'TOTAL') || str_contains($firstUpper, 'ALCANCE')
+                || str_contains($firstUpper, 'CONDICIONES') || str_contains($firstUpper, 'VALIDEZ')
+                || str_contains($firstUpper, 'CARGA SOCIAL') || str_contains($firstUpper, 'BENEFICIO')
+                || str_contains($firstUpper, 'IMPUESTO')) {
+                break;
+            }
+
+            if (empty(array_filter($cells, fn($c) => $c !== '' && $c !== '0'))) continue;
+
+            // Background: getRGB() returns 6-char hex; some builds return 8-char ARGB — take last 6
+            $bg = strtoupper(substr(
+                $sheet->getStyleByColumnAndRow(1, $rowIdx)->getFill()->getStartColor()->getRGB() ?? '',
+                -6
+            ));
+
+            $catVal    = trim($cells[$colCat]    ?? '');
+            $itemVal   = trim($cells[$colItem]   ?? '');
+            $unidVal   = trim($cells[$colUnid]   ?? '');
+
+            // Numbers may be stored as floats ("1.5") or formatted strings ("1,5") — normalise both
+            $cantRaw   = $cells[$colCant]   ?? '0';
+            $precioRaw = $cells[$colPrecio] ?? '0';
+            $cantVal   = is_numeric($cantRaw)
+                ? (float)$cantRaw
+                : (float)str_replace(',', '.', preg_replace('/[^\d,]/', '', $cantRaw));
+            $precioVal = is_numeric($precioRaw)
+                ? (float)$precioRaw
+                : (float)str_replace(',', '.', preg_replace('/[^\d,]/', '', $precioRaw));
+
+            if ($bg === 'E8E8E8') {
+                // Category separator row (grey background, columns merged)
+                $nombre = $catVal ?: $itemVal;
+                if ($nombre !== '') {
+                    $items[] = ['tipo' => 'categoria', 'nombre' => $nombre, 'unidad' => '', 'cantidad' => 1, 'precio' => 0];
+                }
+            } elseif ($bg === 'F5F5F5' && $itemVal !== '') {
+                // Subrubro row (light-grey background)
+                $items[] = ['tipo' => 'subrubro', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $cantVal > 0 ? $cantVal : 1, 'precio' => $precioVal];
+            } elseif ($itemVal !== '') {
+                // Resource row
+                $items[] = ['tipo' => 'recurso', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $cantVal > 0 ? $cantVal : 1, 'precio' => $precioVal];
+            }
+        }
+
+        return ['items' => $items, 'beneficio' => $detectedBeneficio];
+    }
+
+    private function _parsePDF(string $path): array
+    {
+        $parser = new \Smalot\PdfParser\Parser();
+        $pdf    = $parser->parseFile($path);
+        $text   = $pdf->getText();
+        $lines  = preg_split('/\r?\n/', $text);
+
+        $items             = [];
+        $state             = 'pre'; // pre → header → data
+        $pendingName       = '';    // multi-line name accumulation
+        $detectedBeneficio = 0.0;
+
+        // Substrings that identify non-data lines to skip in the data section
+        $skipKeywords = [
+            'TABLA DE PRESUPUESTO', 'ÍTEM', 'ITEM', 'DESCRIPCI',
+            'ALCANCE', 'CONDICIONES', 'VALIDEZ',
+            'LO QUE SE CONSIDER', 'MODO DE PAGO', 'TIEMPO DE VIGENCIA',
+            'REPORTE DE PRESUPUESTO', 'RESUMEN DE COSTOS',
+            'SUBTOTAL USD', 'IMPUESTOS', 'PRECIO FINAL',
+            'CARGA SOCIAL', 'CONFIDENCIAL',
+        ];
+
+        // Code prefix pattern: "01.00 ", "03.05.01 ", "100. ", "02. " etc.
+        $codeRx = '/^\d{1,3}\.[\d\.]*\s*/';
+
+        // Normalise European number: "1.234,56" → 1234.56
+        $parseNum = static fn(string $s): float =>
+            (float)str_replace(',', '.', preg_replace('/\.(?=\d{3}[,\.]|\d{3}$)/', '', trim($s)));
+
+        // Emit one item, stripping code prefix and detecting subrubro vs resource
+        $emit = function (string $rawName, string $unit, float $qty, float $precio)
+            use (&$items, $codeRx): void
+        {
+            $rawName = trim($rawName);
+            if ($rawName === '') return;
+
+            if (preg_match($codeRx, $rawName)) {
+                $nombre = trim(preg_replace($codeRx, '', $rawName));
+                $tipo   = 'subrubro';
+            } else {
+                $nombre = $rawName;
+                $tipo   = 'recurso';
+            }
+
+            if ($nombre === '') return;
+            $items[] = [
+                'tipo'     => $tipo,
+                'nombre'   => $nombre,
+                'unidad'   => $unit,
+                'cantidad' => $qty > 0 ? $qty : 1,
+                'precio'   => $precio,
+            ];
+        };
+
+        foreach ($lines as $line) {
+            $line  = trim($line);
+            if ($line === '') continue;
+
+            $upper = mb_strtoupper($line, 'UTF-8');
+
+            // ── Phase 1: skip until table marker ──────────────────────────────
+            if ($state === 'pre') {
+                // Detect beneficio% from the resumen block: "Beneficio (35%)"
+                if (preg_match('/beneficio\s*\(\s*(\d+(?:[.,]\d+)?)\s*%\)/iu', $line, $bm)) {
+                    $detectedBeneficio = (float)str_replace(',', '.', $bm[1]);
+                }
+                if (str_contains($upper, 'TABLA DE PRESUPUESTO')) {
+                    $state = 'header';
+                }
+                continue;
+            }
+
+            // ── Phase 2: first line after marker = column headers, skip it ────
+            if ($state === 'header') {
+                $state = 'data';
+                continue;
+            }
+
+            // ── Phase 3: data lines ───────────────────────────────────────────
+
+            // Hard stop at table totals row
+            if (str_contains($upper, 'TOTAL PRESUPUESTO')) break;
+
+            // Skip section headers, page-repeat headers and other noise
+            $isNoise = false;
+            foreach ($skipKeywords as $kw) {
+                if (str_contains($upper, $kw)) { $isNoise = true; break; }
+            }
+            if ($isNoise) {
+                $pendingName = ''; // reset accumulation at section boundaries
+                continue;
+            }
+
+            // Skip lines that are purely numeric (stray page numbers, etc.)
+            if (preg_match('/^[\d\s.,]+$/', $line)) continue;
+
+            $dollarCount = substr_count($line, '$');
+
+            // ── Category row: one $ sign at end ─────────────────────────────
+            if ($dollarCount === 1) {
+                $nombre = trim(preg_replace('/\s*\$[\s\d.,]+$/', '', $line));
+                $nombre = trim(preg_replace($codeRx, '', $nombre));
+                if ($nombre !== '') {
+                    $pendingName = '';
+                    $items[]     = ['tipo' => 'categoria', 'nombre' => $nombre,
+                                    'unidad' => '', 'cantidad' => 1, 'precio' => 0];
+                }
+                continue;
+            }
+
+            // ── Data row: two $ signs = subrubro or resource ──────────────────
+            if ($dollarCount >= 2) {
+                // Extract the last two $ amounts
+                if (preg_match('/\$\s*([\d.,]+)\s*$/', $line, $mLast)) {
+                    $afterLast = preg_replace('/\s*\$\s*[\d.,]+\s*$/', '', $line);
+                    if (preg_match('/\$\s*([\d.,]+)\s*$/', $afterLast, $mPrev)) {
+                        $precioStr = $mPrev[1];
+                        $head      = trim(preg_replace('/\s*\$\s*[\d.,]+\s*$/', '', $afterLast));
+
+                        // Parse unit + qty from the tail of $head
+                        $parts     = preg_split('/\s+/', $head);
+                        $qty       = 1.0;
+                        $unit      = '';
+                        $nameParts = $parts;
+
+                        // Last token: numeric → quantity
+                        $tok = end($parts);
+                        if ($tok !== false && is_numeric(str_replace(',', '.', $tok))) {
+                            $qty       = $parseNum($tok);
+                            $nameParts = array_slice($parts, 0, -1);
+                            // New last token: short letter-starting word → unit
+                            $tok2 = end($nameParts);
+                            if ($tok2 !== false
+                                && strlen($tok2) <= 6
+                                && preg_match('/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]/', $tok2)) {
+                                $unit      = $tok2;
+                                $nameParts = array_slice($nameParts, 0, -1);
+                            }
+                        }
+
+                        // Combine pending multi-line name with whatever's left in head
+                        $nameFromLine = implode(' ', $nameParts);
+                        $fullName     = $pendingName !== ''
+                            ? trim($pendingName . ' ' . $nameFromLine)
+                            : trim($nameFromLine);
+
+                        $emit($fullName, $unit, $qty, $parseNum($precioStr));
+                        $pendingName = '';
+                    }
+                }
+                continue;
+            }
+
+            // ── 0 $ signs: accumulate as part of a multi-line name ────────────
+            $pendingName = $pendingName !== '' ? $pendingName . ' ' . $line : $line;
+        }
+
+        return ['items' => $items, 'beneficio' => $detectedBeneficio];
+    }
+
+    private function _crearDesdeItems(array $items, float $beneficioExportado = 0.0): int
+    {
+        $creados          = 0;
+        $catNodeId        = null;
+        $subrubroNodeId   = null;
+
+        // Reverse beneficio from exported prices.
+        // Use the % detected from the file itself; fall back to project's setting.
+        $pct    = $beneficioExportado > 0 ? $beneficioExportado : (float)($this->proyecto->beneficio ?? 0);
+        $factor = $pct > 0 ? (1 + $pct / 100) : 1.0;
+
+        foreach ($items as $item) {
+            $nombre = trim($item['nombre'] ?? '');
+            if (!$nombre) continue;
+
+            if ($item['tipo'] === 'categoria') {
+                $maxOrden = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+                    ->whereNull('parent_id')->max('orden') ?? 0;
+                $node = ProyectoRecurso::create([
+                    'proyecto_id' => $this->proyecto->id,
+                    'parent_id'   => null,
+                    'recurso_id'  => null,
+                    'nombre'      => $nombre,
+                    'unidad'      => 'gl',
+                    'cantidad'    => 1,
+                    'precio_usd'  => 0,
+                    'categoria'   => $nombre,
+                    'orden'       => $maxOrden + 1,
+                ]);
+                $catNodeId      = $node->id;
+                $subrubroNodeId = null;
+                $creados++;
+
+            } elseif ($item['tipo'] === 'subrubro') {
+                if (!$catNodeId) continue;
+                $maxOrden = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+                    ->where('parent_id', $catNodeId)->max('orden') ?? 0;
+                $node = ProyectoRecurso::create([
+                    'proyecto_id' => $this->proyecto->id,
+                    'parent_id'   => $catNodeId,
+                    'recurso_id'  => null,
+                    'nombre'      => $nombre,
+                    'unidad'      => $item['unidad'] ?: 'gl',
+                    'cantidad'    => $item['cantidad'] ?: 1,
+                    'precio_usd'  => 0,
+                    'categoria'   => null,
+                    'orden'       => $maxOrden + 1,
+                ]);
+                $subrubroNodeId = $node->id;
+                $creados++;
+
+            } elseif ($item['tipo'] === 'recurso') {
+                $parentId = $subrubroNodeId ?? $catNodeId;
+                if (!$parentId) continue;
+
+                // Intentar match con recurso existente en catálogo
+                $recurso = Recurso::whereRaw('LOWER(nombre) LIKE ?', ['%' . strtolower($nombre) . '%'])->first();
+
+                // Reverse the beneficio factor from the exported price
+                $precioImportado = ($item['precio'] ?? 0) > 0
+                    ? round(($item['precio'] / $factor), 6)
+                    : 0;
+
+                $maxOrden = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+                    ->where('parent_id', $parentId)->max('orden') ?? 0;
+
+                ProyectoRecurso::create([
+                    'proyecto_id' => $this->proyecto->id,
+                    'parent_id'   => $parentId,
+                    'recurso_id'  => $recurso?->id,
+                    'nombre'      => $nombre,
+                    'unidad'      => $item['unidad'] ?: ($recurso?->unidad ?? 'gl'),
+                    'cantidad'    => $item['cantidad'] ?: 1,
+                    'precio_usd'  => $precioImportado ?: ($recurso?->precio_usd ?? 0),
+                    'categoria'   => null,
+                    'orden'       => $maxOrden + 1,
+                ]);
+                $creados++;
+            }
+        }
+
+        return $creados;
     }
 
     public function toggleBeneficio()
