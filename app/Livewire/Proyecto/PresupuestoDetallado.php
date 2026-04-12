@@ -1433,6 +1433,10 @@ public function invitarUsuariosSeleccionados()
             $this->cargarProyecto();
             $this->importPresupuestoResult = ['ok' => true, 'creados' => $creados, 'recursos' => $recursosCount];
             $this->dispatch('notify', mensaje: "Presupuesto importado: {$recursosCount} recursos, {$creados} nodos creados.", tipo: 'success');
+
+            // Cerrar modal y limpiar archivo seleccionado al completar la importación
+            $this->modalImportarPresupuesto = false;
+            $this->archivoImportPresupuesto = null;
         } catch (\Throwable $e) {
             $this->importPresupuestoResult = ['error' => 'Error al procesar el archivo: ' . $e->getMessage()];
         }
