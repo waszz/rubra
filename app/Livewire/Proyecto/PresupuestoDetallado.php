@@ -545,15 +545,21 @@ public function exportarExcel()
         $sheet->getRowDimension($row)->setRowHeight(16);
         $row++;
 
-        // Fila Beneficio oculta: solo para detección automática en importación
+        // Fila Beneficio invisible: texto blanco sobre fondo blanco (igual que el PDF).
+        // No aparece visualmente pero el parser la detecta al importar.
         if ($pctBeneficio > 0) {
+            $styleInvisible = [
+                'font'      => ['color' => ['rgb' => 'FFFFFF'], 'size' => 1],
+                'fill'      => ['fillType' => $Fill, 'startColor' => ['rgb' => 'FFFFFF']],
+                'alignment' => ['horizontal' => $Left],
+                'borders'   => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_NONE]],
+            ];
             $sheet->setCellValue('A' . $row, 'Beneficio (' . number_format($pctBeneficio, 0) . '%)');
             $sheet->mergeCells('A' . $row . ':F' . $row);
-            $sheet->getStyle('A' . $row)->applyFromArray($styleResumenLabel);
+            $sheet->getStyle('A' . $row . ':G' . $row)->applyFromArray($styleInvisible);
             $sheet->setCellValue('G' . $row, '$ ' . number_format($beneficioMonto, 2, ',', '.'));
-            $sheet->getStyle('G' . $row)->applyFromArray($styleResumenValue);
-            $sheet->getRowDimension($row)->setVisible(false);
-            $sheet->getRowDimension($row)->setRowHeight(0);
+            $sheet->getStyle('G' . $row)->applyFromArray($styleInvisible);
+            $sheet->getRowDimension($row)->setRowHeight(1);
             $row++;
         }
 
