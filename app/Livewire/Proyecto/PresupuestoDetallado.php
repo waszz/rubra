@@ -688,15 +688,11 @@ public function exportarExcel()
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['categoria']);
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['nombre']);
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['descripcion'] ?? '');
-            // Usar cantidad_display (por unidad, igual que el PDF) para que al reimportar
-            // no se duplique la multiplicación con la cantidad del subrubro padre.
-            $cantDisplay     = $item['cantidad_display'] ?? $item['cantidad'];
-            $subtotalDisplay = $item['subtotal_display'] ?? $item['subtotal'];
             if ($this->excelIncluirUnidad)   $sheet->setCellValueByColumnAndRow($col++, $row, $item['unidad']);
-            if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $cantDisplay);
+            if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $item['cantidad']);
             if ($this->excelIncluirPrecio) {
                 $precioConBeneficioExcel   = ($item['precio_usd'] ?? 0) * (1 + $pctBeneficio / 100);
-                $subtotalConBeneficioExcel = $subtotalDisplay            * (1 + $pctBeneficio / 100);
+                $subtotalConBeneficioExcel = ($item['subtotal']    ?? 0) * (1 + $pctBeneficio / 100);
                 $sheet->setCellValueByColumnAndRow($col++, $row, $precioConBeneficioExcel);
                 $sheet->setCellValueByColumnAndRow($col++, $row, $subtotalConBeneficioExcel);
             }
@@ -1450,9 +1446,10 @@ public function invitarUsuariosSeleccionados()
         $spreadsheet = $reader->load($path);
         $sheet       = $spreadsheet->getActiveSheet();
 
-        $items            = [];
-        $state            = 'pre'; // pre → header → data
+        $items             = [];
+        $state             = 'pre'; // pre → header → data
         $detectedBeneficio = 0.0;
+        $lastSubrubroQty   = 1.0; // cantidad efectiva del último subrubro visto
         $colCat    = 0;
         $colItem   = 1;
         $colUnid   = 3;
@@ -1525,17 +1522,20 @@ public function invitarUsuariosSeleccionados()
                 : (float)str_replace(',', '.', preg_replace('/[^\d,]/', '', $precioRaw));
 
             if ($bg === 'E8E8E8') {
-                // Category separator row (grey background, columns merged)
+                // Category separator row — reset subrubro context
+                $lastSubrubroQty = 1.0;
                 $nombre = $catVal ?: $itemVal;
                 if ($nombre !== '') {
                     $items[] = ['tipo' => 'categoria', 'nombre' => $nombre, 'unidad' => '', 'cantidad' => 1, 'precio' => 0];
                 }
             } elseif ($bg === 'F5F5F5' && $itemVal !== '') {
-                // Subrubro row (light-grey background)
-                $items[] = ['tipo' => 'subrubro', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $cantVal > 0 ? $cantVal : 1, 'precio' => $precioVal];
+                // Subrubro row — track its quantity so resources can be divided back to per-unit
+                $lastSubrubroQty = $cantVal > 0 ? $cantVal : 1.0;
+                $items[] = ['tipo' => 'subrubro', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $lastSubrubroQty, 'precio' => $precioVal];
             } elseif ($itemVal !== '') {
-                // Resource row
-                $items[] = ['tipo' => 'recurso', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $cantVal > 0 ? $cantVal : 1, 'precio' => $precioVal];
+                // Resource row — Excel stores effective qty; divide by subrubro qty to recover per-unit
+                $perUnitQty = ($lastSubrubroQty > 0) ? round($cantVal / $lastSubrubroQty, 6) : $cantVal;
+                $items[] = ['tipo' => 'recurso', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $perUnitQty > 0 ? $perUnitQty : 1, 'precio' => $precioVal];
             }
         }
 
