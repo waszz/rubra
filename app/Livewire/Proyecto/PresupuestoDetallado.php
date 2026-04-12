@@ -692,10 +692,10 @@ public function exportarExcel()
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['nombre']);
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['descripcion'] ?? '');
             if ($this->excelIncluirUnidad)   $sheet->setCellValueByColumnAndRow($col++, $row, $item['unidad']);
-            if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $item['cantidad']);
+            if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $item['cantidad_display'] ?? $item['cantidad']);
             if ($this->excelIncluirPrecio) {
                 $precioConBeneficioExcel   = ($item['precio_usd'] ?? 0) * (1 + $pctBeneficio / 100);
-                $subtotalConBeneficioExcel = ($item['subtotal']    ?? 0) * (1 + $pctBeneficio / 100);
+                $subtotalConBeneficioExcel = ($item['subtotal_display'] ?? $item['subtotal'] ?? 0) * (1 + $pctBeneficio / 100);
                 $sheet->setCellValueByColumnAndRow($col++, $row, $precioConBeneficioExcel);
                 $sheet->setCellValueByColumnAndRow($col++, $row, $subtotalConBeneficioExcel);
             }
@@ -958,18 +958,20 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
             $subrubroSubtotal = $perUnit * $cantidadNodo * $multiplier;
 
             $items[] = [
-                'tipo'        => 'subrubro',
-                'categoria'   => $catEste,
-                'nombre'      => $nodo->nombre,
-                'descripcion' => '',
-                'unidad'      => $nodo->unidad ?? '',
+                'tipo'             => 'subrubro',
+                'categoria'        => $catEste,
+                'nombre'           => $nodo->nombre,
+                'descripcion'      => '',
+                'unidad'           => $nodo->unidad ?? '',
                 // cantidad ya escalada por el multiplicador
-                'cantidad'    => $cantidadNodo * $multiplier,
+                'cantidad'         => $cantidadNodo * $multiplier,
+                // cantidad_display: sólo la cantidad propia del nodo (por unidad del padre)
+                'cantidad_display' => $cantidadNodo,
                 // precio_usd: precio POR UNIDAD calculado en base a lo que contiene (para mostrar)
-                'precio_usd'  => $perUnit,
+                'precio_usd'       => $perUnit,
                 // precio_own: precio propio asignado al nodo (sin sumar hijos)
-                'precio_own'  => $nodo->precio_usd ?? $nodo->precio_unitario ?? 0,
-                'subtotal'    => $subrubroSubtotal,
+                'precio_own'       => $nodo->precio_usd ?? $nodo->precio_unitario ?? 0,
+                'subtotal'         => $subrubroSubtotal,
             ];
 
             if ($tieneHijos) {
@@ -1457,7 +1459,6 @@ public function invitarUsuariosSeleccionados()
         $items             = [];
         $state             = 'pre'; // pre → header → data
         $detectedBeneficio = 0.0;
-        $lastSubrubroQty   = 1.0; // cantidad efectiva del último subrubro visto
         $colCat    = 0;
         $colItem   = 1;
         $colUnid   = 3;
@@ -1530,32 +1531,17 @@ public function invitarUsuariosSeleccionados()
                 : (float)str_replace(',', '.', preg_replace('/[^\d,]/', '', $precioRaw));
 
             if ($bg === 'E8E8E8') {
-                // Category separator row — reset subrubro context
-                $lastSubrubroQty = 1.0;
+                // Category separator row
                 $nombre = $catVal ?: $itemVal;
                 if ($nombre !== '') {
                     $items[] = ['tipo' => 'categoria', 'nombre' => $nombre, 'unidad' => '', 'cantidad' => 1, 'precio' => 0];
                 }
             } elseif ($bg === 'F5F5F5' && $itemVal !== '') {
-                // Subrubro row — track its quantity so resources can be divided back to per-unit
-                $lastSubrubroQty = $cantVal > 0 ? $cantVal : 1.0;
-                $items[] = ['tipo' => 'subrubro', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $lastSubrubroQty, 'precio' => $precioVal];
+                // Subrubro row — Excel stores per-unit qty (cantidad_display)
+                $items[] = ['tipo' => 'subrubro', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $cantVal > 0 ? $cantVal : 1, 'precio' => $precioVal];
             } elseif ($itemVal !== '') {
-                // Resource row — decide whether to divide by subrubro qty.
-                // Some Excel exports already list the per-unit quantity (e.g. 0.2).
-                // Avoid dividing when the cell already contains a per-unit value (< 1)
-                // while the subrubro cantidad is > 1 (which would produce an erroneously small value).
-                if ($lastSubrubroQty > 0) {
-                    if ($lastSubrubroQty > 1 && $cantVal < 1) {
-                        $perUnitQty = $cantVal;
-                    } else {
-                        $perUnitQty = round($cantVal / $lastSubrubroQty, 6);
-                    }
-                } else {
-                    $perUnitQty = $cantVal;
-                }
-
-                $items[] = ['tipo' => 'recurso', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $perUnitQty > 0 ? $perUnitQty : 1, 'precio' => $precioVal];
+                // Resource row — Excel stores per-unit qty (cantidad_display); import as-is
+                $items[] = ['tipo' => 'recurso', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $cantVal > 0 ? $cantVal : 1, 'precio' => $precioVal];
             }
         }
 
