@@ -627,8 +627,12 @@
                     </tr>
 
                 @elseif($item['tipo'] === 'apu_header')
-                    @php $prevApuTipo = null; @endphp
-                    {{-- APU: se muestra como ítem normal (sin desglose) --}}
+                    @php
+                        $prevApuTipo = null;
+                        $cantDisplay     = $item['cantidad_display'] ?? $item['cantidad'];
+                        $subtotalDisplay = ($item['subtotal_display'] ?? $item['subtotal']) * $factorBeneficio;
+                    @endphp
+                    {{-- APU: se muestra como ítem normal (cantidad por unidad, sin desglose) --}}
                     <tr>
                         <td><strong>{{ $item['nombre'] }}</strong></td>
                         <td>{{ $item['descripcion'] ?? '—' }}</td>
@@ -636,12 +640,11 @@
                             <td class="text-center">{{ $item['unidad'] ?? '—' }}</td>
                         @endif
                         @if($opciones['incluirCantidad'])
-                            <td class="text-right">{{ number_format($item['cantidad'], 2, ',', '.') }}</td>
+                            <td class="text-right">{{ number_format($cantDisplay, 4, ',', '.') }}</td>
                         @endif
                         @if($opciones['incluirPrecio'])
                             <td class="text-right">$ {{ number_format($precioConBeneficio, 2, ',', '.') }}</td>
-                            <td class="text-right">$ {{ number_format($subtotalConBeneficio, 2, ',', '.') }}</td>
-                            @php $totalGeneral += $subtotalConBeneficio @endphp
+                            <td class="text-right">$ {{ number_format($subtotalDisplay, 2, ',', '.') }}</td>
                         @endif
                     </tr>
 
@@ -649,8 +652,12 @@
                     {{-- Sub-filas APU: omitidas en el PDF (desglose no incluido) --}}
 
                 @else
-                    @php $prevApuTipo = null; @endphp
-                    {{-- Ítem normal --}}
+                    @php
+                        $prevApuTipo = null;
+                        $cantDisplay     = $item['cantidad_display'] ?? $item['cantidad'];
+                        $subtotalDisplay = ($item['subtotal_display'] ?? $item['subtotal']) * $factorBeneficio;
+                    @endphp
+                    {{-- Ítem normal: muestra cantidad por unidad del padre --}}
                     <tr>
                         <td><strong>{{ $item['nombre'] }}</strong></td>
                         <td>{{ $item['descripcion'] ?? '—' }}</td>
@@ -658,24 +665,23 @@
                             <td class="text-center">{{ $item['unidad'] ?? '—' }}</td>
                         @endif
                         @if($opciones['incluirCantidad'])
-                            <td class="text-right">{{ number_format($item['cantidad'], 2, ',', '.') }}</td>
+                            <td class="text-right">{{ number_format($cantDisplay, 4, ',', '.') }}</td>
                         @endif
                         @if($opciones['incluirPrecio'])
                             <td class="text-right">$ {{ number_format($precioConBeneficio, 2, ',', '.') }}</td>
-                            <td class="text-right">$ {{ number_format($subtotalConBeneficio, 2, ',', '.') }}</td>
-                            @php $totalGeneral += $subtotalConBeneficio @endphp
+                            <td class="text-right">$ {{ number_format($subtotalDisplay, 2, ',', '.') }}</td>
                         @endif
                     </tr>
                 @endif
             @endforeach
-            
+
             @if($opciones['incluirPrecio'])
             <tr class="total-row">
                 <td colspan="{{ $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + 2 }}" style="text-align: right;">
                     TOTAL PRESUPUESTO:
                 </td>
                 <td class="text-right">
-                    $ {{ number_format($totalGeneral, 2, ',', '.') }}
+                    $ {{ number_format($datos['total'] * $factorBeneficio, 2, ',', '.') }}
                 </td>
             </tr>
             @endif

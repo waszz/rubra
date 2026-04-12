@@ -923,15 +923,19 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
 
             $esComposicion = $nodo->recurso && $nodo->recurso->tipo === 'composition';
 
+            $cantidadDisplay = $nodo->cantidad ?? 1; // cantidad por unidad del padre (para mostrar en PDF)
+
             $items[] = [
-                'tipo'        => $esComposicion ? 'apu_header' : 'item',
-                'categoria'   => $catEste,
-                'nombre'      => $nodo->nombre,
-                'descripcion' => '',
-                'unidad'      => $nodo->unidad ?? '',
-                'cantidad'    => $cantidadEffective,
-                'precio_usd'  => $precioUnitario,
-                'subtotal'    => $subtotal,
+                'tipo'             => $esComposicion ? 'apu_header' : 'item',
+                'categoria'        => $catEste,
+                'nombre'           => $nodo->nombre,
+                'descripcion'      => '',
+                'unidad'           => $nodo->unidad ?? '',
+                'cantidad'         => $cantidadEffective,                      // total efectivo (Excel)
+                'cantidad_display' => $cantidadDisplay,                        // por unidad (PDF)
+                'precio_usd'       => $precioUnitario,
+                'subtotal'         => $subtotal,                               // total efectivo (Excel / cat_subtotales)
+                'subtotal_display' => $cantidadDisplay * $precioUnitario,      // por unidad (PDF)
             ];
 
             // Expandir items del APU como sub-filas para mostrar el desglose en el PDF
