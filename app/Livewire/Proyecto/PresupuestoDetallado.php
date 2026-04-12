@@ -62,12 +62,13 @@ class PresupuestoDetallado extends Component
     public $mostrarBeneficio = true;
 
     // ── Modal editar item APU ────────────────────────────────
-    public bool $modalEditarItemApu    = false;
-    public ?int $editItemApuId         = null;
-    public string $editItemApuNombre   = '';
-    public string $editItemApuCantidad = '';
-    public ?int $editItemApuRecursoId  = null;
-    public array $editItemApuSugeridos = [];
+    public bool $modalEditarItemApu        = false;
+    public ?int $editItemApuId             = null;
+    public string $editItemApuNombre       = '';
+    public string $editItemApuCantidad     = '';
+    public ?int $editItemApuRecursoId      = null;
+    public array $editItemApuSugeridos     = [];
+    public float $editItemApuNodoCantidad  = 1; // cantidad del nodo APU en el presupuesto
 
     // Modal agregar item APU
     public bool $modalAgregarItemApu      = false;
@@ -979,15 +980,16 @@ public function invitarUsuariosSeleccionados()
 }
     // ── CRUD ITEMS APU ───────────────────────────────────────
 
-    public function abrirModalEditarItemApu(int $itemId): void
+    public function abrirModalEditarItemApu(int $itemId, float $nodoCantidad = 1): void
     {
         $item = \App\Models\ComposicionItem::with('recursoBase')->findOrFail($itemId);
-        $this->editItemApuId        = $itemId;
-        $this->editItemApuRecursoId = $item->recurso_id;
-        $this->editItemApuNombre    = $item->recursoBase?->nombre ?? $item->nombre;
-        $this->editItemApuCantidad  = (string) $item->cantidad;
-        $this->editItemApuSugeridos = [];
-        $this->modalEditarItemApu   = true;
+        $this->editItemApuId              = $itemId;
+        $this->editItemApuRecursoId       = $item->recurso_id;
+        $this->editItemApuNombre          = $item->recursoBase?->nombre ?? $item->nombre;
+        $this->editItemApuCantidad        = rtrim(rtrim(number_format((float) $item->cantidad, 6, '.', ''), '0'), '.');
+        $this->editItemApuNodoCantidad    = $nodoCantidad;
+        $this->editItemApuSugeridos       = [];
+        $this->modalEditarItemApu         = true;
     }
 
     public function buscarRecursosEditarApu(): void
@@ -1010,6 +1012,7 @@ public function invitarUsuariosSeleccionados()
 
     public function guardarItemApu(): void
     {
+        $this->editItemApuCantidad = str_replace(',', '.', $this->editItemApuCantidad);
         $this->validate([
             'editItemApuRecursoId' => 'required|exists:recursos,id',
             'editItemApuCantidad'  => 'required|numeric|min:0.001',
@@ -1028,12 +1031,13 @@ public function invitarUsuariosSeleccionados()
 
     public function cerrarModalEditarItemApu(): void
     {
-        $this->modalEditarItemApu   = false;
-        $this->editItemApuId        = null;
-        $this->editItemApuRecursoId = null;
-        $this->editItemApuNombre    = '';
-        $this->editItemApuCantidad  = '';
-        $this->editItemApuSugeridos = [];
+        $this->modalEditarItemApu      = false;
+        $this->editItemApuId           = null;
+        $this->editItemApuRecursoId    = null;
+        $this->editItemApuNombre       = '';
+        $this->editItemApuCantidad     = '';
+        $this->editItemApuNodoCantidad = 1;
+        $this->editItemApuSugeridos    = [];
         $this->resetErrorBag();
     }
 
@@ -1067,6 +1071,7 @@ public function invitarUsuariosSeleccionados()
 
     public function guardarNuevoItemApu(): void
     {
+        $this->nuevoItemApuCantidad = str_replace(',', '.', $this->nuevoItemApuCantidad);
         $this->validate([
             'nuevoItemApuRecursoId' => 'required|exists:recursos,id',
             'nuevoItemApuCantidad'  => 'required|numeric|min:0.001',

@@ -266,7 +266,7 @@
                                     {{-- Acciones (solo si no es modo lectura) --}}
                                     <div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover/apuitem:opacity-100 transition-opacity">
                                         @if(!$modoLectura)
-                                        <button wire:click="abrirModalEditarItemApu({{ $item->id }})"
+                                        <button wire:click="abrirModalEditarItemApu({{ $item->id }}, {{ $nodo->cantidad ?? 1 }})"
                                             title="Editar"
                                             class="p-1 rounded text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

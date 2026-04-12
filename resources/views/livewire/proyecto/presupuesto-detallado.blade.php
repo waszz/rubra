@@ -1474,10 +1474,19 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
         {{-- Cantidad por unidad --}}
         <div class="mb-5">
-            <label class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Cantidad por unidad de APU</label>
-            <input type="number" step="0.001" wire:model="editItemApuCantidad"
+            <label class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">
+                Cantidad por unidad de APU
+            </label>
+            <input type="text" inputmode="decimal" wire:model="editItemApuCantidad"
                 class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500/50">
             @error('editItemApuCantidad') <p class="text-red-400 text-[11px] mt-1">{{ $message }}</p> @enderror
+            @if($editItemApuNodoCantidad != 1)
+                @php $efectivo = (float) str_replace(',', '.', $editItemApuCantidad) * $editItemApuNodoCantidad @endphp
+                <p class="text-gray-500 text-[11px] mt-1">
+                    × {{ number_format($editItemApuNodoCantidad, 2, ',', '.') }} unidades APU
+                    = <span class="text-gray-300 font-bold">{{ number_format($efectivo, 2, ',', '.') }} total</span>
+                </p>
+            @endif
         </div>
 
         <div class="flex gap-3">
@@ -1535,7 +1544,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
         <div class="mb-5">
             <label class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Cantidad por unidad de APU</label>
-            <input type="number" step="0.001" wire:model="nuevoItemApuCantidad"
+            <input type="text" inputmode="decimal" wire:model="nuevoItemApuCantidad"
                 class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500/50">
             @error('nuevoItemApuCantidad') <p class="text-red-400 text-[11px] mt-1">{{ $message }}</p> @enderror
         </div>
