@@ -635,6 +635,9 @@ public function exportarExcel()
 
         $categoriaActual = null;
         foreach ($datos['items'] as $item) {
+            // APU sub-items are internal breakdown rows — not importable separately, skip them
+            if (($item['tipo'] ?? '') === 'apu_item') continue;
+
             if ($item['categoria'] !== '' && $item['categoria'] !== $categoriaActual) {
                 $categoriaActual = $item['categoria'];
                 $catSubtotal = (($datos['cat_subtotales'][$item['categoria']] ?? 0)) * (1 + $pctBeneficio / 100);
