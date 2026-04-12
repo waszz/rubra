@@ -227,20 +227,9 @@
             $precioUnitario = $node->precio_unitario ?? $node->precio_usd ?? 0;
             $perUnit += $precioUnitario;
 
-            // Si es composición, sumar items por unidad
-            if ($node->recurso && ($node->recurso->tipo ?? null) === 'composition') {
-                $itemsInternos = \App\Models\ComposicionItem::where('composicion_id', $node->recurso_id)->get();
-                foreach ($itemsInternos as $interno) {
-                    $resBase = $interno->recursoBase;
-                    if (!$resBase) continue;
-                    $pBase = $resBase->precio_usd ?? 0;
-                    $isLabor = in_array($resBase->tipo, ['labor', 'mano_obra']);
-                    $carga = $isLabor ? ($pBase * (($resBase->social_charges_percentage ?? 0) / 100)) : 0;
-                    $perUnit += ($interno->cantidad) * ($pBase + $carga);
-                }
-            }
-
-            // Hijos: su contribución se agrega en función de su cantidad por unidad
+            // Hijos: su contribución se agrega en función de su cantidad por unidad.
+            // Para APUs (compositions), precio_usd ya incluye el costo total de sus items
+            // (asignado al crear la composición), por lo que no se re-expanden aquí.
             if ($node->hijos && $node->hijos->count() > 0) {
                 foreach ($node->hijos as $child) {
                     if (is_null($child->recurso_id)) {
@@ -249,17 +238,6 @@
                         $pChild = $child->precio_unitario ?? $child->precio_usd ?? 0;
                         $cantChild = $child->cantidad ?? 1;
                         $perUnit += $cantChild * $pChild;
-                        if ($child->recurso && ($child->recurso->tipo ?? null) === 'composition') {
-                            $itemsInternos = \App\Models\ComposicionItem::where('composicion_id', $child->recurso_id)->get();
-                            foreach ($itemsInternos as $interno) {
-                                $resBase = $interno->recursoBase;
-                                if (!$resBase) continue;
-                                $pBase = $resBase->precio_usd ?? 0;
-                                $isLabor = in_array($resBase->tipo, ['labor', 'mano_obra']);
-                                $carga = $isLabor ? ($pBase * (($resBase->social_charges_percentage ?? 0) / 100)) : 0;
-                                $perUnit += ($interno->cantidad) * ($pBase + $carga) * $cantChild;
-                            }
-                        }
                     }
                 }
             }

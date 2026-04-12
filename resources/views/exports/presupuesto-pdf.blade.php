@@ -551,7 +551,12 @@
                 @endif
 
                 @if($item['tipo'] === 'subrubro')
-                    {{-- Subrubro: mostrar unidad, cantidad y precio (propio) --}}
+                    {{-- Subrubro: mostrar unidad, cantidad y precio propio (sin contar hijos) --}}
+                    @php
+                        $precioPropio = $item['precio_own'] ?? ($item['precio_usd'] ?? 0);
+                        $precioPropioCon = $precioPropio * $factorBeneficio;
+                        $subtotalPropioCon = $precioPropioCon * ($item['cantidad'] ?? 0);
+                    @endphp
                     <tr class="subrubro-row">
                         <td><strong>{{ $item['nombre'] }}</strong></td>
                         <td>{{ $item['descripcion'] ?? '—' }}</td>
@@ -562,12 +567,11 @@
                             <td class="text-right">{{ number_format($item['cantidad'] ?? 0, 2, ',', '.') }}</td>
                         @endif
                         @if($opciones['incluirPrecio'])
-                            <td class="text-right">$ {{ number_format($precioConBeneficio, 2, ',', '.') }}</td>
-                            <td class="text-right">$ {{ number_format($subtotalConBeneficio, 2, ',', '.') }}</td>
+                            <td class="text-right">$ {{ number_format($precioPropioCon, 2, ',', '.') }}</td>
+                            <td class="text-right">$ {{ number_format($subtotalPropioCon, 2, ',', '.') }}</td>
                             @php
                                 // sumar solo la parte propia del subrubro al total general (evitar duplicar hijos)
-                                $ownCon = ($item['precio_usd'] ?? 0) * $factorBeneficio * ($item['cantidad'] ?? 0);
-                                $totalGeneral += $ownCon;
+                                $totalGeneral += $subtotalPropioCon;
                             @endphp
                         @endif
                     </tr>

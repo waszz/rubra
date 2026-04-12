@@ -208,6 +208,10 @@ public function cerrarModalExcel()
 public function exportarPDF()
 {
     try {
+        // Asegurar que el proyecto y sus relaciones estén refrescados
+        $this->proyecto->refresh();
+        $this->cargarProyecto();
+
         $datos  = $this->obtenerDatosPresupuesto($this->exportScope);
         $config = ConfiguracionGeneral::instancia();
 
@@ -312,6 +316,10 @@ public function exportarPDF()
 public function exportarExcel()
 {
     try {
+        // Asegurar que el proyecto y sus relaciones estén refrescados
+        $this->proyecto->refresh();
+        $this->cargarProyecto();
+
         $datos  = $this->obtenerDatosPresupuesto($this->exportScope);
         $config = ConfiguracionGeneral::instancia();
 
@@ -639,7 +647,7 @@ public function exportarExcel()
             $sheet->setCellValue('A' . $row, 'TOTAL PRESUPUESTO');
             $sheet->mergeCells('A' . $row . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($lastCol - 1) . $row);
             $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleTotalRow);
-            $sheet->setCellValueByColumnAndRow($lastCol, $row, $datos['total']);
+            $sheet->setCellValueByColumnAndRow($lastCol, $row, $datos['total'] * (1 + $pctBeneficio / 100));
             $sheet->getStyle($lastColLetter . $row)->getNumberFormat()->setFormatCode('#,##0.00');
         }
         $row += 2;
@@ -822,7 +830,7 @@ private function recorrerCargaSocial($nodos, float &$totalCS): void
     }
 }
 
-private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 0)
+private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 0, $multiplier = 1)
 {
     foreach ($nodos as $nodo) {
         $tieneHijos = $nodo->hijos && count($nodo->hijos) > 0;
@@ -832,7 +840,7 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
 
         if ($tieneHijos && $categoria === '') {
             // Nodo top-level con hijos → actúa como CATEGORÍA (fila gris), no se agrega como ítem
-            $this->recorrerNodos($nodo->hijos, $catEste, $items, $total);
+            $this->recorrerNodos($nodo->hijos, $catEste, $items, $total, $multiplier * ($nodo->cantidad ?? 1));
         } elseif (is_null($nodo->recurso_id)) {
             // Sin recurso_id → SUBRUBRO (sub-encabezado)
             // Calculamos el costo por unidad del subrubro y luego multiplicamos por su cantidad.
@@ -850,18 +858,11 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
                             // subrubro hijo: su contribución por unidad = su costo por unidad * su cantidad
                             $perUnit += $computePerUnit($child) * ($child->cantidad ?? 1);
                         } else {
+                            // Para APUs (composition), precio_usd ya incluye el costo total
+                            // de sus items (asignado al crear la composición), no re-expandir.
                             $p = $child->precio_usd ?? 0;
                             $cant = $child->cantidad ?? 1;
                             $perUnit += $p * $cant;
-                            if ($child->recurso && ($child->recurso->tipo ?? null) === 'composition') {
-                                foreach ($child->recurso->items ?? [] as $it) {
-                                    if (!$it->recursoBase) continue;
-                                    $pBase = $it->recursoBase->precio_usd ?? 0;
-                                    $isLabor = in_array($it->recursoBase->tipo, ['labor', 'mano_obra']);
-                                    $carga = $isLabor ? ($pBase * (($it->recursoBase->social_charges_percentage ?? 0) / 100)) : 0;
-                                    $perUnit += ($it->cantidad) * ($pBase + $carga) * $cant;
-                                }
-                            }
                         }
                     }
                 }
@@ -869,7 +870,9 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
                 return $perUnit;
             };
 
-            $subrubroSubtotal = $computePerUnit($nodo) * ($nodo->cantidad ?? 1);
+            $perUnit = $computePerUnit($nodo);
+            $cantidadNodo = $nodo->cantidad ?? 1;
+            $subrubroSubtotal = $perUnit * $cantidadNodo * $multiplier;
 
             $items[] = [
                 'tipo'        => 'subrubro',
@@ -877,20 +880,24 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
                 'nombre'      => $nodo->nombre,
                 'descripcion' => '',
                 'unidad'      => $nodo->unidad ?? '',
-                'cantidad'    => $nodo->cantidad ?? null,
+                // cantidad ya escalada por el multiplicador
+                'cantidad'    => $cantidadNodo * $multiplier,
                 // precio_usd: precio POR UNIDAD calculado en base a lo que contiene (para mostrar)
-                'precio_usd'  => $computePerUnit($nodo),
+                'precio_usd'  => $perUnit,
                 // precio_own: precio propio asignado al nodo (sin sumar hijos)
                 'precio_own'  => $nodo->precio_usd ?? $nodo->precio_unitario ?? 0,
                 'subtotal'    => $subrubroSubtotal,
             ];
 
             if ($tieneHijos) {
-                $this->recorrerNodos($nodo->hijos, $catEste, $items, $total);
+                $this->recorrerNodos($nodo->hijos, $catEste, $items, $total, $multiplier * $cantidadNodo);
             }
         } else {
             // Hoja: ítem normal con cantidad/precio
-            $subtotal = ($nodo->cantidad ?? 1) * ($nodo->precio_usd ?? 0);
+            // Si el registro del proyecto no tiene precio, usar el precio del recurso asociado
+            $precioUnitario = $nodo->precio_usd ?? ($nodo->recurso->precio_usd ?? 0);
+            $cantidadEffective = ($nodo->cantidad ?? 1) * $multiplier;
+            $subtotal = $cantidadEffective * $precioUnitario;
             $total += $subtotal;
             $items[] = [
                 'tipo'        => 'item',
@@ -898,8 +905,8 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
                 'nombre'      => $nodo->nombre,
                 'descripcion' => '',
                 'unidad'      => $nodo->unidad ?? '',
-                'cantidad'    => $nodo->cantidad ?? 1,
-                'precio_usd'  => $nodo->precio_usd ?? 0,
+                'cantidad'    => $cantidadEffective,
+                'precio_usd'  => $precioUnitario,
                 'subtotal'    => $subtotal,
             ];
         }

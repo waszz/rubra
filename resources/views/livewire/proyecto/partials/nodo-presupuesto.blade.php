@@ -22,7 +22,7 @@
     $bgFila = $bgFila ?? '';
     $colorTexto = $colorTexto ?? 'text-white';
     $dotColor = $dotColor ?? 'bg-gray-400';
-    $itemsComposicion = $itemsComposicion ?? collect($nodo->recurso?->items ?? []);
+    $itemsComposicionLocal = collect($nodo->recurso?->items ?? []);
 
     // compute per unit recursively (sum of contents per single unidad)
     $computePerUnit = function ($node) use (&$computePerUnit) {
@@ -51,8 +51,9 @@
         return $precioPropio;
     };
 
-    // subtotal displayed in row: per-unit * nodo.cantidad (if any)
-    $subtotalNodo = $computePerUnit($nodo) * ($nodo->cantidad ?? 1);
+    // per-unit and subtotal displayed in row
+    $perUnitNodo = $computePerUnit($nodo);
+    $subtotalNodo = $perUnitNodo * ($nodo->cantidad ?? 1);
 
     // indentation classes based on level
     $indent = match($nivel) {
@@ -131,45 +132,38 @@
 
         </div>
 
-        @if($esComposicion)
-            {{-- Mostrar solo subtotal para composiciones (APU) --}}
-            <div class="col-span-6 text-right text-xs font-bold {{ $colorTexto }} font-mono">
-                {{ number_format($subtotalNodo, 2, ',', '.') }}
-            </div>
-        @else
-            <div class="col-span-1 text-sm text-gray-600 text-center uppercase">
-                @if(!$esComposicion) {{ $nodo->unidad }} @endif
-            </div>
+        @php
+            // determine display per-unit: for resource nodes use explicit price, otherwise use computed per-unit
+            if ($esRecurso && !$esComposicion) {
+                $perUnitMostrar = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
+            } else {
+                $perUnitMostrar = $perUnitNodo ?? $computePerUnit($nodo);
+            }
+        @endphp
 
-            <div class="col-span-1 flex justify-center">
-                @if(!$esComposicion)
-                    @if(!$modoLectura)
-                    <input type="number"
-                           wire:change="updateCantidad({{ $nodo->id }}, $event.target.value)"
-                           value="{{ $nodo->cantidad }}"
-                           step="0.01"
-                           class="w-16 bg-[#0a0a0a] border border-white/5 rounded px-1 py-0.5 text-sm text-center text-white font-bold focus:border-white/20 focus:outline-none">
-                    @else
-                    <span class="text-sm text-gray-500 font-mono">{{ number_format($nodo->cantidad, 2) }}</span>
-                    @endif
-                @endif
-            </div>
+        <div class="col-span-1 text-sm text-gray-600 text-center uppercase">
+            {{ $nodo->unidad }}
+        </div>
 
-            <div class="col-span-2 text-center text-sm text-gray-600 font-mono">
-                @if(!$esComposicion)
-                    @php
-                        $precioMostrar = is_null($nodo->recurso_id)
-                            ? ($computePerUnit($nodo) ?? 0)
-                            : ($nodo->precio_unitario ?? $nodo->precio_usd ?? 0);
-                    @endphp
-                    {{ number_format($precioMostrar, 2, ',', '.') }}
-                @endif
-            </div>
+        <div class="col-span-1 flex justify-center">
+            @if(!$modoLectura)
+                <input type="number"
+                       wire:change="updateCantidad({{ $nodo->id }}, $event.target.value)"
+                       value="{{ $nodo->cantidad }}"
+                       step="0.01"
+                       class="w-16 bg-[#0a0a0a] border border-white/5 rounded px-1 py-0.5 text-sm text-center text-white font-bold focus:border-white/20 focus:outline-none">
+            @else
+                <span class="text-sm text-gray-500 font-mono">{{ number_format($nodo->cantidad, 2) }}</span>
+            @endif
+        </div>
 
-            <div class="col-span-2 text-right text-xs font-bold {{ $colorTexto }} font-mono">
-                {{ number_format($subtotalNodo, 2, ',', '.') }}
-            </div>
-        @endif
+        <div class="col-span-2 text-center text-sm text-gray-600 font-mono">
+            {{ number_format($perUnitMostrar, 2, ',', '.') }}
+        </div>
+
+        <div class="col-span-2 text-right text-xs font-bold {{ $colorTexto }} font-mono">
+            {{ number_format($subtotalNodo, 2, ',', '.') }}
+        </div>
     </div>
 
     {{-- HIJOS recursivos (solo sub-rubros) --}}
@@ -188,7 +182,7 @@
     @endif
 
     {{-- DETALLE DE COMPOSICIÓN (APU) --}}
-    @if($esComposicion && $nodoAbierto && $itemsComposicion->count())
+    @if($esComposicion && $nodoAbierto && $itemsComposicionLocal->count())
         <div class="px-8 pb-4">
             <div class="bg-[#0f0f0f] border border-white/5 rounded-lg overflow-hidden">
 
@@ -199,7 +193,9 @@
                             Análisis de Precios Unitarios (APU)
                         </span>
                     </div>
-                   
+                    <div class="col-span-6 text-right text-sm text-gray-400 font-bold">
+                        Cant: {{ number_format($nodo->cantidad ?? 1, 2) }} — P.Unit: {{ number_format($perUnitNodo ?? 0, 2, ',', '.') }}
+                    </div>
                 </div>
 
                 {{-- Cabecera columnas --}}
@@ -212,7 +208,7 @@
                 </div>
 
                 {{-- Filas agrupadas por tipo --}}
-                @foreach($itemsComposicion->filter(fn($i) => !is_null($i->recursoBase))->groupBy(fn($i) => $i->recursoBase->tipo) as $tipo => $items)
+                @foreach($itemsComposicionLocal->filter(fn($i) => !is_null($i->recursoBase))->groupBy(fn($i) => $i->recursoBase->tipo) as $tipo => $items)
                     <div class="border-b border-white/[0.02] last:border-0">
 
                         {{-- Título del grupo --}}
@@ -235,14 +231,16 @@
                                     $pUnit        = $base->precio_usd ?? 0;
                                     $esLabor      = in_array($base->tipo, ['labor', 'mano_obra']);
                                     $cargaSocial  = $esLabor ? ($pUnit * (($base->social_charges_percentage ?? 0) / 100)) : 0;
-                                    $subtotalItem = $item->cantidad * ($pUnit + $cargaSocial);
+                                    // multiplicar por la cantidad de la composición
+                                    $subtotalItem = ($nodo->cantidad ?? 1) * $item->cantidad * ($pUnit + $cargaSocial);
+                                    $cantidadMostrada = ($item->cantidad * ($nodo->cantidad ?? 1));
                                 @endphp
                                 <div class="grid grid-cols-12 px-4 py-2 items-center hover:bg-white/[0.02] transition">
                                     <div class="col-span-6 pl-4 text-sm text-gray-400 italic">
                                         {{ $base->nombre }}
                                     </div>
                                     <div class="col-span-1 text-center text-sm text-white">
-                                        {{ number_format($item->cantidad, 2) }}
+                                        {{ number_format($cantidadMostrada, 2) }}
                                     </div>
                                     <div class="col-span-2 text-center text-sm text-gray-500">
                                         {{ $cargaSocial > 0 ? number_format($cargaSocial, 2) : '-' }}
