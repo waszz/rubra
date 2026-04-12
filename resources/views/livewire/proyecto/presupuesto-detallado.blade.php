@@ -1885,7 +1885,7 @@ document.addEventListener('click', function(event) {
             @if(!empty($importPresupuestoResult))
                 @if(isset($importPresupuestoResult['ok']))
                     <div class="bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3 text-xs text-green-300 font-bold">
-                        ✓ Importación exitosa — {{ $importPresupuestoResult['creados'] }} ítems creados.
+                        ✓ Importación exitosa — {{ $importPresupuestoResult['recursos'] ?? $importPresupuestoResult['creados'] }} ítems creados.
                     </div>
                 @elseif(isset($importPresupuestoResult['error']))
                     <div class="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 text-xs text-red-300">

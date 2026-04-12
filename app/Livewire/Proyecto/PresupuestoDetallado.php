@@ -1428,10 +1428,11 @@ public function invitarUsuariosSeleccionados()
                 return;
             }
 
+            $recursosCount = count(array_filter($items, fn($it) => ($it['tipo'] ?? '') === 'recurso'));
             $creados = $this->_crearDesdeItems($items, $beneficioExportado);
             $this->cargarProyecto();
-            $this->importPresupuestoResult = ['ok' => true, 'creados' => $creados];
-            $this->dispatch('notify', mensaje: "Presupuesto importado: {$creados} ítems creados.", tipo: 'success');
+            $this->importPresupuestoResult = ['ok' => true, 'creados' => $creados, 'recursos' => $recursosCount];
+            $this->dispatch('notify', mensaje: "Presupuesto importado: {$recursosCount} recursos, {$creados} nodos creados.", tipo: 'success');
         } catch (\Throwable $e) {
             $this->importPresupuestoResult = ['error' => 'Error al procesar el archivo: ' . $e->getMessage()];
         }
