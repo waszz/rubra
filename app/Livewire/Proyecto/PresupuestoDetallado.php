@@ -545,8 +545,19 @@ public function exportarExcel()
         $sheet->getRowDimension($row)->setRowHeight(16);
         $row++;
 
+        // Fila Beneficio oculta: solo para detección automática en importación
+        if ($pctBeneficio > 0) {
+            $sheet->setCellValue('A' . $row, 'Beneficio (' . number_format($pctBeneficio, 0) . '%)');
+            $sheet->mergeCells('A' . $row . ':F' . $row);
+            $sheet->getStyle('A' . $row)->applyFromArray($styleResumenLabel);
+            $sheet->setCellValue('G' . $row, '$ ' . number_format($beneficioMonto, 2, ',', '.'));
+            $sheet->getStyle('G' . $row)->applyFromArray($styleResumenValue);
+            $sheet->getRowDimension($row)->setVisible(false);
+            $sheet->getRowDimension($row)->setRowHeight(0);
+            $row++;
+        }
+
         $resumenRows = [
-            ['Beneficio (' . number_format($pctBeneficio, 0) . '%)', $beneficioMonto],
             ['Subtotal ' . $monedaBase, $subtotalConBeneficio],
             ['Impuestos (' . number_format($pctImpuestos, 0) . '%)', $impuestosMonto],
         ];

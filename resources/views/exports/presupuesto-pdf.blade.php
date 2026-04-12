@@ -513,9 +513,10 @@
         <div class="resumen-title">Resumen de Costos</div>
         <table class="resumen-table">
             @if(($resumen['pct_beneficio'] ?? 0) > 0)
-            <tr>
-                <td class="resumen-label">Beneficio ({{ number_format($resumen['pct_beneficio'], 0) }}%)</td>
-                <td class="resumen-value">$ {{ number_format($resumen['beneficio'], 2, ',', '.') }}</td>
+            {{-- Fila invisible: solo para detección en importación (texto blanco sobre blanco) --}}
+            <tr style="color:#fff;background-color:#fff;line-height:0;height:1px;font-size:1px;">
+                <td style="padding:0;border:none;color:#fff;">Beneficio ({{ number_format($resumen['pct_beneficio'], 0) }}%)</td>
+                <td style="padding:0;border:none;color:#fff;"></td>
             </tr>
             @endif
             <tr>
