@@ -664,10 +664,14 @@ public function exportarExcel()
                 $sheet->setCellValueByColumnAndRow($col++, $row, $item['nombre']);
                 $sheet->setCellValueByColumnAndRow($col++, $row, $item['descripcion'] ?? '');
                 if ($this->excelIncluirUnidad)   $sheet->setCellValueByColumnAndRow($col++, $row, $item['unidad'] ?? '');
-                if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $item['cantidad'] ?? 0);
+                // Subrubro: cantidad_display no existe, usar cantidad directamente
+                // (= cantidadNodo × multiplier; si la categoría padre tiene qty=1 es el qty propio)
+                $cantSubrubro     = $item['cantidad_display'] ?? $item['cantidad'] ?? 0;
+                $subtotalSubrubro = $item['subtotal_display'] ?? $item['subtotal'] ?? 0;
+                if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $cantSubrubro);
                 if ($this->excelIncluirPrecio) {
                     $precioConBeneficioExcel   = ($item['precio_usd'] ?? 0) * (1 + $pctBeneficio / 100);
-                    $subtotalConBeneficioExcel = ($item['subtotal'] ?? 0)   * (1 + $pctBeneficio / 100);
+                    $subtotalConBeneficioExcel = $subtotalSubrubro           * (1 + $pctBeneficio / 100);
                     $sheet->setCellValueByColumnAndRow($col++, $row, $precioConBeneficioExcel);
                     $sheet->setCellValueByColumnAndRow($col++, $row, $subtotalConBeneficioExcel);
                     $penult = $lastCol - 1;
@@ -684,11 +688,15 @@ public function exportarExcel()
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['categoria']);
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['nombre']);
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['descripcion'] ?? '');
+            // Usar cantidad_display (por unidad, igual que el PDF) para que al reimportar
+            // no se duplique la multiplicación con la cantidad del subrubro padre.
+            $cantDisplay     = $item['cantidad_display'] ?? $item['cantidad'];
+            $subtotalDisplay = $item['subtotal_display'] ?? $item['subtotal'];
             if ($this->excelIncluirUnidad)   $sheet->setCellValueByColumnAndRow($col++, $row, $item['unidad']);
-            if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $item['cantidad']);
+            if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $cantDisplay);
             if ($this->excelIncluirPrecio) {
                 $precioConBeneficioExcel   = ($item['precio_usd'] ?? 0) * (1 + $pctBeneficio / 100);
-                $subtotalConBeneficioExcel = ($item['subtotal'] ?? 0)   * (1 + $pctBeneficio / 100);
+                $subtotalConBeneficioExcel = $subtotalDisplay            * (1 + $pctBeneficio / 100);
                 $sheet->setCellValueByColumnAndRow($col++, $row, $precioConBeneficioExcel);
                 $sheet->setCellValueByColumnAndRow($col++, $row, $subtotalConBeneficioExcel);
             }
