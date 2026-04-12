@@ -1554,6 +1554,7 @@ public function invitarUsuariosSeleccionados()
         $state             = 'pre'; // pre → header → data
         $pendingName       = '';    // multi-line name accumulation
         $detectedBeneficio = 0.0;
+        $lastSubrubroQty   = 1.0;  // cantidad efectiva del último subrubro visto (para dividir recursos)
 
         // Substrings that identify non-data lines to skip in the data section
         $skipKeywords = [
@@ -1574,11 +1575,10 @@ public function invitarUsuariosSeleccionados()
 
         // Emit one item, stripping code prefix and detecting subrubro vs resource
         $emit = function (string $rawName, string $unit, float $qty, float $precio)
-            use (&$items, $codeRx): void
+            use (&$items, $codeRx, &$lastSubrubroQty): void
         {
             $rawName = trim($rawName);
             if ($rawName === '') return;
-
             if (preg_match($codeRx, $rawName)) {
                 $nombre = trim(preg_replace($codeRx, '', $rawName));
                 $tipo   = 'subrubro';
@@ -1588,6 +1588,18 @@ public function invitarUsuariosSeleccionados()
             }
 
             if ($nombre === '') return;
+
+            // Si es subrubro, guardar su cantidad para poder dividir los recursos posteriores
+            if ($tipo === 'subrubro') {
+                $lastSubrubroQty = $qty > 0 ? $qty : 1.0;
+            }
+
+            // Si es recurso, convertir cantidad total a cantidad por unidad dividiendo
+            if ($tipo === 'recurso') {
+                $qty = ($lastSubrubroQty > 0) ? round($qty / $lastSubrubroQty, 6) : $qty;
+                if ($qty <= 0) $qty = 1;
+            }
+
             $items[] = [
                 'tipo'     => $tipo,
                 'nombre'   => $nombre,
@@ -1633,6 +1645,7 @@ public function invitarUsuariosSeleccionados()
             }
             if ($isNoise) {
                 $pendingName = ''; // reset accumulation at section boundaries
+                $lastSubrubroQty = 1.0;
                 continue;
             }
 
@@ -1647,6 +1660,7 @@ public function invitarUsuariosSeleccionados()
                 $nombre = trim(preg_replace($codeRx, '', $nombre));
                 if ($nombre !== '') {
                     $pendingName = '';
+                    $lastSubrubroQty = 1.0;
                     $items[]     = ['tipo' => 'categoria', 'nombre' => $nombre,
                                     'unidad' => '', 'cantidad' => 1, 'precio' => 0];
                 }
