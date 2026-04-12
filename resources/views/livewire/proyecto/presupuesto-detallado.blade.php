@@ -1432,6 +1432,150 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 </div>
 @endif
 
+{{-- ══════════════════════════════════════════════════════
+     MODAL: EDITAR ITEM APU
+══════════════════════════════════════════════════════ --}}
+@if($modalEditarItemApu)
+<div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+    <div class="bg-[#141414] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <h2 class="text-white font-black text-sm uppercase tracking-widest mb-5">Editar recurso APU</h2>
+
+        {{-- Buscador de recurso --}}
+        <div class="mb-3 relative" x-data="{ q: @entangle('editItemApuNombre') }">
+            <label class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Recurso</label>
+            <input
+                type="text"
+                x-model="q"
+                x-on:input.debounce.300ms="$wire.set('editItemApuNombre', q); $wire.buscarRecursosEditarApu()"
+                placeholder="Buscar recurso..."
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500/50">
+            @error('editItemApuRecursoId') <p class="text-red-400 text-[11px] mt-1">Seleccioná un recurso de la lista.</p> @enderror
+
+            @if(count($editItemApuSugeridos))
+                <div class="absolute z-[9999] w-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl overflow-hidden">
+                    @foreach($editItemApuSugeridos as $s)
+                        <button
+                            x-on:mousedown.prevent="q = '{{ addslashes($s['nombre']) }}'; $wire.seleccionarRecursoEditarApu({{ $s['id'] }}, '{{ addslashes($s['nombre']) }}')"
+                            class="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between">
+                            <span>{{ $s['nombre'] }}</span>
+                            <span class="text-gray-600 text-xs">{{ $s['unidad'] }}</span>
+                        </button>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
+        @if($editItemApuRecursoId)
+            @php $rEdit = \App\Models\Recurso::find($editItemApuRecursoId) @endphp
+            @if($rEdit)
+            <p class="text-xs text-purple-400 mb-3">✓ {{ $rEdit->nombre }} — USD {{ number_format($rEdit->precio_usd, 2) }} / {{ $rEdit->unidad }}</p>
+            @endif
+        @endif
+
+        {{-- Cantidad por unidad --}}
+        <div class="mb-5">
+            <label class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Cantidad por unidad de APU</label>
+            <input type="number" step="0.001" wire:model="editItemApuCantidad"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500/50">
+            @error('editItemApuCantidad') <p class="text-red-400 text-[11px] mt-1">{{ $message }}</p> @enderror
+        </div>
+
+        <div class="flex gap-3">
+            <button wire:click="cerrarModalEditarItemApu"
+                class="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-xs font-bold hover:bg-white/5 transition-all">
+                Cancelar
+            </button>
+            <button wire:click="guardarItemApu"
+                class="flex-1 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-black transition-all">
+                Guardar
+            </button>
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- ══════════════════════════════════════════════════════
+     MODAL: AGREGAR ITEM APU
+══════════════════════════════════════════════════════ --}}
+@if($modalAgregarItemApu)
+<div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+    <div class="bg-[#141414] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <h2 class="text-white font-black text-sm uppercase tracking-widest mb-5">Agregar recurso al APU</h2>
+
+        <div class="mb-3 relative" x-data="{ q: '' }">
+            <label class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Buscar recurso</label>
+            <input
+                type="text"
+                x-model="q"
+                x-on:input.debounce.300ms="$wire.set('nuevoItemApuNombre', q); $wire.buscarRecursosAgregarApu()"
+                placeholder="Ej: Arena Gruesa..."
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500/50">
+            @error('nuevoItemApuRecursoId') <p class="text-red-400 text-[11px] mt-1">Seleccioná un recurso de la lista.</p> @enderror
+
+            @if(count($nuevoItemApuSugeridos))
+                <div class="absolute z-[9999] w-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl overflow-hidden">
+                    @foreach($nuevoItemApuSugeridos as $s)
+                        <button
+                            x-on:mousedown.prevent="q = '{{ addslashes($s['nombre']) }}'; $wire.seleccionarRecursoAgregarApu({{ $s['id'] }}, '{{ addslashes($s['nombre']) }}')"
+                            class="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between">
+                            <span>{{ $s['nombre'] }}</span>
+                            <span class="text-gray-600 text-xs">{{ $s['unidad'] }}</span>
+                        </button>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
+        @if($nuevoItemApuRecursoId)
+            @php $rNuevo = \App\Models\Recurso::find($nuevoItemApuRecursoId) @endphp
+            @if($rNuevo)
+            <p class="text-xs text-purple-400 mb-3">✓ {{ $rNuevo->nombre }} — USD {{ number_format($rNuevo->precio_usd, 2) }} / {{ $rNuevo->unidad }}</p>
+            @endif
+        @endif
+
+        <div class="mb-5">
+            <label class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Cantidad por unidad de APU</label>
+            <input type="number" step="0.001" wire:model="nuevoItemApuCantidad"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500/50">
+            @error('nuevoItemApuCantidad') <p class="text-red-400 text-[11px] mt-1">{{ $message }}</p> @enderror
+        </div>
+
+        <div class="flex gap-3">
+            <button wire:click="cerrarModalAgregarItemApu"
+                class="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-xs font-bold hover:bg-white/5 transition-all">
+                Cancelar
+            </button>
+            <button wire:click="guardarNuevoItemApu"
+                class="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-black transition-all">
+                Agregar
+            </button>
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- ══════════════════════════════════════════════════════
+     MODAL: ELIMINAR ITEM APU
+══════════════════════════════════════════════════════ --}}
+@if($modalEliminarItemApu)
+<div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+    <div class="bg-[#141414] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <h2 class="text-white font-black text-sm uppercase tracking-widest mb-2">¿Eliminar recurso del APU?</h2>
+        <p class="text-gray-400 text-sm mb-5">El precio total del APU se recalculará automáticamente.</p>
+        <div class="flex gap-3">
+            <button wire:click="cerrarModalEliminarItemApu"
+                class="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-xs font-bold hover:bg-white/5 transition-all">
+                Cancelar
+            </button>
+            <button wire:click="confirmarEliminarItemApu"
+                class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-black transition-all">
+                Eliminar
+            </button>
+        </div>
+    </div>
+</div>
+@endif
+
 {{-- Script para cerrar dropdown al hacer click en la página --}}
 <script>
 document.addEventListener('click', function(event) {

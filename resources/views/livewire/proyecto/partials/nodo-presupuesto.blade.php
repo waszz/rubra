@@ -193,18 +193,31 @@
                             Análisis de Precios Unitarios (APU)
                         </span>
                     </div>
-                    <div class="col-span-6 text-right text-sm text-gray-400 font-bold">
-                        Cant: {{ number_format($nodo->cantidad ?? 1, 2) }} — P.Unit: {{ number_format($perUnitNodo ?? 0, 2, ',', '.') }}
+                    <div class="col-span-6 flex items-center justify-end gap-3">
+                        <span class="text-sm text-gray-400 font-bold">
+                            Cant: {{ number_format($nodo->cantidad ?? 1, 2) }} — P.Unit: {{ number_format($perUnitNodo ?? 0, 2, ',', '.') }}
+                        </span>
+                        @if(!$modoLectura)
+                        <button wire:click="abrirModalAgregarItemApu({{ $nodo->recurso_id }})"
+                            title="Agregar recurso al APU"
+                            class="flex items-center gap-1 px-2 py-1 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 text-xs font-bold transition">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Agregar
+                        </button>
+                        @endif
                     </div>
                 </div>
 
                 {{-- Cabecera columnas --}}
                 <div class="grid grid-cols-12 px-4 py-1.5 bg-black/40 border-b border-white/[0.03]">
-                    <div class="col-span-6 text-xs text-gray-500 uppercase">Recurso</div>
+                    <div class="col-span-5 text-xs text-gray-500 uppercase">Recurso</div>
                     <div class="col-span-1 text-xs text-gray-500 uppercase text-center">Cant.</div>
                     <div class="col-span-2 text-xs text-gray-500 uppercase text-center">Carga Social</div>
                     <div class="col-span-1 text-xs text-gray-500 uppercase text-center">P. Unit</div>
                     <div class="col-span-2 text-xs text-gray-500 uppercase text-right">Subtotal</div>
+                    <div class="col-span-1"></div>
                 </div>
 
                 {{-- Filas agrupadas por tipo --}}
@@ -231,12 +244,11 @@
                                     $pUnit        = $base->precio_usd ?? 0;
                                     $esLabor      = in_array($base->tipo, ['labor', 'mano_obra']);
                                     $cargaSocial  = $esLabor ? ($pUnit * (($base->social_charges_percentage ?? 0) / 100)) : 0;
-                                    // multiplicar por la cantidad de la composición
                                     $subtotalItem = ($nodo->cantidad ?? 1) * $item->cantidad * ($pUnit + $cargaSocial);
-                                    $cantidadMostrada = ($item->cantidad * ($nodo->cantidad ?? 1));
+                                    $cantidadMostrada = $item->cantidad * ($nodo->cantidad ?? 1);
                                 @endphp
-                                <div class="grid grid-cols-12 px-4 py-2 items-center hover:bg-white/[0.02] transition">
-                                    <div class="col-span-6 pl-4 text-sm text-gray-400 italic">
+                                <div class="grid grid-cols-12 px-4 py-2 items-center hover:bg-white/[0.02] transition group/apuitem">
+                                    <div class="col-span-5 pl-4 text-sm text-gray-400 italic">
                                         {{ $base->nombre }}
                                     </div>
                                     <div class="col-span-1 text-center text-sm text-white">
@@ -250,6 +262,25 @@
                                     </div>
                                     <div class="col-span-2 text-right text-sm text-gray-300 font-bold">
                                         {{ number_format($subtotalItem, 2) }}
+                                    </div>
+                                    {{-- Acciones (solo si no es modo lectura) --}}
+                                    <div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover/apuitem:opacity-100 transition-opacity">
+                                        @if(!$modoLectura)
+                                        <button wire:click="abrirModalEditarItemApu({{ $item->id }})"
+                                            title="Editar"
+                                            class="p-1 rounded text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                            </svg>
+                                        </button>
+                                        <button wire:click="abrirModalEliminarItemApu({{ $item->id }})"
+                                            title="Eliminar"
+                                            class="p-1 rounded text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                        @endif
                                     </div>
                                 </div>
                             @endif

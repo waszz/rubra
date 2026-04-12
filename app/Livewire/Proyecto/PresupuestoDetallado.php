@@ -60,6 +60,26 @@ class PresupuestoDetallado extends Component
 
     //Beneficio
     public $mostrarBeneficio = true;
+
+    // ── Modal editar item APU ────────────────────────────────
+    public bool $modalEditarItemApu    = false;
+    public ?int $editItemApuId         = null;
+    public string $editItemApuNombre   = '';
+    public string $editItemApuCantidad = '';
+    public ?int $editItemApuRecursoId  = null;
+    public array $editItemApuSugeridos = [];
+
+    // Modal agregar item APU
+    public bool $modalAgregarItemApu      = false;
+    public ?int $apuComposicionId         = null;
+    public string $nuevoItemApuNombre     = '';
+    public string $nuevoItemApuCantidad   = '';
+    public ?int $nuevoItemApuRecursoId    = null;
+    public array $nuevoItemApuSugeridos   = [];
+
+    // Modal eliminar item APU
+    public bool $modalEliminarItemApu = false;
+    public ?int $eliminarItemApuId    = null;
 public $mostrarModalInvitar = false;
 public $usuariosDisponibles = [];
 public $buscarUsuario = '';
@@ -957,6 +977,153 @@ public function invitarUsuariosSeleccionados()
 
     $this->mostrarModalInvitar = false; // 🔥 cerrar modal
 }
+    // ── CRUD ITEMS APU ───────────────────────────────────────
+
+    public function abrirModalEditarItemApu(int $itemId): void
+    {
+        $item = \App\Models\ComposicionItem::with('recursoBase')->findOrFail($itemId);
+        $this->editItemApuId        = $itemId;
+        $this->editItemApuRecursoId = $item->recurso_id;
+        $this->editItemApuNombre    = $item->recursoBase?->nombre ?? $item->nombre;
+        $this->editItemApuCantidad  = (string) $item->cantidad;
+        $this->editItemApuSugeridos = [];
+        $this->modalEditarItemApu   = true;
+    }
+
+    public function buscarRecursosEditarApu(): void
+    {
+        if (empty($this->editItemApuNombre)) {
+            $this->editItemApuSugeridos = [];
+            return;
+        }
+        $this->editItemApuSugeridos = Recurso::whereIn('tipo', ['material', 'labor', 'equipment'])
+            ->where('nombre', 'like', '%' . $this->editItemApuNombre . '%')
+            ->limit(8)->get(['id', 'nombre', 'unidad'])->toArray();
+    }
+
+    public function seleccionarRecursoEditarApu(int $id, string $nombre): void
+    {
+        $this->editItemApuRecursoId = $id;
+        $this->editItemApuNombre    = $nombre;
+        $this->editItemApuSugeridos = [];
+    }
+
+    public function guardarItemApu(): void
+    {
+        $this->validate([
+            'editItemApuRecursoId' => 'required|exists:recursos,id',
+            'editItemApuCantidad'  => 'required|numeric|min:0.001',
+        ]);
+        $recurso = Recurso::findOrFail($this->editItemApuRecursoId);
+        $item    = \App\Models\ComposicionItem::findOrFail($this->editItemApuId);
+        $item->update([
+            'recurso_id' => $this->editItemApuRecursoId,
+            'nombre'     => $recurso->nombre,
+            'cantidad'   => (float) $this->editItemApuCantidad,
+        ]);
+        $this->recalcularComposicion($item->composicion_id);
+        $this->cerrarModalEditarItemApu();
+        $this->cargarProyecto();
+    }
+
+    public function cerrarModalEditarItemApu(): void
+    {
+        $this->modalEditarItemApu   = false;
+        $this->editItemApuId        = null;
+        $this->editItemApuRecursoId = null;
+        $this->editItemApuNombre    = '';
+        $this->editItemApuCantidad  = '';
+        $this->editItemApuSugeridos = [];
+        $this->resetErrorBag();
+    }
+
+    public function abrirModalAgregarItemApu(int $composicionId): void
+    {
+        $this->apuComposicionId       = $composicionId;
+        $this->nuevoItemApuNombre     = '';
+        $this->nuevoItemApuCantidad   = '';
+        $this->nuevoItemApuRecursoId  = null;
+        $this->nuevoItemApuSugeridos  = [];
+        $this->modalAgregarItemApu    = true;
+    }
+
+    public function buscarRecursosAgregarApu(): void
+    {
+        if (empty($this->nuevoItemApuNombre)) {
+            $this->nuevoItemApuSugeridos = [];
+            return;
+        }
+        $this->nuevoItemApuSugeridos = Recurso::whereIn('tipo', ['material', 'labor', 'equipment'])
+            ->where('nombre', 'like', '%' . $this->nuevoItemApuNombre . '%')
+            ->limit(8)->get(['id', 'nombre', 'unidad'])->toArray();
+    }
+
+    public function seleccionarRecursoAgregarApu(int $id, string $nombre): void
+    {
+        $this->nuevoItemApuRecursoId = $id;
+        $this->nuevoItemApuNombre    = $nombre;
+        $this->nuevoItemApuSugeridos = [];
+    }
+
+    public function guardarNuevoItemApu(): void
+    {
+        $this->validate([
+            'nuevoItemApuRecursoId' => 'required|exists:recursos,id',
+            'nuevoItemApuCantidad'  => 'required|numeric|min:0.001',
+        ]);
+        $recurso = Recurso::findOrFail($this->nuevoItemApuRecursoId);
+        \App\Models\ComposicionItem::create([
+            'composicion_id' => $this->apuComposicionId,
+            'recurso_id'     => $this->nuevoItemApuRecursoId,
+            'nombre'         => $recurso->nombre,
+            'cantidad'       => (float) $this->nuevoItemApuCantidad,
+        ]);
+        $this->recalcularComposicion($this->apuComposicionId);
+        $this->cerrarModalAgregarItemApu();
+        $this->cargarProyecto();
+    }
+
+    public function cerrarModalAgregarItemApu(): void
+    {
+        $this->modalAgregarItemApu   = false;
+        $this->apuComposicionId      = null;
+        $this->nuevoItemApuNombre    = '';
+        $this->nuevoItemApuCantidad  = '';
+        $this->nuevoItemApuRecursoId = null;
+        $this->nuevoItemApuSugeridos = [];
+        $this->resetErrorBag();
+    }
+
+    public function abrirModalEliminarItemApu(int $itemId): void
+    {
+        $this->eliminarItemApuId    = $itemId;
+        $this->modalEliminarItemApu = true;
+    }
+
+    public function confirmarEliminarItemApu(): void
+    {
+        $item = \App\Models\ComposicionItem::findOrFail($this->eliminarItemApuId);
+        $composicionId = $item->composicion_id;
+        $item->delete();
+        $this->recalcularComposicion($composicionId);
+        $this->modalEliminarItemApu = false;
+        $this->eliminarItemApuId    = null;
+        $this->cargarProyecto();
+    }
+
+    public function cerrarModalEliminarItemApu(): void
+    {
+        $this->modalEliminarItemApu = false;
+        $this->eliminarItemApuId    = null;
+    }
+
+    private function recalcularComposicion(int $composicionId): void
+    {
+        $composicion = Recurso::with('items.recursoBase')->findOrFail($composicionId);
+        $total = $composicion->items->sum(fn($i) => $i->precio_total);
+        $composicion->update(['precio_usd' => $total]);
+    }
+
     // ── CARGA ────────────────────────────────────────────────
 
     private function cargarProyecto()
