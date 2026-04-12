@@ -628,10 +628,10 @@
 
                 @elseif($item['tipo'] === 'apu_header')
                     @php $prevApuTipo = null; @endphp
-                    {{-- Fila principal del APU --}}
-                    <tr class="apu-header-row">
-                        <td><strong>{{ $item['nombre'] }}</strong> <span class="apu-badge">APU</span></td>
-                        <td>—</td>
+                    {{-- APU: se muestra como ítem normal (sin desglose) --}}
+                    <tr>
+                        <td><strong>{{ $item['nombre'] }}</strong></td>
+                        <td>{{ $item['descripcion'] ?? '—' }}</td>
                         @if($opciones['incluirUnidad'])
                             <td class="text-center">{{ $item['unidad'] ?? '—' }}</td>
                         @endif
@@ -646,41 +646,7 @@
                     </tr>
 
                 @elseif($item['tipo'] === 'apu_item')
-                    {{-- Fila de grupo (Materiales / Mano de Obra / Equipos) cuando cambia el tipo --}}
-                    @if(($item['recurso_tipo'] ?? '') !== $prevApuTipo)
-                        @php $prevApuTipo = $item['recurso_tipo'] @endphp
-                        <tr class="apu-type-row">
-                            <td colspan="{{ 2 + ($opciones['incluirUnidad'] ? 1 : 0) + ($opciones['incluirCantidad'] ? 1 : 0) + ($opciones['incluirPrecio'] ? 2 : 0) }}">
-                                {{ match($item['recurso_tipo'] ?? '') {
-                                    'material'  => 'Materiales',
-                                    'labor'     => 'Mano de Obra',
-                                    'equipment' => 'Equipos',
-                                    default     => $item['recurso_tipo'] ?? '',
-                                } }}
-                            </td>
-                        </tr>
-                    @endif
-                    {{-- Detalle de recurso APU --}}
-                    <tr class="apu-item-row">
-                        <td>{{ $item['nombre'] }}</td>
-                        <td>
-                            @if(($item['carga_social'] ?? 0) > 0)
-                                <span class="apu-carga-social">CS ref.: $ {{ number_format($item['carga_social'], 2, ',', '.') }}</span>
-                            @else
-                                —
-                            @endif
-                        </td>
-                        @if($opciones['incluirUnidad'])
-                            <td class="text-center">{{ $item['unidad'] ?? '—' }}</td>
-                        @endif
-                        @if($opciones['incluirCantidad'])
-                            <td class="text-right">{{ number_format($item['cantidad'], 4, ',', '.') }}</td>
-                        @endif
-                        @if($opciones['incluirPrecio'])
-                            <td class="text-right">$ {{ number_format($item['precio_usd'] ?? 0, 2, ',', '.') }}</td>
-                            <td class="text-right">$ {{ number_format($item['subtotal'] ?? 0, 2, ',', '.') }}</td>
-                        @endif
-                    </tr>
+                    {{-- Sub-filas APU: omitidas en el PDF (desglose no incluido) --}}
 
                 @else
                     @php $prevApuTipo = null; @endphp
