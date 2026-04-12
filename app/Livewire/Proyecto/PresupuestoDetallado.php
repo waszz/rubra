@@ -1732,8 +1732,22 @@ public function invitarUsuariosSeleccionados()
                 $parentId = $subrubroNodeId ?? $catNodeId;
                 if (!$parentId) continue;
 
-                // Intentar match con recurso existente en catálogo
-                $recurso = Recurso::whereRaw('LOWER(nombre) LIKE ?', ['%' . strtolower($nombre) . '%'])->first();
+                // Intentar match con recurso existente en catálogo (3 niveles de confianza)
+                $nombreLower = mb_strtolower(trim($nombre), 'UTF-8');
+                // 1. Exacto
+                $recurso = Recurso::whereRaw('LOWER(TRIM(nombre)) = ?', [$nombreLower])->first();
+                // 2. El nombre del catálogo está contenido dentro del nombre importado
+                //    (ej: "OFICIAL ALBAÑIL" matchea "OFICIAL ALBAÑIL (MO)")
+                if (!$recurso && strlen($nombreLower) > 2) {
+                    $recurso = Recurso::whereRaw(
+                        'LENGTH(nombre) > 2 AND LOWER(?) LIKE CONCAT(\'%\', LOWER(TRIM(nombre)), \'%\')',
+                        [$nombreLower]
+                    )->orderByRaw('LENGTH(nombre) DESC')->first();
+                }
+                // 3. Fallback original: el nombre importado está contenido en el nombre del catálogo
+                if (!$recurso) {
+                    $recurso = Recurso::whereRaw('LOWER(nombre) LIKE ?', ['%' . $nombreLower . '%'])->first();
+                }
 
                 // Reverse the beneficio factor from the exported price
                 $precioImportado = ($item['precio'] ?? 0) > 0
