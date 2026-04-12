@@ -1593,17 +1593,13 @@ public function invitarUsuariosSeleccionados()
 
             if ($nombre === '') return;
 
-            // Si es subrubro, guardar su cantidad para poder dividir los recursos posteriores
+            // Si es subrubro, guardar su cantidad para referencia futura
             if ($tipo === 'subrubro') {
                 $lastSubrubroQty = $qty > 0 ? $qty : 1.0;
             }
 
-            // Si es recurso, convertir cantidad total a cantidad por unidad dividiendo
-            if ($tipo === 'recurso') {
-                $qty = ($lastSubrubroQty > 0) ? round($qty / $lastSubrubroQty, 6) : $qty;
-                if ($qty <= 0) $qty = 1;
-            }
-
+            // Para PDF no dividimos automáticamente la cantidad de recursos;
+            // los PDFs que exporta Rubra ya traen la cantidad por unidad.
             $items[] = [
                 'tipo'     => $tipo,
                 'nombre'   => $nombre,
