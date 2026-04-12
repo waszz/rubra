@@ -1538,8 +1538,20 @@ public function invitarUsuariosSeleccionados()
                 $lastSubrubroQty = $cantVal > 0 ? $cantVal : 1.0;
                 $items[] = ['tipo' => 'subrubro', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $lastSubrubroQty, 'precio' => $precioVal];
             } elseif ($itemVal !== '') {
-                // Resource row — Excel stores effective qty; divide by subrubro qty to recover per-unit
-                $perUnitQty = ($lastSubrubroQty > 0) ? round($cantVal / $lastSubrubroQty, 6) : $cantVal;
+                // Resource row — decide whether to divide by subrubro qty.
+                // Some Excel exports already list the per-unit quantity (e.g. 0.2).
+                // Avoid dividing when the cell already contains a per-unit value (< 1)
+                // while the subrubro cantidad is > 1 (which would produce an erroneously small value).
+                if ($lastSubrubroQty > 0) {
+                    if ($lastSubrubroQty > 1 && $cantVal < 1) {
+                        $perUnitQty = $cantVal;
+                    } else {
+                        $perUnitQty = round($cantVal / $lastSubrubroQty, 6);
+                    }
+                } else {
+                    $perUnitQty = $cantVal;
+                }
+
                 $items[] = ['tipo' => 'recurso', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $perUnitQty > 0 ? $perUnitQty : 1, 'precio' => $precioVal];
             }
         }
