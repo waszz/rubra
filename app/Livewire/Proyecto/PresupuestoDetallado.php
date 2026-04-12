@@ -811,42 +811,54 @@ private function calcularCargaSocialPDF(): float
 
     $this->recorrerCargaSocial(
         $this->proyecto->proyectoRecursos->whereNull('parent_id'),
-        $totalCS
+        $totalCS,
+        1
     );
 
     return $totalCS;
 }
 
-private function recorrerCargaSocial($nodos, float &$totalCS): void
+/**
+ * Recorre el árbol de nodos acumulando la carga social total.
+ * Fórmula: (pct_carga_social / 100 * precio_unit) * cantidad_item * cantidad_total_rubro
+ *
+ * $multiplier acumula las cantidades de todos los ancestros, de modo que
+ * al llegar a un ítem hoja de mano de obra se multiplica por la cantidad
+ * efectiva total (ej: 1,5 h/m × 80 m = 120 h totales).
+ */
+private function recorrerCargaSocial($nodos, float &$totalCS, float $multiplier = 1): void
 {
     foreach ($nodos as $nodo) {
+        $cantNodo       = $nodo->cantidad ?? 1;
         $precioUnitario = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
-        $costoItem = ($nodo->cantidad ?? 1) * $precioUnitario;
 
-        // Recurso simple de mano de obra
+        // Recurso directo de mano de obra
         if (($nodo->recurso && $nodo->recurso->tipo === 'labor') || $nodo->tipo === 'labor') {
             $porcentajeCS = $nodo->recurso->social_charges_percentage
                 ?? $nodo->social_charges_percentage
                 ?? 0;
-            $totalCS += $costoItem * ($porcentajeCS / 100);
+            // (% CS * precio unit) * cantidad item * cantidad acumulada del rubro
+            $totalCS += $multiplier * $cantNodo * $precioUnitario * ($porcentajeCS / 100);
         }
 
-        // Composición (APU)
+        // Composición (APU): sumar CS de sus items de mano de obra internos
         if ($nodo->recurso && $nodo->recurso->tipo === 'composition') {
             $itemsInternos = \App\Models\ComposicionItem::where('composicion_id', $nodo->recurso_id)->get();
             foreach ($itemsInternos as $interno) {
                 $resBase = $interno->recursoBase;
                 if (!$resBase) continue;
                 if (in_array($resBase->tipo, ['labor', 'mano_obra'])) {
-                    $pBase = $resBase->precio_usd ?? 0;
+                    $pBase        = $resBase->precio_usd ?? 0;
                     $porcentajeCS = $resBase->social_charges_percentage ?? 0;
-                    $totalCS += ($nodo->cantidad ?? 1) * $interno->cantidad * ($pBase * ($porcentajeCS / 100));
+                    // (% CS * precio unit item APU) * cantidad item APU * cantidad efectiva nodo
+                    $totalCS += $multiplier * $cantNodo * $interno->cantidad * $pBase * ($porcentajeCS / 100);
                 }
             }
         }
 
+        // Recursión: propagar el multiplicador acumulado a los hijos
         if ($nodo->hijos && count($nodo->hijos) > 0) {
-            $this->recorrerCargaSocial($nodo->hijos, $totalCS);
+            $this->recorrerCargaSocial($nodo->hijos, $totalCS, $multiplier * $cantNodo);
         }
     }
 }
