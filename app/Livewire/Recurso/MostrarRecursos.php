@@ -3,7 +3,6 @@
 namespace App\Livewire\Recurso;
 
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
 use App\Models\Proyecto;
 use App\Models\Recurso;
@@ -11,7 +10,7 @@ use App\Models\PrecioHistorial;
 
 class MostrarRecursos extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithFileUploads;
 
     // ── Filtros ──────────────────────────────────────────────
     public string $buscar = '';
@@ -63,6 +62,7 @@ public bool $modalComposicion = false;
 public bool $recursoSeleccionado = false;
 
 public string $filtroProyecto = '';
+public int $perPage = 20;
 
 // ── Modal historial de precios ────────────────────────────
 public bool $modalHistorialPrecios = false;
@@ -282,9 +282,9 @@ public function eliminarItem()
         ];
     }
 
-    // ── Reseteo de página al filtrar ──────────────────────────
-    public function updatingBuscar(): void    { $this->resetPage(); }
-    public function updatingFiltroTipo(): void { $this->resetPage(); }
+    // ── Reseteo al filtrar ────────────────────────────────────
+    public function updatingBuscar(): void    { $this->perPage = 20; }
+    public function updatingFiltroTipo(): void { $this->perPage = 20; }
 
     // ── Select All ────────────────────────────────────────────
     public function updatedSelectAll(bool $value): void
@@ -447,7 +447,9 @@ public function eliminarItem()
         }
     }
 
-    public function updatingFiltroProyecto(): void { $this->resetPage(); }
+    public function updatingFiltroProyecto(): void { $this->perPage = 20; }
+
+    public function loadMore(): void { $this->perPage += 20; }
 
     // ── IMPORTAR DESDE EXCEL ──────────────────────────────────
     public function abrirModalImportar(): void
@@ -618,18 +620,23 @@ public function eliminarItem()
     ->orderBy('nombre_proyecto')
     ->get(['id', 'nombre_proyecto']);
 
-    $recursos = Recurso::with('items.recursoBase')
+    $query = Recurso::with('items.recursoBase')
         ->when($this->buscar, fn($q) => $q->where('nombre', 'like', '%'.$this->buscar.'%'))
         ->when($this->filtroTipo, fn($q) => $q->where('tipo', $this->filtroTipo))
         ->when($this->filtroProyecto, fn($q) => $q->whereHas('proyectos', fn($q2) =>
             $q2->where('proyectos.id', $this->filtroProyecto)
         ))
-        ->orderBy('nombre')
-        ->paginate(20);
+        ->orderBy('nombre');
+
+    $total    = $query->count();
+    $recursos = $query->take($this->perPage)->get();
+    $hasMore  = $total > $recursos->count();
 
     return view('livewire.recurso.mostrar-recursos', [
         'recursos'  => $recursos,
         'proyectos' => $proyectos,
+        'total'     => $total,
+        'hasMore'   => $hasMore,
     ])->layout('layouts.app');
 }
 }

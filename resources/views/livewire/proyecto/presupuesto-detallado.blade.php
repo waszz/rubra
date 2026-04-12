@@ -433,7 +433,10 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
             {{-- CATEGORÍA --}}
             <div class="border-b border-gray-200 dark:border-white/5" wire:key="{{ 'cat-' . Str::slug($nombreCategoria) }}">
 
-                <div class="grid grid-cols-12 px-3 py-2 bg-gray-100 dark:bg-white/[0.02] items-center group">
+                <div class="grid grid-cols-12 px-3 py-2 bg-gray-100 dark:bg-white/[0.02] items-center group {{ !$modoLectura && !in_array($proyecto->estado_obra, ['ejecucion','en_ejecucion']) ? 'cursor-grab active:cursor-grabbing' : '' }}"
+                     data-node-id="{{ $nodosRaiz->first()->id }}"
+                     data-parent-id=""
+                     @if(!$modoLectura && !in_array($proyecto->estado_obra, ['ejecucion','en_ejecucion'])) draggable="true" @endif>
 
                     <div class="col-span-1 text-xs text-gray-600 font-mono">
                         {{ $loop->iteration }}
@@ -460,16 +463,32 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                         {{-- BOTONES icono-only (ocultos en modo lectura) --}}
                         @if(!$modoLectura && !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
                         <div class="flex items-center gap-0.5 shrink-0 ml-1">
-                            <button wire:click.stop="subirNodo({{ $nodosRaiz->first()->id }})"
-                                title="Subir categoría"
-                                class="w-6 h-6 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                            {{-- Drag handle --}}
+                            <div title="Arrastrar para reordenar"
+                                 class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-300 cursor-grab active:cursor-grabbing shrink-0 transition-colors select-none">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M7 4a1 1 0 110-2 1 1 0 010 2zm6 0a1 1 0 110-2 1 1 0 010 2zM7 9a1 1 0 110-2 1 1 0 010 2zm6 0a1 1 0 110-2 1 1 0 010 2zM7 14a1 1 0 110-2 1 1 0 010 2zm6 0a1 1 0 110-2 1 1 0 010 2z"/>
+                                </svg>
+                            </div>
+                            {{-- Copy --}}
+                            <button wire:click.stop="copiarNodo({{ $nodosRaiz->first()->id }})"
+                                title="Copiar"
+                                class="w-6 h-6 flex items-center justify-center rounded transition
+                                    {{ isset($nodoCopiadoId) && $nodoCopiadoId == $nodosRaiz->first()->id ? 'bg-purple-500/30 text-purple-300' : 'bg-white/10 text-gray-400 hover:bg-white/20' }}">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
                             </button>
-                            <button wire:click.stop="bajarNodo({{ $nodosRaiz->first()->id }})"
-                                title="Bajar categoría"
-                                class="w-6 h-6 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            {{-- Paste --}}
+                            @if(isset($nodoCopiadoId) && $nodoCopiadoId)
+                            <button wire:click.stop="pegarNodo({{ $nodosRaiz->first()->id }})"
+                                title="Pegar aquí"
+                                class="w-6 h-6 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/40 transition">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
                             </button>
+                            @endif
                             <button wire:click.stop="abrirModalSubrubro({{ $nodosRaiz->first()->id }}, '{{ $nombreCategoria }}', '{{ $nombreCategoria }}')"
                                 title="+ Rubro"
                                 class="w-6 h-6 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/40 transition">
@@ -1783,3 +1802,77 @@ document.addEventListener('click', function(event) {
 
 <livewire:proyecto.chatbot-rubi :proyecto="$proyecto" />
 </div>
+
+@script
+<script>
+// ── DRAG & DROP para reordenar nodos ─────────────────────────────────────────
+window._dndId   = null;
+window._dndLine = null;
+
+function _dndRemoveLine() {
+    if (window._dndLine && window._dndLine.parentNode) {
+        window._dndLine.parentNode.removeChild(window._dndLine);
+    }
+    window._dndLine = null;
+}
+
+function _dndShowLine(row, before) {
+    _dndRemoveLine();
+    var line = document.createElement('div');
+    line.style.cssText = 'height:2px;background:#a855f7;border-radius:2px;pointer-events:none;position:relative;z-index:100;margin:0 12px;';
+    window._dndLine = line;
+    before ? row.parentNode.insertBefore(line, row)
+           : row.parentNode.insertBefore(line, row.nextSibling);
+}
+
+document.addEventListener('dragstart', function(e) {
+    // No arrastrar si el origen es un botón, input, select o link
+    if (e.target.closest('button, input, select, a')) {
+        e.preventDefault();
+        return;
+    }
+    var row = e.target.closest('[data-node-id][draggable]');
+    if (!row) return;
+    window._dndId = row.dataset.nodeId;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', window._dndId);
+    setTimeout(function() { if (row) row.style.opacity = '0.4'; }, 0);
+});
+
+document.addEventListener('dragend', function() {
+    if (window._dndId) {
+        var row = document.querySelector('[data-node-id="' + window._dndId + '"][draggable]');
+        if (row) row.style.opacity = '';
+        window._dndId = null;
+    }
+    _dndRemoveLine();
+});
+
+document.addEventListener('dragover', function(e) {
+    if (!window._dndId) return;
+    var row = e.target.closest('[data-node-id][draggable]');
+    if (!row || row.dataset.nodeId === window._dndId) { _dndRemoveLine(); return; }
+    var draggedRow = document.querySelector('[data-node-id="' + window._dndId + '"][draggable]');
+    if (!draggedRow || row.dataset.parentId !== draggedRow.dataset.parentId) { _dndRemoveLine(); return; }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var rect = row.getBoundingClientRect();
+    _dndShowLine(row, e.clientY < rect.top + rect.height / 2);
+});
+
+document.addEventListener('drop', function(e) {
+    if (!window._dndId) return;
+    var row = e.target.closest('[data-node-id][draggable]');
+    if (!row || row.dataset.nodeId === window._dndId) return;
+    var draggedRow = document.querySelector('[data-node-id="' + window._dndId + '"][draggable]');
+    if (!draggedRow || row.dataset.parentId !== draggedRow.dataset.parentId) return;
+    e.preventDefault();
+    var rect = row.getBoundingClientRect();
+    $wire.moverNodo(parseInt(window._dndId), parseInt(row.dataset.nodeId),
+                    e.clientY < rect.top + rect.height / 2 ? 'before' : 'after');
+    _dndRemoveLine();
+    if (draggedRow) draggedRow.style.opacity = '';
+    window._dndId = null;
+});
+</script>
+@endscript

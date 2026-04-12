@@ -378,11 +378,11 @@ document.addEventListener('alpine:init', () => {
                         <div class="flex items-center gap-4 shrink-0">
 
                             <div class="text-right hidden md:block">
-                                <p class="text-xs font-black text-white">
+                                <p class="text-base font-black text-white leading-tight">
                                     USD {{ number_format($totalesPorProyecto[$proyecto->id] ?? 0, 0, ',', '.') }}
                                 </p>
-                                <p class="text-[10px] text-gray-500 uppercase">
-                                    Precio Final
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider">
+                                    Total
                                 </p>
                             </div>
 
@@ -503,9 +503,12 @@ document.addEventListener('alpine:init', () => {
             {{-- INFO --}}
             <div class="flex items-center justify-between">
 
-                <p class="text-xs font-black">
-                    USD {{ number_format($totalesPorProyecto[$proyecto->id] ?? 0, 0, ',', '.') }}
-                </p>
+                <div>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Total</p>
+                    <p class="text-base font-black text-white leading-tight">
+                        USD {{ number_format($totalesPorProyecto[$proyecto->id] ?? 0, 0, ',', '.') }}
+                    </p>
+                </div>
 
                 <span class="text-[10px] font-black px-3 py-1 rounded-full border uppercase tracking-wider proyectos-curso-card"
                     :class="{'bg-yellow-100 text-yellow-700 border-yellow-300': document.documentElement.classList.contains('light'), '{{ $badgeColor }}': document.documentElement.classList.contains('dark')}">

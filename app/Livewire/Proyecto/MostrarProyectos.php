@@ -99,8 +99,9 @@ $proyectos = Proyecto::where(function ($q) use ($user) {
 
     foreach ($proyectos as $p) {
         $subtotal = \App\Models\ProyectoRecurso::where('proyecto_id', $p->id)
-            ->whereNotNull('parent_id')
-            ->sum(DB::raw('cantidad * precio_usd'));
+            ->whereNotNull('recurso_id')
+            ->leftJoin('recursos', 'proyecto_recursos.recurso_id', '=', 'recursos.id')
+            ->sum(DB::raw('proyecto_recursos.cantidad * COALESCE(NULLIF(proyecto_recursos.precio_usd, 0), recursos.precio_usd, 0)'));
 
         $beneficio = $subtotal * (($p->beneficio ?? 0) / 100);
         $iva       = ($subtotal + $beneficio) * (($p->impuestos ?? 22) / 100);

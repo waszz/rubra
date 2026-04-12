@@ -133,6 +133,9 @@ public $rolCompartir = 'supervisor'; // Rol que elegirá quien genera el link
     // Modo lectura: true cuando el proyecto está en ejecución (presupuesto bloqueado)
     public $modoLectura = false;
 
+    // Nodo copiado para pegar
+    public ?int $nodoCopiadoId = null;
+
     // Listeners para eventos
     protected $listeners = ['proyectoActualizado' => 'actualizarProyecto'];
 
@@ -1269,6 +1272,71 @@ public function invitarUsuariosSeleccionados()
 
         $this->proyecto->refresh();
         $this->cargarProyecto();
+    }
+
+    public function moverNodo(int $draggedId, int $targetId, string $posicion): void
+    {
+        $dragged = ProyectoRecurso::find($draggedId);
+        $target  = ProyectoRecurso::find($targetId);
+        if (!$dragged || !$target) return;
+        if ($dragged->parent_id !== $target->parent_id) return;
+
+        $siblings = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->where('parent_id', $dragged->parent_id)
+            ->orderBy('orden')
+            ->get();
+
+        $items     = $siblings->reject(fn($s) => $s->id === $draggedId)->values()->all();
+        $targetIdx = array_search($targetId, array_column($items, 'id'));
+        if ($targetIdx === false) return;
+
+        $insertAt = $posicion === 'before' ? $targetIdx : $targetIdx + 1;
+        array_splice($items, $insertAt, 0, [$dragged]);
+
+        foreach ($items as $index => $node) {
+            ProyectoRecurso::where('id', $node->id)->update(['orden' => $index + 1]);
+        }
+
+        $this->cargarProyecto();
+    }
+
+    public function copiarNodo(int $id): void
+    {
+        $this->nodoCopiadoId = $id;
+    }
+
+    public function cancelarCopia(): void
+    {
+        $this->nodoCopiadoId = null;
+    }
+
+    public function pegarNodo(int $siblingId): void
+    {
+        if (!$this->nodoCopiadoId) return;
+
+        $original = ProyectoRecurso::with('hijos.hijos.hijos')->find($this->nodoCopiadoId);
+        $sibling  = ProyectoRecurso::find($siblingId);
+        if (!$original || !$sibling) return;
+
+        $this->_duplicarNodoRecursivo($original, $sibling->parent_id);
+        $this->nodoCopiadoId = null;
+        $this->cargarProyecto();
+    }
+
+    private function _duplicarNodoRecursivo(ProyectoRecurso $nodo, ?int $newParentId): void
+    {
+        $maxOrden = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->where('parent_id', $newParentId)
+            ->max('orden') ?? 0;
+
+        $nuevo = $nodo->replicate();
+        $nuevo->parent_id = $newParentId;
+        $nuevo->orden     = $maxOrden + 1;
+        $nuevo->save();
+
+        foreach ($nodo->hijos as $hijo) {
+            $this->_duplicarNodoRecursivo($hijo, $nuevo->id);
+        }
     }
 
     public function toggleBeneficio()

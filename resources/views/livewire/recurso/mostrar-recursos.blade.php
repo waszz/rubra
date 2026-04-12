@@ -262,12 +262,14 @@
             </div>
         @endif
 
-        {{-- PAGINACIÓN --}}
-        @if($recursos->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#111]/30">
-                {{ $recursos->links() }}
-            </div>
-        @endif
+        {{-- INFINITE SCROLL SENTINEL --}}
+        <div id="scroll-sentinel" wire:key="sentinel-{{ $recursos->count() }}" data-has-more="{{ $hasMore ? '1' : '0' }}" class="py-4 flex justify-center">
+            @if($hasMore)
+                <span class="text-xs text-gray-400 animate-pulse">Cargando más recursos...</span>
+            @else
+                <span class="text-xs text-gray-500">{{ $recursos->count() }} de {{ $total }} recursos</span>
+            @endif
+        </div>
     </div>
 
 
@@ -844,3 +846,33 @@
 </div>
 @endif
 </div>
+
+@script
+<script>
+    window._scrollObs = null;
+
+    function _setupScrollSentinel() {
+        if (window._scrollObs) { window._scrollObs.disconnect(); window._scrollObs = null; }
+        var sentinel = document.getElementById('scroll-sentinel');
+        if (!sentinel || !window.IntersectionObserver) return;
+        if (sentinel.dataset.hasMore !== '1') return;
+
+        window._scrollObs = new IntersectionObserver(function (entries) {
+            if (entries[0].isIntersecting) {
+                window._scrollObs.disconnect();
+                window._scrollObs = null;
+                $wire.loadMore();
+            }
+        }, { rootMargin: '400px' });
+        window._scrollObs.observe(sentinel);
+    }
+
+    _setupScrollSentinel();
+
+    Livewire.hook('commit', ({ succeed }) => {
+        succeed(() => {
+            requestAnimationFrame(_setupScrollSentinel);
+        });
+    });
+</script>
+@endscript

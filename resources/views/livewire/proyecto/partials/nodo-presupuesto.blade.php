@@ -73,7 +73,10 @@
 <div class="border-t border-white/[0.025]" wire:key="{{ 'node-' . $nodo->id }}">
 
     {{-- FILA DEL NODO --}}
-    <div class="{{ $bgFila }} grid grid-cols-12 px-3 py-1.5 items-center group hover:brightness-110 transition-all">
+    <div class="{{ $bgFila }} grid grid-cols-12 px-3 py-1.5 items-center group hover:brightness-110 transition-all {{ !$modoLectura ? 'cursor-grab active:cursor-grabbing' : '' }}"
+         data-node-id="{{ $nodo->id }}"
+         data-parent-id="{{ $nodo->parent_id ?? '' }}"
+         @if(!$modoLectura) draggable="true" @endif>
 
         <div class="col-span-1"></div>
 
@@ -115,11 +118,41 @@
                         </span>
                     @endif
                 </div>
-                <button wire:click.stop="bajarNodo({{ $nodo->id }})"
-                    title="Bajar"
-                    class="w-5 h-5 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                {{-- Drag handle --}}
+                @if(!$modoLectura)
+                <div data-drag-handle data-node-id="{{ $nodo->id }}"
+                     title="Arrastrar para reordenar"
+                     class="w-5 h-5 flex items-center justify-center text-gray-600 hover:text-gray-300 cursor-grab active:cursor-grabbing shrink-0 transition-colors select-none">
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M7 4a1 1 0 110-2 1 1 0 010 2zm6 0a1 1 0 110-2 1 1 0 010 2zM7 9a1 1 0 110-2 1 1 0 010 2zm6 0a1 1 0 110-2 1 1 0 010 2zM7 14a1 1 0 110-2 1 1 0 010 2zm6 0a1 1 0 110-2 1 1 0 010 2z"/>
+                    </svg>
+                </div>
+                @endif
+
+                {{-- Copy --}}
+                @if(!$modoLectura)
+                <button wire:click.stop="copiarNodo({{ $nodo->id }})"
+                    title="Copiar nodo"
+                    class="w-5 h-5 flex items-center justify-center rounded transition shrink-0
+                        {{ isset($nodoCopiadoId) && $nodoCopiadoId == $nodo->id
+                            ? 'bg-purple-500/30 text-purple-300'
+                            : 'bg-white/10 text-gray-400 hover:bg-white/20' }}">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
                 </button>
+                @endif
+
+                {{-- Paste (solo cuando hay algo copiado) --}}
+                @if(!$modoLectura && isset($nodoCopiadoId) && $nodoCopiadoId)
+                <button wire:click.stop="pegarNodo({{ $nodo->id }})"
+                    title="Pegar aquí (como hermano)"
+                    class="w-5 h-5 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/40 transition shrink-0">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                </button>
+                @endif
                 @if(!$esRecurso)
                 <button wire:click.stop="abrirModalSubrubro({{ $nodo->id }}, '{{ $nombreCategoria }}', '{{ addslashes($nodo->nombre) }}')"
                     title="+ Sub-rubro"
