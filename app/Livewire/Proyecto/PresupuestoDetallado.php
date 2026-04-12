@@ -776,7 +776,7 @@ private function obtenerDatosPresupuesto($scope = 'completo')
     $catSubtotales = [];
     foreach ($items as $item) {
         $cat = $item['categoria'] ?? '';
-        if ($item['tipo'] === 'item') {
+        if ($item['tipo'] === 'item' || $item['tipo'] === 'apu_header') {
             $catSubtotales[$cat] = ($catSubtotales[$cat] ?? 0) + ($item['subtotal'] ?? 0);
         } elseif ($item['tipo'] === 'subrubro') {
             if ($scope === 'completo') {
@@ -920,8 +920,11 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
             $cantidadEffective = ($nodo->cantidad ?? 1) * $multiplier;
             $subtotal = $cantidadEffective * $precioUnitario;
             $total += $subtotal;
+
+            $esComposicion = $nodo->recurso && $nodo->recurso->tipo === 'composition';
+
             $items[] = [
-                'tipo'        => 'item',
+                'tipo'        => $esComposicion ? 'apu_header' : 'item',
                 'categoria'   => $catEste,
                 'nombre'      => $nodo->nombre,
                 'descripcion' => '',
@@ -930,6 +933,41 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
                 'precio_usd'  => $precioUnitario,
                 'subtotal'    => $subtotal,
             ];
+
+            // Expandir items del APU como sub-filas para mostrar el desglose en el PDF
+            if ($esComposicion && $nodo->recurso->items) {
+                $compItems = $nodo->recurso->items
+                    ->filter(fn($i) => !is_null($i->recursoBase))
+                    ->sortBy(fn($i) => match($i->recursoBase->tipo) {
+                        'material'  => 0,
+                        'equipment' => 1,
+                        'labor'     => 2,
+                        default     => 3,
+                    });
+
+                foreach ($compItems as $compItem) {
+                    $base        = $compItem->recursoBase;
+                    $pUnit       = $base->precio_usd ?? 0;
+                    $esLabor     = in_array($base->tipo, ['labor', 'mano_obra']);
+                    $cargaSocial = $esLabor
+                        ? round($pUnit * (($base->social_charges_percentage ?? 0) / 100), 4)
+                        : 0;
+                    $cantItem = $compItem->cantidad * $cantidadEffective;
+
+                    $items[] = [
+                        'tipo'         => 'apu_item',
+                        'categoria'    => $catEste,
+                        'nombre'       => $base->nombre,
+                        'descripcion'  => $base->tipo,
+                        'unidad'       => $base->unidad ?? '',
+                        'cantidad'     => $cantItem,
+                        'carga_social' => $cargaSocial,
+                        'precio_usd'   => $pUnit,
+                        'subtotal'     => $cantItem * $pUnit,
+                        'recurso_tipo' => $base->tipo,
+                    ];
+                }
+            }
         }
     }
 }

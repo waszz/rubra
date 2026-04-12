@@ -397,6 +397,54 @@
             pointer-events: none;
             letter-spacing: 8px;
         }
+
+        /* APU breakdown rows */
+        .apu-header-row td {
+            background-color: #fff4ee;
+            font-weight: bold;
+            color: #222;
+            border-top: 2px solid #ff6b35;
+        }
+
+        .apu-badge {
+            display: inline-block;
+            background-color: #ff6b35;
+            color: #fff;
+            font-size: 7px;
+            font-weight: bold;
+            padding: 1px 4px;
+            border-radius: 2px;
+            text-transform: uppercase;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+
+        .apu-type-row td {
+            background-color: #ececec;
+            color: #777;
+            font-style: italic;
+            font-size: 8.5px;
+            padding: 3px 8px 3px 28px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .apu-item-row td {
+            background-color: #fafafa;
+            color: #555;
+            font-size: 9px;
+            border: 1px solid #ebebeb;
+            padding-left: 28px;
+        }
+
+        .apu-item-row td:first-child {
+            border-left: 3px solid #ff6b35;
+        }
+
+        .apu-carga-social {
+            color: #bbb;
+            font-style: italic;
+            font-size: 8px;
+        }
     </style>
 </head>
 <body>
@@ -521,9 +569,10 @@
         <tbody>
             @php
                 $categoriaActual = null;
-                $totalGeneral = 0;
+                $totalGeneral    = 0;
+                $prevApuTipo     = null;
             @endphp
-            
+
             @php $factorBeneficio = 1 + ($pctBeneficio / 100); @endphp
             @foreach($datos['items'] as $item)
                 @php
@@ -531,8 +580,8 @@
                     $subtotalConBeneficio = ($item['subtotal'] ?? 0)   * $factorBeneficio;
                 @endphp
 
-                {{-- Fila gris de categoría cuando cambia --}}
-                @if($item['categoria'] !== '' && $item['categoria'] !== $categoriaActual)
+                {{-- Fila gris de categoría cuando cambia (no emitir para apu_item) --}}
+                @if($item['tipo'] !== 'apu_item' && $item['categoria'] !== '' && $item['categoria'] !== $categoriaActual)
                     @php $categoriaActual = $item['categoria'] @endphp
                     <tr class="category-row">
                         @if($opciones['incluirPrecio'])
@@ -551,6 +600,7 @@
                 @endif
 
                 @if($item['tipo'] === 'subrubro')
+                    @php $prevApuTipo = null; @endphp
                     {{-- Subrubro: mostrar unidad, cantidad y precio propio (sin contar hijos) --}}
                     @php
                         $precioPropio = $item['precio_own'] ?? ($item['precio_usd'] ?? 0);
@@ -575,7 +625,65 @@
                             @endphp
                         @endif
                     </tr>
+
+                @elseif($item['tipo'] === 'apu_header')
+                    @php $prevApuTipo = null; @endphp
+                    {{-- Fila principal del APU --}}
+                    <tr class="apu-header-row">
+                        <td><strong>{{ $item['nombre'] }}</strong> <span class="apu-badge">APU</span></td>
+                        <td>—</td>
+                        @if($opciones['incluirUnidad'])
+                            <td class="text-center">{{ $item['unidad'] ?? '—' }}</td>
+                        @endif
+                        @if($opciones['incluirCantidad'])
+                            <td class="text-right">{{ number_format($item['cantidad'], 2, ',', '.') }}</td>
+                        @endif
+                        @if($opciones['incluirPrecio'])
+                            <td class="text-right">$ {{ number_format($precioConBeneficio, 2, ',', '.') }}</td>
+                            <td class="text-right">$ {{ number_format($subtotalConBeneficio, 2, ',', '.') }}</td>
+                            @php $totalGeneral += $subtotalConBeneficio @endphp
+                        @endif
+                    </tr>
+
+                @elseif($item['tipo'] === 'apu_item')
+                    {{-- Fila de grupo (Materiales / Mano de Obra / Equipos) cuando cambia el tipo --}}
+                    @if(($item['recurso_tipo'] ?? '') !== $prevApuTipo)
+                        @php $prevApuTipo = $item['recurso_tipo'] @endphp
+                        <tr class="apu-type-row">
+                            <td colspan="{{ 2 + ($opciones['incluirUnidad'] ? 1 : 0) + ($opciones['incluirCantidad'] ? 1 : 0) + ($opciones['incluirPrecio'] ? 2 : 0) }}">
+                                {{ match($item['recurso_tipo'] ?? '') {
+                                    'material'  => 'Materiales',
+                                    'labor'     => 'Mano de Obra',
+                                    'equipment' => 'Equipos',
+                                    default     => $item['recurso_tipo'] ?? '',
+                                } }}
+                            </td>
+                        </tr>
+                    @endif
+                    {{-- Detalle de recurso APU --}}
+                    <tr class="apu-item-row">
+                        <td>{{ $item['nombre'] }}</td>
+                        <td>
+                            @if(($item['carga_social'] ?? 0) > 0)
+                                <span class="apu-carga-social">CS ref.: $ {{ number_format($item['carga_social'], 2, ',', '.') }}</span>
+                            @else
+                                —
+                            @endif
+                        </td>
+                        @if($opciones['incluirUnidad'])
+                            <td class="text-center">{{ $item['unidad'] ?? '—' }}</td>
+                        @endif
+                        @if($opciones['incluirCantidad'])
+                            <td class="text-right">{{ number_format($item['cantidad'], 4, ',', '.') }}</td>
+                        @endif
+                        @if($opciones['incluirPrecio'])
+                            <td class="text-right">$ {{ number_format($item['precio_usd'] ?? 0, 2, ',', '.') }}</td>
+                            <td class="text-right">$ {{ number_format($item['subtotal'] ?? 0, 2, ',', '.') }}</td>
+                        @endif
+                    </tr>
+
                 @else
+                    @php $prevApuTipo = null; @endphp
                     {{-- Ítem normal --}}
                     <tr>
                         <td><strong>{{ $item['nombre'] }}</strong></td>
