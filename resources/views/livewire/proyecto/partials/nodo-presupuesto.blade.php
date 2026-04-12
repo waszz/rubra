@@ -244,7 +244,7 @@
                                     $pUnit        = $base->precio_usd ?? 0;
                                     $esLabor      = in_array($base->tipo, ['labor', 'mano_obra']);
                                     $cargaSocial  = $esLabor ? ($pUnit * (($base->social_charges_percentage ?? 0) / 100)) : 0;
-                                    $subtotalItem = ($nodo->cantidad ?? 1) * $item->cantidad * ($pUnit + $cargaSocial);
+                                    $subtotalItem = ($nodo->cantidad ?? 1) * $item->cantidad * $pUnit;
                                     $cantidadMostrada = $item->cantidad * ($nodo->cantidad ?? 1);
                                 @endphp
                                 <div class="grid grid-cols-12 px-4 py-2 items-center hover:bg-white/[0.02] transition group/apuitem">

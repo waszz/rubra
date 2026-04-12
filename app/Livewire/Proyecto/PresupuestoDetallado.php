@@ -1127,6 +1127,11 @@ public function invitarUsuariosSeleccionados()
         $composicion = Recurso::with('items.recursoBase')->findOrFail($composicionId);
         $total = $composicion->items->sum(fn($i) => $i->precio_total);
         $composicion->update(['precio_usd' => $total]);
+
+        // Sincronizar precio en los ProyectoRecurso de este proyecto
+        \App\Models\ProyectoRecurso::where('recurso_id', $composicionId)
+            ->where('proyecto_id', $this->proyecto->id)
+            ->update(['precio_usd' => $total]);
     }
 
     // ── CARGA ────────────────────────────────────────────────

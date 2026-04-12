@@ -28,12 +28,7 @@ class ComposicionItem extends Model
         $recurso = $this->recursoBase;
         if (!$recurso) return 0;
 
-        $precio = $recurso->precio_usd;
-
-        if (in_array($recurso->tipo, ['labor', 'mano_obra'])) {
-            $precio = $precio * (1 + ($recurso->social_charges_percentage ?? 72) / 100);
-        }
-
-        return $this->cantidad * $precio;
+        // La carga social se muestra como referencia pero NO se suma al costo del APU.
+        return $this->cantidad * ($recurso->precio_usd ?? 0);
     }
 }
