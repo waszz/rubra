@@ -254,46 +254,48 @@
     }
 
     // Función recursiva para calcular carga social
-    function calcularCargaSocialRecursiva($nodos) {
+    // $multiplier acumula las cantidades de todos los nodos padre para obtener la cantidad total efectiva
+    function calcularCargaSocialRecursiva($nodos, float $multiplier = 1) {
         $totalCS = 0;
         foreach ($nodos as $nodo) {
+            $cantNodo       = $nodo->cantidad ?? 1;
             $precioUnitario = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
-            $costoItem = $nodo->cantidad * $precioUnitario;
 
             // CASO: Recurso Simple de Mano de Obra
+            // Fórmula: (% CS * precio_unit) * cantidad_item * cantidad_total_rubro
             if (($nodo->recurso && $nodo->recurso->tipo === 'labor') || $nodo->tipo === 'labor') {
                 $porcentajeCS = $nodo->recurso->social_charges_percentage ?? $nodo->social_charges_percentage ?? 0;
-                $totalCS += ($costoItem * ($porcentajeCS / 100));
+                $totalCS += $multiplier * $cantNodo * $precioUnitario * ($porcentajeCS / 100);
             }
 
-            // CASO: Composición (APU)
+            // CASO: Composición (APU) — sumar CS de sus items de mano de obra internos
             if ($nodo->recurso && $nodo->recurso->tipo === 'composition') {
                 $itemsInternos = \App\Models\ComposicionItem::where('composicion_id', $nodo->recurso_id)->get();
                 foreach ($itemsInternos as $interno) {
                     $resBase = $interno->recursoBase;
                     if (!$resBase) continue;
                     if (in_array($resBase->tipo, ['labor', 'mano_obra'])) {
-                        $pBase = $resBase->precio_usd ?? 0;
+                        $pBase        = $resBase->precio_usd ?? 0;
                         $porcentajeCS = $resBase->social_charges_percentage ?? 0;
-                        $totalCS += ($nodo->cantidad * $interno->cantidad * ($pBase * ($porcentajeCS / 100)));
+                        $totalCS += $multiplier * $cantNodo * $interno->cantidad * $pBase * ($porcentajeCS / 100);
                     }
                 }
             }
 
-            // Recursivo para hijos
+            // Recursivo para hijos: propagar el multiplicador acumulado
             if ($nodo->hijos && $nodo->hijos->count() > 0) {
-                $totalCS += calcularCargaSocialRecursiva($nodo->hijos);
+                $totalCS += calcularCargaSocialRecursiva($nodo->hijos, $multiplier * $cantNodo);
             }
         }
         return $totalCS;
     }
 
-    $subtotalBase = 0; 
+    $subtotalBase = 0;
     $cargaSocialCalculada = 0;
 
     foreach ($categorias as $nodosRaiz) {
         foreach ($nodosRaiz as $nodoPadre) {
-            $subtotalBase += calcularSubtotalRecursivo($nodoPadre->hijos);
+            $subtotalBase         += calcularSubtotalRecursivo($nodoPadre->hijos);
             $cargaSocialCalculada += calcularCargaSocialRecursiva($nodoPadre->hijos);
         }
     }
