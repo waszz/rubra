@@ -50,6 +50,16 @@
             @endforeach
         </select>
 
+        <div class="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-lg px-3 py-2">
+            <span class="text-[11px] text-blue-700 dark:text-blue-300 font-bold uppercase tracking-wider whitespace-nowrap">C. Social</span>
+            <input type="number"
+                   wire:change="actualizarCargaSocialGlobal($event.target.value)"
+                   value="{{ $cargaSocialGlobal }}"
+                   min="0" max="100" step="0.5"
+                   class="w-16 rounded bg-white dark:bg-white/10 border border-blue-300 dark:border-blue-500/40 text-blue-800 dark:text-blue-100 text-sm font-bold text-center outline-none focus:border-blue-500 px-1 py-0.5">
+            <span class="text-[11px] text-blue-700 dark:text-blue-300 font-bold">%</span>
+        </div>
+
         <button wire:click="abrirModalRecurso"
             class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-blue-100 dark:border-white/10 bg-blue-50 dark:bg-transparent text-blue-700 dark:text-white text-[12px] font-bold hover:bg-blue-100 dark:hover:bg-white/5 transition-all shadow-sm">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

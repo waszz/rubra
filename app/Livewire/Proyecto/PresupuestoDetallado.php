@@ -828,16 +828,18 @@ private function calcularCargaSocialPDF(): float
  */
 private function recorrerCargaSocial($nodos, float &$totalCS, float $multiplier = 1): void
 {
+    // Si el proyecto tiene un % global de carga social definido, lo usa como override
+    $pctGlobal = (float) ($this->proyecto->carga_social ?? 0);
+
     foreach ($nodos as $nodo) {
         $cantNodo       = $nodo->cantidad ?? 1;
         $precioUnitario = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
 
         // Recurso directo de mano de obra
         if (($nodo->recurso && $nodo->recurso->tipo === 'labor') || $nodo->tipo === 'labor') {
-            $porcentajeCS = $nodo->recurso->social_charges_percentage
-                ?? $nodo->social_charges_percentage
-                ?? 0;
-            // (% CS * precio unit) * cantidad item * cantidad acumulada del rubro
+            $porcentajeCS = $pctGlobal > 0
+                ? $pctGlobal
+                : ($nodo->recurso->social_charges_percentage ?? $nodo->social_charges_percentage ?? 0);
             $totalCS += $multiplier * $cantNodo * $precioUnitario * ($porcentajeCS / 100);
         }
 
@@ -849,18 +851,27 @@ private function recorrerCargaSocial($nodos, float &$totalCS, float $multiplier 
                 if (!$resBase) continue;
                 if (in_array($resBase->tipo, ['labor', 'mano_obra'])) {
                     $pBase        = $resBase->precio_usd ?? 0;
-                    $porcentajeCS = $resBase->social_charges_percentage ?? 0;
-                    // (% CS * precio unit item APU) * cantidad item APU * cantidad efectiva nodo
+                    $porcentajeCS = $pctGlobal > 0
+                        ? $pctGlobal
+                        : ($resBase->social_charges_percentage ?? 0);
                     $totalCS += $multiplier * $cantNodo * $interno->cantidad * $pBase * ($porcentajeCS / 100);
                 }
             }
         }
 
-        // Recursión: propagar el multiplicador acumulado a los hijos
         if ($nodo->hijos && count($nodo->hijos) > 0) {
             $this->recorrerCargaSocial($nodo->hijos, $totalCS, $multiplier * $cantNodo);
         }
     }
+}
+
+public function actualizarCargaSocial(mixed $valor): void
+{
+    $pct = max(0, min(100, (float) $valor));
+    $this->proyecto->carga_social = $pct;
+    $this->proyecto->save();
+    Recurso::where('tipo', 'labor')->update(['social_charges_percentage' => $pct]);
+    Proyecto::query()->update(['carga_social' => $pct]);
 }
 
 private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 0, $multiplier = 1)

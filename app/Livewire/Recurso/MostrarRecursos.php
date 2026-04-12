@@ -5,6 +5,7 @@ namespace App\Livewire\Recurso;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
+use App\Models\Proyecto;
 use App\Models\Recurso;
 use App\Models\PrecioHistorial;
 
@@ -29,6 +30,7 @@ class MostrarRecursos extends Component
     public string $editTipo   = '';
     public string $editUnidad = '';
     public string $editPrecio = '';    public string $editSocialChargesPercentage = '';
+    public float  $cargaSocialGlobal = 0;
     // ── Modal eliminación ────────────────────────────────────
     public bool $modalEliminar         = false;
     public bool $modalEliminarMultiple = false;
@@ -75,6 +77,11 @@ public bool $importandoEnProgreso = false;
 public array $recursosBienImportados = [];
 public string $mensajeImportacion = '';
 public bool $mostrarResultadosImportacion = false;
+
+public function mount(): void
+{
+    $this->cargaSocialGlobal = (float) (Recurso::where('tipo', 'labor')->value('social_charges_percentage') ?? 0);
+}
 
 protected $listeners = [
     'cerrarModalRecurso'     => 'cerrarModalRecurso',
@@ -350,6 +357,15 @@ public function eliminarItem()
         $this->editUnidad  = '';
         $this->editPrecio  = '';
         $this->editSocialChargesPercentage = '';
+    }
+
+    public function actualizarCargaSocialGlobal(mixed $valor): void
+    {
+        $pct = max(0, min(100, (float) $valor));
+        $this->cargaSocialGlobal = $pct;
+        Recurso::where('tipo', 'labor')->update(['social_charges_percentage' => $pct]);
+        Proyecto::query()->update(['carga_social' => $pct]);
+        $this->dispatch('notify', mensaje: 'Carga social actualizada en todos los recursos y proyectos.', tipo: 'success');
     }
 
     // ── HISTORIAL DE PRECIOS ──────────────────────────────

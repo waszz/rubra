@@ -18,6 +18,13 @@
     $recursosDir  = $hijos->whereNotNull('recurso_id');
     $totalNodo    = ($nodo->precio_unitario ?? $nodo->precio_usd ?? 0) * $nodo->cantidad;
     $esComposicion = $esRecurso && $nodo->recurso?->tipo === 'composition';
+    $esLabor       = $esRecurso && in_array($nodo->recurso?->tipo, ['labor', 'mano_obra']);
+    $pctCSGlobal   = isset($proyecto) ? (float)($proyecto->carga_social ?? 0) : 0;
+    $pctCSRecurso  = $esLabor ? (float)($nodo->recurso?->social_charges_percentage ?? 0) : 0;
+    $csAplicada    = $esLabor ? ($pctCSGlobal > 0 ? $pctCSGlobal : $pctCSRecurso) : 0;
+    $montoCS       = $esLabor && $csAplicada > 0
+                        ? (($nodo->precio_unitario ?? $nodo->precio_usd ?? 0) * ($csAplicada / 100) * ($nodo->cantidad ?? 1))
+                        : 0;
     $nivel = $nivel ?? 0;
     $bgFila = $bgFila ?? '';
     $colorTexto = $colorTexto ?? 'text-white';
@@ -66,7 +73,7 @@
 <div class="border-t border-white/[0.025]" wire:key="{{ 'node-' . $nodo->id }}">
 
     {{-- FILA DEL NODO --}}
-    <div class="{{ $bgFila }} grid grid-cols-12 px-4 py-2.5 items-center group hover:brightness-110 transition-all">
+    <div class="{{ $bgFila }} grid grid-cols-12 px-3 py-1.5 items-center group hover:brightness-110 transition-all">
 
         <div class="col-span-1"></div>
 
@@ -75,15 +82,17 @@
 
                 {{-- Ícono izquierdo según tipo --}}
                 @if(!$esRecurso)
-                    <button wire:click="toggleNodo('{{ $nodeKey }}')" class="shrink-0">
-                        <svg class="w-3.5 h-3.5 text-gray-600 transition-transform duration-200 {{ $nodoAbierto ? 'rotate-90' : '' }}"
+                    <button onclick="_lwToggle('{{ $nodeKey }}')" class="shrink-0">
+                        <svg id="chv-{{ $nodeKey }}" class="w-3.5 h-3.5 text-gray-600"
+                             style="transition:transform .2s;{{ $nodoAbierto ? 'transform:rotate(90deg)' : '' }}"
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
                         </svg>
                     </button>
                 @elseif($esComposicion)
-                    <button wire:click="toggleNodo('{{ $nodeKey }}')" class="shrink-0">
-                        <svg class="w-3.5 h-3.5 text-amber-500 transition-transform duration-200 {{ $nodoAbierto ? 'rotate-90' : '' }}"
+                    <button onclick="_lwToggle('{{ $nodeKey }}')" class="shrink-0">
+                        <svg id="chv-{{ $nodeKey }}" class="w-3.5 h-3.5 text-amber-500"
+                             style="transition:transform .2s;{{ $nodoAbierto ? 'transform:rotate(90deg)' : '' }}"
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
                         </svg>
@@ -96,37 +105,42 @@
 
                 {{-- Nombre + badge APU --}}
                 <div class="flex items-center gap-1 min-w-0 flex-1 {{ (!$esRecurso || $esComposicion) ? 'cursor-pointer' : '' }}"
-                    @if(!$esRecurso || $esComposicion) wire:click="toggleNodo('{{ $nodeKey }}')" @endif>
-                    <p class="text-base {{ $colorTexto }} font-semibold uppercase truncate">
+                    @if(!$esRecurso || $esComposicion) onclick="_lwToggle('{{ $nodeKey }}')" @endif>
+                    <p class="text-xs {{ $colorTexto }} font-semibold uppercase truncate">
                         {{ $nodo->nombre }}
                     </p>
+                    @if($esLabor && $csAplicada > 0)
+                        <span class="shrink-0 text-[9px] font-bold text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded px-1 leading-4 whitespace-nowrap">
+                            CS {{ number_format($csAplicada, 1) }}% · {{ number_format($montoCS, 2, ',', '.') }}
+                        </span>
+                    @endif
                 </div>
                 <button wire:click.stop="bajarNodo({{ $nodo->id }})"
                     title="Bajar"
-                    class="w-7 h-7 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                    class="w-5 h-5 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                 </button>
                 @if(!$esRecurso)
                 <button wire:click.stop="abrirModalSubrubro({{ $nodo->id }}, '{{ $nombreCategoria }}', '{{ addslashes($nodo->nombre) }}')"
                     title="+ Sub-rubro"
-                    class="w-7 h-7 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/40 transition">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    class="w-5 h-5 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/40 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                 </button>
                 <button wire:click.stop="abrirModalRecursos({{ $nodo->id }}, '{{ $nombreCategoria }}', '{{ addslashes($nodo->nombre) }}')"
                     title="+ Recurso"
-                    class="w-7 h-7 flex items-center justify-center bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/40 transition">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    class="w-5 h-5 flex items-center justify-center bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/40 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                 </button>
                 @endif
                 <button wire:click.stop="abrirModalEditar({{ $nodo->id }})"
                     title="Editar"
-                    class="w-7 h-7 flex items-center justify-center bg-yellow-500/20 text-yellow-400 rounded hover:bg-yellow-500/40 transition">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    class="w-5 h-5 flex items-center justify-center bg-yellow-500/20 text-yellow-400 rounded hover:bg-yellow-500/40 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 </button>
                 <button wire:click.stop="abrirModalEliminar({{ $nodo->id }})"
                     title="Eliminar"
-                    class="w-7 h-7 flex items-center justify-center bg-red-500/20 text-red-400 rounded hover:bg-red-500/40 transition">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    class="w-5 h-5 flex items-center justify-center bg-red-500/20 text-red-400 rounded hover:bg-red-500/40 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
             </div>
 
@@ -141,7 +155,7 @@
             }
         @endphp
 
-        <div class="col-span-1 text-sm text-gray-600 text-center uppercase">
+        <div class="col-span-1 text-xs text-gray-600 text-center uppercase">
             {{ $nodo->unidad }}
         </div>
 
@@ -151,13 +165,13 @@
                        wire:change="updateCantidad({{ $nodo->id }}, $event.target.value)"
                        value="{{ $nodo->cantidad }}"
                        step="0.01"
-                       class="w-16 bg-[#0a0a0a] border border-white/5 rounded px-1 py-0.5 text-sm text-center text-white font-bold focus:border-white/20 focus:outline-none">
+                       class="w-14 bg-[#0a0a0a] border border-white/5 rounded px-1 py-0.5 text-xs text-center text-white font-bold focus:border-white/20 focus:outline-none">
             @else
-                <span class="text-sm text-gray-500 font-mono">{{ number_format($nodo->cantidad, 2) }}</span>
+                <span class="text-xs text-gray-500 font-mono">{{ number_format($nodo->cantidad, 2) }}</span>
             @endif
         </div>
 
-        <div class="col-span-2 text-center text-sm text-gray-600 font-mono">
+        <div class="col-span-2 text-center text-xs text-gray-600 font-mono">
             {{ number_format($perUnitMostrar, 2, ',', '.') }}
         </div>
 
@@ -167,8 +181,8 @@
     </div>
 
     {{-- HIJOS recursivos (solo sub-rubros) --}}
-    @if(!$esRecurso && $nodoAbierto && $hijos->count() > 0)
-        <div>
+    @if(!$esRecurso && $hijos->count() > 0)
+        <div id="children-{{ $nodeKey }}" style="{{ $nodoAbierto ? '' : 'display:none' }}">
             @foreach($hijos as $hijo)
                 @include('livewire.proyecto.partials.nodo-presupuesto', [
                     'nodo'            => $hijo,
@@ -182,8 +196,8 @@
     @endif
 
     {{-- DETALLE DE COMPOSICIÓN (APU) --}}
-    @if($esComposicion && $nodoAbierto && $itemsComposicionLocal->count())
-        <div class="px-8 pb-4">
+    @if($esComposicion && $itemsComposicionLocal->count())
+        <div id="children-{{ $nodeKey }}-apu" class="px-8 pb-4" style="{{ $nodoAbierto ? '' : 'display:none' }}">
             <div class="bg-[#0f0f0f] border border-white/5 rounded-lg overflow-hidden">
 
                 {{-- Encabezado --}}

@@ -1,10 +1,10 @@
-<div class="min-h-screen bg-[#0a0a0a]">
+<div class="h-screen flex flex-col overflow-hidden bg-[#0a0a0a]">
 
 {{-- NAVBAR --}}
-<nav class="border-b border-white/5 bg-[#0d0d0d]">
+<nav class="shrink-0 border-b border-white/5 bg-[#0d0d0d]">
 
     {{-- Fila superior: back + nombre + acciones --}}
-    <div class="flex items-center justify-between px-4 py-3 gap-3">
+    <div class="flex items-center justify-between px-3 py-1.5 gap-2">
 
         {{-- IZQUIERDA: back + nombre --}}
         <div class="flex items-center gap-3 min-w-0">
@@ -15,12 +15,12 @@
             </a>
             <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                    <h1 class="text-white font-black text-sm uppercase tracking-widest truncate">{{ $proyecto->nombre_proyecto }}</h1>
-                    <span class="bg-green-500/10 text-green-500 text-sm font-black px-2 py-0.5 rounded border border-green-500/20 flex items-center gap-1 shrink-0">
+                    <h1 class="text-white font-black text-xs uppercase tracking-widest truncate">{{ $proyecto->nombre_proyecto }}</h1>
+                    <span class="bg-green-500/10 text-green-500 text-[10px] font-black px-1.5 py-0 rounded border border-green-500/20 flex items-center gap-1 shrink-0">
                         <span class="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span> ONLINE
                     </span>
                 </div>
-                <p class="text-xs text-gray-600 uppercase tracking-widest font-bold">PRESUPUESTO DETALLADO ▾</p>
+                <p class="text-[10px] text-gray-600 uppercase tracking-widest font-bold">PRESUPUESTO DETALLADO ▾</p>
             </div>
         </div>
 
@@ -32,18 +32,18 @@
                 <button
                     wire:click="deshacer"
                     {{ $indexHistorial <= 0 ? 'disabled' : '' }}
-                    class="p-1.5 rounded {{ $indexHistorial <= 0 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-500 hover:text-white hover:bg-white/10' }} transition-all"
+                    class="p-1 rounded {{ $indexHistorial <= 0 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-500 hover:text-white hover:bg-white/10' }} transition-all"
                     title="Deshacer (Ctrl+Z)">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                     </svg>
                 </button>
                 <button
                     wire:click="rehacer"
                     {{ $indexHistorial >= count($historialEstados) - 1 ? 'disabled' : '' }}
-                    class="p-1.5 rounded {{ $indexHistorial >= count($historialEstados) - 1 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-500 hover:text-white hover:bg-white/10' }} transition-all"
+                    class="p-1 rounded {{ $indexHistorial >= count($historialEstados) - 1 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-500 hover:text-white hover:bg-white/10' }} transition-all"
                     title="Rehacer (Ctrl+Y)">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10H11a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6"/>
                     </svg>
                 </button>
@@ -53,7 +53,7 @@
                 <div class="hidden sm:flex items-center">
                 <div class="flex -space-x-1.5">
                     @foreach($proyecto->usuarios as $user)
-                        <div class="w-6 h-6 rounded-full bg-purple-500 border-2 border-[#0d0d0d] flex items-center justify-center text-xs font-black text-white">
+                        <div class="w-5 h-5 rounded-full bg-purple-500 border-2 border-[#0d0d0d] flex items-center justify-center text-[10px] font-black text-white">
                             {{ strtoupper(substr($user->name, 0, 1)) }}
                         </div>
                     @endforeach
@@ -67,7 +67,7 @@
 
             {{-- Compartir (oculto en xs) --}}
             @if(auth()->id() === $proyecto->user_id)
-            <button wire:click="abrirModalCompartir" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 text-sm font-black uppercase tracking-wider transition-all">
+            <button wire:click="abrirModalCompartir" class="hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 text-[11px] font-black uppercase tracking-wider transition-all">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
                 </svg>
@@ -79,7 +79,7 @@
     </div>
 
     {{-- Fila inferior: tabs de navegación (scroll horizontal en mobile) --}}
-    <div class="flex items-center gap-1 px-4 pb-2 overflow-x-auto scrollbar-none">
+    <div class="flex items-center gap-0.5 px-3 pb-1 overflow-x-auto scrollbar-none">
         @foreach([
             ['label' => 'Presupuesto', 'icon' => 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z', 'active' => true],
             ['label' => 'Gantt',        'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', 'active' => false, 'route' => route('proyectos.gantt', $proyecto)],
@@ -91,9 +91,9 @@
                 @continue
             @endif
             <a href="{{ $tab['route'] ?? '#' }}"
-               class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-black uppercase tracking-wider transition-all whitespace-nowrap shrink-0
+               class="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap shrink-0
                    {{ $tab['active'] ? 'bg-white text-black' : 'text-gray-500 hover:text-white hover:bg-white/5' }}">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $tab['icon'] }}"/>
                 </svg>
                 {{ $tab['label'] }}
@@ -104,7 +104,7 @@
 </nav>
 
 {{-- BARRA DE HERRAMIENTAS --}}
-<div class="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-2 border-b border-gray-200 dark:border-white/5 bg-white/80 dark:bg-[#0d0d0d]/80 backdrop-blur-sm text-black dark:text-white">
+<div class="shrink-0 flex flex-col sm:flex-row sm:items-center gap-1.5 px-3 py-1.5 border-b border-gray-200 dark:border-white/5 bg-white/80 dark:bg-[#0d0d0d]/80 backdrop-blur-sm text-black dark:text-white">
 
     {{-- IZQUIERDA: toggle presupuesto/ejecución + buscador --}}
     <div class="flex items-center gap-2 flex-wrap">
@@ -113,15 +113,27 @@
         <div class="flex items-center bg-gray-100 dark:bg-white/5 rounded-lg p-0.5 border border-gray-200 dark:border-white/5">
             <button
                 wire:click="cambiarVista('presupuesto')"
-                class="px-3 py-1 rounded text-sm font-black uppercase tracking-wider transition-all {{ $vistaActiva === 'presupuesto' ? 'bg-white text-black dark:bg-white/10 dark:text-white' : 'text-gray-700 dark:text-gray-400 hover:text-black dark:hover:text-white' }}">
+                class="px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider transition-all {{ $vistaActiva === 'presupuesto' ? 'bg-white text-black dark:bg-white/10 dark:text-white' : 'text-gray-700 dark:text-gray-400 hover:text-black dark:hover:text-white' }}">
                 Presupuesto
             </button>
             <button
                 wire:click="cambiarVista('ejecucion')"
                 @disabled(in_array($proyecto->estado_obra, ['en_revision', 'activo', 'pausado']))
-                class="px-3 py-1 rounded text-sm font-black uppercase tracking-wider transition-all {{ $vistaActiva === 'ejecucion' ? 'bg-orange-500 text-white' : 'text-gray-700 dark:text-gray-400 hover:text-black dark:hover:text-white' }} {{ in_array($proyecto->estado_obra, ['en_revision', 'activo', 'pausado']) ? 'opacity-50 cursor-not-allowed' : '' }}">
+                class="px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider transition-all {{ $vistaActiva === 'ejecucion' ? 'bg-orange-500 text-white' : 'text-gray-700 dark:text-gray-400 hover:text-black dark:hover:text-white' }} {{ in_array($proyecto->estado_obra, ['en_revision', 'activo', 'pausado']) ? 'opacity-50 cursor-not-allowed' : '' }}">
                 Ejecución
             </button>
+        </div>
+
+        {{-- % Carga Social --}}
+        <div class="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/30 rounded-lg px-2 py-1">
+            <span class="text-[10px] text-blue-300 font-bold uppercase tracking-wider whitespace-nowrap">C. Social</span>
+            <input type="number"
+                   wire:change="actualizarCargaSocial($event.target.value)"
+                   value="{{ number_format($proyecto->carga_social ?? 0, 1, '.', '') }}"
+                   min="0" max="100" step="0.5"
+                   class="w-16 rounded bg-white/10 border border-blue-500/40 text-blue-100 text-xs font-bold text-center outline-none focus:border-blue-400 px-1 py-0.5"
+                   title="Porcentaje global de carga social">
+            <span class="text-[10px] text-blue-300 font-bold">%</span>
         </div>
 
         {{-- Buscador --}}
@@ -131,13 +143,13 @@
             </svg>
                  <input type="text"
                      placeholder="Filtrar rubros..."
-                     class="pl-7 pr-3 py-1.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-lg text-base text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:border-gray-300 dark:focus:border-white/20 w-full sm:w-48 transition-all">
+                     class="pl-7 pr-3 py-1 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-lg text-xs text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:border-gray-300 dark:focus:border-white/20 w-full sm:w-40 transition-all">
         </div>
 
         {{-- Botón Agregar Rubro --}}
         @if(!$modoLectura && $vistaActiva === 'presupuesto' && !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
         <button wire:click="abrirModalRubro"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 dark:bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-400 hover:bg-purple-500/30 dark:hover:bg-purple-500/20 text-sm font-black uppercase tracking-wider transition-all">
+            class="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/20 dark:bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-400 hover:bg-purple-500/30 dark:hover:bg-purple-500/20 text-[11px] font-black uppercase tracking-wider transition-all">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
             Agregar Rubro
         </button>
@@ -150,8 +162,8 @@
         {{-- Toggle Beneficio --}}
         <button
             wire:click="toggleBeneficio"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-black uppercase tracking-wider transition-all
-                {{ $mostrarBeneficio 
+            class="flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-black uppercase tracking-wider transition-all
+                {{ $mostrarBeneficio
                     ? 'bg-green-500/20 dark:bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400' 
                     : 'bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-700 dark:text-gray-400' }}">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +174,7 @@
 
         {{-- Dropdown Exportar / Importar --}}
         <div class="relative">
-            <button wire:click="toggleDropdownExportar" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 text-gray-700 dark:text-gray-400 hover:text-black dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 text-sm font-black uppercase tracking-wider transition-all">
+            <button wire:click="toggleDropdownExportar" class="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 text-gray-700 dark:text-gray-400 hover:text-black dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 text-[11px] font-black uppercase tracking-wider transition-all">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>
@@ -193,7 +205,13 @@
     </div>
 </div>
 
-   <div class="p-6 space-y-6">
+   <div class="flex-1 flex min-h-0 overflow-hidden">
+
+{{-- ═══ PANEL PRESUPUESTO (ancho arrastrable) ═══ --}}
+<div id="budget-panel" class="flex flex-col min-h-0 overflow-hidden" style="flex:1 1 0%">
+
+{{-- PANEL SUPERIOR: banner + stats (colapsable / arrastrable) --}}
+<div id="stats-panel" class="shrink-0 px-6 pt-3 overflow-hidden" style="height:130px">
 
 {{-- BANNER MODO LECTURA --}}
 @if(($modoLectura || in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion'])) && $vistaActiva === 'presupuesto')
@@ -254,21 +272,20 @@
     }
 
     // Función recursiva para calcular carga social
-    // $multiplier acumula las cantidades de todos los nodos padre para obtener la cantidad total efectiva
-    function calcularCargaSocialRecursiva($nodos, float $multiplier = 1) {
+    // $pctGlobal: si > 0 sobreescribe el % individual de cada recurso (viene de $proyecto->carga_social)
+    function calcularCargaSocialRecursiva($nodos, float $multiplier = 1, float $pctGlobal = 0) {
         $totalCS = 0;
         foreach ($nodos as $nodo) {
             $cantNodo       = $nodo->cantidad ?? 1;
             $precioUnitario = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
 
-            // CASO: Recurso Simple de Mano de Obra
-            // Fórmula: (% CS * precio_unit) * cantidad_item * cantidad_total_rubro
             if (($nodo->recurso && $nodo->recurso->tipo === 'labor') || $nodo->tipo === 'labor') {
-                $porcentajeCS = $nodo->recurso->social_charges_percentage ?? $nodo->social_charges_percentage ?? 0;
+                $porcentajeCS = $pctGlobal > 0
+                    ? $pctGlobal
+                    : ($nodo->recurso->social_charges_percentage ?? $nodo->social_charges_percentage ?? 0);
                 $totalCS += $multiplier * $cantNodo * $precioUnitario * ($porcentajeCS / 100);
             }
 
-            // CASO: Composición (APU) — sumar CS de sus items de mano de obra internos
             if ($nodo->recurso && $nodo->recurso->tipo === 'composition') {
                 $itemsInternos = \App\Models\ComposicionItem::where('composicion_id', $nodo->recurso_id)->get();
                 foreach ($itemsInternos as $interno) {
@@ -276,15 +293,16 @@
                     if (!$resBase) continue;
                     if (in_array($resBase->tipo, ['labor', 'mano_obra'])) {
                         $pBase        = $resBase->precio_usd ?? 0;
-                        $porcentajeCS = $resBase->social_charges_percentage ?? 0;
+                        $porcentajeCS = $pctGlobal > 0
+                            ? $pctGlobal
+                            : ($resBase->social_charges_percentage ?? 0);
                         $totalCS += $multiplier * $cantNodo * $interno->cantidad * $pBase * ($porcentajeCS / 100);
                     }
                 }
             }
 
-            // Recursivo para hijos: propagar el multiplicador acumulado
             if ($nodo->hijos && $nodo->hijos->count() > 0) {
-                $totalCS += calcularCargaSocialRecursiva($nodo->hijos, $multiplier * $cantNodo);
+                $totalCS += calcularCargaSocialRecursiva($nodo->hijos, $multiplier * $cantNodo, $pctGlobal);
             }
         }
         return $totalCS;
@@ -292,87 +310,115 @@
 
     $subtotalBase = 0;
     $cargaSocialCalculada = 0;
+    $pctCSGlobal = (float) ($proyecto->carga_social ?? 0);
 
     foreach ($categorias as $nodosRaiz) {
         foreach ($nodosRaiz as $nodoPadre) {
             $subtotalBase         += calcularSubtotalRecursivo($nodoPadre->hijos);
-            $cargaSocialCalculada += calcularCargaSocialRecursiva($nodoPadre->hijos);
+            $cargaSocialCalculada += calcularCargaSocialRecursiva($nodoPadre->hijos, 1, $pctCSGlobal);
         }
     }
 
-   
+
    // Cálculos Finales
 $costoTotalConLeyes = $subtotalBase + $cargaSocialCalculada;
 $beneficioCalculado = $mostrarBeneficio
-    ? $subtotalBase * (($proyecto->beneficio ?? 0) / 100)  
+    ? $subtotalBase * (($proyecto->beneficio ?? 0) / 100)
     : 0;
-$subtotalConBeneficio = $subtotalBase + $beneficioCalculado; 
+$subtotalConBeneficio = $subtotalBase + $beneficioCalculado;
 $iva = $subtotalConBeneficio * (($proyecto->impuestos ?? 22) / 100);
 $totalFinal = $subtotalConBeneficio + $iva;
 @endphp
+
+  {{-- Toggle header --}}
+  <div class="flex items-center justify-between mb-2">
+    <p class="text-xs text-gray-600 font-black uppercase tracking-widest">Resumen</p>
+    <button onclick="_statsToggle()" class="flex items-center gap-1 px-2 py-1 rounded text-gray-500 hover:text-white hover:bg-white/5 transition-all text-xs font-black uppercase tracking-wider">
+      <svg id="stats-chv" class="w-3 h-3" style="transition:transform .2s;transform:rotate(180deg)"
+           fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
+      </svg>
+      <span id="stats-txt">Ocultar</span>
+    </button>
+  </div>
+
   {{-- Cards scroll horizontal en mobile, grid en desktop --}}
+  <div id="stats-cards">
   <div class="flex gap-3 overflow-x-auto pb-1 md:grid md:grid-cols-3 {{ $mostrarBeneficio ? 'lg:grid-cols-5' : 'lg:grid-cols-4' }} md:overflow-visible">
 
     {{-- Subtotal --}}
-    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-center shrink-0 w-40 md:w-auto text-black dark:text-white">
-        <p class="text-xs text-gray-500 font-black uppercase mb-2">Subtotal</p>
-        <p class="text-base font-black text-white leading-tight">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-2.5 text-center shrink-0 w-32 md:w-auto text-black dark:text-white">
+        <p class="text-[10px] text-gray-500 font-black uppercase mb-1">Subtotal</p>
+        <p class="text-sm font-black text-white leading-tight">
             USD {{ number_format($subtotalBase, 0, ',', '.') }}
         </p>
     </div>
 
     {{-- Beneficio --}}
     @if($mostrarBeneficio)
-    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-center shrink-0 w-44 md:w-auto text-black dark:text-white">
-        <p class="text-xs text-gray-500 font-black uppercase mb-2">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-2.5 text-center shrink-0 w-36 md:w-auto text-black dark:text-white">
+        <p class="text-[10px] text-gray-500 font-black uppercase mb-1">
             Benef. ({{ number_format($proyecto->beneficio ?? 0, 0) }}%)
         </p>
-        <p class="text-base font-black text-orange-400 leading-tight">
+        <p class="text-sm font-black text-orange-400 leading-tight">
             USD {{ number_format($beneficioCalculado, 0, ',', '.') }}
         </p>
     </div>
     @endif
 
     {{-- Impuestos --}}
-    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-center shrink-0 w-44 md:w-auto text-black dark:text-white">
-        <p class="text-xs text-gray-500 font-black uppercase mb-2">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-2.5 text-center shrink-0 w-36 md:w-auto text-black dark:text-white">
+        <p class="text-[10px] text-gray-500 font-black uppercase mb-1">
             IVA ({{ $proyecto->impuestos ?? 22 }}%)
         </p>
-        <p class="text-base font-black text-white leading-tight">
+        <p class="text-sm font-black text-white leading-tight">
             USD {{ number_format($iva, 0, ',', '.') }}
         </p>
     </div>
 
     {{-- Precio Final --}}
-    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-center shadow-lg shadow-white/5 shrink-0 w-48 md:w-auto text-black dark:text-white">
-        <p class="text-xs text-gray-400 font-black uppercase mb-2">Precio Final</p>
-        <p class="text-xl font-black text-black dark:text-white leading-tight">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-2.5 text-center shadow-lg shadow-white/5 shrink-0 w-40 md:w-auto text-black dark:text-white">
+        <p class="text-[10px] text-gray-400 font-black uppercase mb-1">Precio Final</p>
+        <p class="text-sm font-black text-black dark:text-white leading-tight">
             USD {{ number_format($totalFinal, 0, ',', '.') }}
         </p>
     </div>
 
     {{-- Carga Social --}}
-    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-center shrink-0 w-40 md:w-auto text-black dark:text-white {{ $cargaSocialCalculada > 0 ? '' : 'opacity-50' }}">
-        <p class="text-xs text-gray-500 font-black uppercase mb-2">C. Social</p>
-        <p class="text-base font-black text-blue-400 leading-tight">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-2.5 text-center shrink-0 w-32 md:w-auto text-black dark:text-white {{ $cargaSocialCalculada > 0 ? '' : 'opacity-50' }}">
+        <p class="text-[10px] text-gray-500 font-black uppercase mb-1">C. Social</p>
+        <p class="text-sm font-black text-blue-400 leading-tight">
             USD {{ number_format($cargaSocialCalculada, 0, ',', '.') }}
         </p>
     </div>
 
 </div>
+  </div>{{-- /stats-cards --}}
+</div>{{-- /panel superior --}}
+
+{{-- DRAG HANDLE VERTICAL (resize stats vs tabla) --}}
+<div id="v-handle" class="shrink-0 h-2 flex items-center justify-center cursor-ns-resize select-none relative z-10"
+     onmousedown="_vResizeStart(event)" ondblclick="_statsToggle()"
+     ontouchstart="_vResizeStart(event.touches[0]);event.preventDefault()">
+  <div id="v-handle-line" class="w-12 h-0.5 rounded-full bg-white/10" style="transition:background .15s"></div>
+</div>
+
+{{-- AREA SCROLLABLE: tabla / ejecución --}}
+<div class="flex-1 min-h-0 overflow-auto px-6 pb-6 pt-2">
+
     {{-- TABLA PRESUPUESTO --}}
     @if($vistaActiva === 'presupuesto')
     <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden text-black dark:text-white">
         <div class="overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-        <div class="min-w-[760px]">
+        <div class="min-w-[580px]">
 
-        <div class="grid grid-cols-12 px-4 py-3 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.01]">
-            <div class="col-span-1 text-sm text-gray-600 font-black">#</div>
-            <div class="col-span-5 text-sm text-gray-600 font-black uppercase tracking-widest">Descripción</div>
-            <div class="col-span-1 text-sm text-gray-600 font-black text-center">Ud.</div>
-            <div class="col-span-1 text-sm text-gray-600 font-black text-center">Cant.</div>
-            <div class="col-span-2 text-sm text-gray-600 font-black text-center">P. Unit.</div>
-            <div class="col-span-2 text-right text-sm text-gray-600 font-black">Total</div>
+        <div class="grid grid-cols-12 px-3 py-1.5 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.01]">
+            <div class="col-span-1 text-xs text-gray-600 font-black">#</div>
+            <div class="col-span-5 text-xs text-gray-600 font-black uppercase tracking-widest">Descripción</div>
+            <div class="col-span-1 text-xs text-gray-600 font-black text-center">Ud.</div>
+            <div class="col-span-1 text-xs text-gray-600 font-black text-center">Cant.</div>
+            <div class="col-span-2 text-xs text-gray-600 font-black text-center">P. Unit.</div>
+            <div class="col-span-2 text-right text-xs text-gray-600 font-black">Total</div>
         </div>
 
         @forelse($categorias as $nombreCategoria => $nodosRaiz)
@@ -387,7 +433,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
             {{-- CATEGORÍA --}}
             <div class="border-b border-gray-200 dark:border-white/5" wire:key="{{ 'cat-' . Str::slug($nombreCategoria) }}">
 
-                <div class="grid grid-cols-12 px-4 py-3 bg-gray-100 dark:bg-white/[0.02] items-center group">
+                <div class="grid grid-cols-12 px-3 py-2 bg-gray-100 dark:bg-white/[0.02] items-center group">
 
                     <div class="col-span-1 text-xs text-gray-600 font-mono">
                         {{ $loop->iteration }}
@@ -396,16 +442,16 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                     <div class="col-span-5 flex items-center justify-between pr-2">
 
                         {{-- IZQUIERDA --}}
-                        <div wire:click="toggleNodo('{{ $catKey }}')" class="flex items-center gap-2 cursor-pointer min-w-0">
-                            <svg class="w-3 h-3 text-gray-500 transition-transform duration-200 shrink-0 {{ $catAbierta ? 'rotate-90' : '' }}"
+                        <div onclick="_lwToggle('{{ $catKey }}')" class="flex items-center gap-1.5 cursor-pointer min-w-0">
+                            <svg id="chv-{{ $catKey }}" class="w-2.5 h-2.5 text-gray-500 shrink-0" style="transition:transform .2s;{{ $catAbierta ? 'transform:rotate(90deg)' : '' }}"
                                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
                             </svg>
                             <div class="min-w-0">
-                                <p class="text-base font-black uppercase tracking-widest truncate">
+                                <p class="text-xs font-black uppercase tracking-widest truncate">
                                     {{ $nombreCategoria }}
                                 </p>
-                                <p class="text-xs text-gray-700 dark:text-gray-600 font-bold uppercase">
+                                <p class="text-[10px] text-gray-700 dark:text-gray-600 font-bold uppercase">
                                     {{ $nodosReales->count() }} rubros
                                 </p>
                             </div>
@@ -413,35 +459,35 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
                         {{-- BOTONES icono-only (ocultos en modo lectura) --}}
                         @if(!$modoLectura && !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
-                        <div class="flex items-center gap-1 shrink-0 ml-1">
+                        <div class="flex items-center gap-0.5 shrink-0 ml-1">
                             <button wire:click.stop="subirNodo({{ $nodosRaiz->first()->id }})"
                                 title="Subir categoría"
-                                class="w-8 h-8 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                                class="w-6 h-6 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
                             </button>
                             <button wire:click.stop="bajarNodo({{ $nodosRaiz->first()->id }})"
                                 title="Bajar categoría"
-                                class="w-8 h-8 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
+                                class="w-6 h-6 flex items-center justify-center bg-white/10 text-gray-400 rounded hover:bg-white/20 transition">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                             </button>
                             <button wire:click.stop="abrirModalSubrubro({{ $nodosRaiz->first()->id }}, '{{ $nombreCategoria }}', '{{ $nombreCategoria }}')"
                                 title="+ Rubro"
-                                class="w-8 h-8 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/40 transition">
+                                class="w-6 h-6 flex items-center justify-center bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/40 transition">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                             </button>
                             <button wire:click.stop="abrirModalRecursos({{ $nodosRaiz->first()->id }}, '{{ $nombreCategoria }}', '{{ $nombreCategoria }}')"
                                 title="+ Recurso"
-                                class="w-8 h-8 flex items-center justify-center bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/40 transition">
+                                class="w-6 h-6 flex items-center justify-center bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/40 transition">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                             </button>
                             <button wire:click.stop="abrirModalEditar({{ $nodosRaiz->first()->id }})"
                                 title="Editar"
-                                class="w-8 h-8 flex items-center justify-center bg-yellow-500/20 text-yellow-400 rounded hover:bg-yellow-500/40 transition">
+                                class="w-6 h-6 flex items-center justify-center bg-yellow-500/20 text-yellow-400 rounded hover:bg-yellow-500/40 transition">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             </button>
                             <button wire:click.stop="abrirModalEliminar({{ $nodosRaiz->first()->id }})"
                                 title="Eliminar"
-                                class="w-8 h-8 flex items-center justify-center bg-red-500/20 text-red-400 rounded hover:bg-red-500/40 transition">
+                                class="w-6 h-6 flex items-center justify-center bg-red-500/20 text-red-400 rounded hover:bg-red-500/40 transition">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                             </button>
                         </div>
@@ -449,15 +495,15 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
                     </div>
 
-                    <div class="col-span-6 text-right text-sm font-black text-white font-mono">
+                    <div class="col-span-6 text-right text-xs font-black text-white font-mono">
                         {{ number_format($totalCategoria, 2, ',', '.') }}
                     </div>
 
                 </div>
 
                 {{-- HIJOS --}}
-                @if($catAbierta && $nodosReales->count() > 0)
-                    <div>
+                @if($nodosReales->count() > 0)
+                    <div id="children-{{ $catKey }}" style="{{ $catAbierta ? '' : 'display:none' }}">
                         @foreach($nodosReales as $nodo)
                             @include('livewire.proyecto.partials.nodo-presupuesto', [
                                 'nodo'             => $nodo,
@@ -718,7 +764,21 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
     @endif {{-- /vistaActiva --}}
 
+</div>{{-- /area scrollable --}}
+</div>{{-- /budgetPanel --}}
+
+{{-- ═══ HANDLE HORIZONTAL (drag izq/der para redimensionar) ═══ --}}
+<div id="h-handle" class="hidden sm:flex shrink-0 w-1.5 cursor-ew-resize relative items-stretch select-none z-20"
+     onmousedown="_hResizeStart(event)"
+     ontouchstart="_hResizeStart(event.touches[0]);event.preventDefault()">
+  <div id="h-handle-bg" class="absolute inset-0" style="transition:background .15s"></div>
+  <div id="h-handle-line" class="absolute inset-y-0 left-1/2 w-px bg-white/10" style="transform:translateX(-50%);transition:background .15s"></div>
 </div>
+
+{{-- ═══ AREA DERECHA: solo aparece cuando el panel está redimensionado ═══ --}}
+<div id="right-area" class="bg-[#0a0a0a]" style="display:none"></div>
+
+</div>{{-- /flex row externo --}}
     {{-- ══════════════════════════════════════════════════════
          MODAL: NUEVO RUBRO (CATEGORÍA RAÍZ)
     ══════════════════════════════════════════════════════ --}}
@@ -1586,6 +1646,127 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
     </div>
 </div>
 @endif
+
+{{-- JS puro: toggles + resize panel (sin Alpine) --}}
+<script>
+/* ── Toggle rubros/subrubros ── */
+function _lwToggle(key) {
+    var el  = document.getElementById('children-' + key);
+    var apu = document.getElementById('children-' + key + '-apu');
+    var chv = document.getElementById('chv-' + key);
+    var target = el || apu;
+    if (!target) return;
+    var open = target.style.display !== 'none';
+    if (el)  el.style.display  = open ? 'none' : '';
+    if (apu) apu.style.display = open ? 'none' : '';
+    if (chv) chv.style.transform = open ? '' : 'rotate(90deg)';
+}
+
+/* ── Stats panel collapse ── */
+var _statsOpen = true;
+var _statsH    = 130;
+var _statsMin  = 44;
+var _statsMax  = 320;
+
+function _statsToggle() {
+    _statsOpen = !_statsOpen;
+    if (_statsOpen) _statsH = Math.max(_statsH, 130);
+    _statsApply();
+}
+function _statsApply() {
+    var p   = document.getElementById('stats-panel');
+    var chv = document.getElementById('stats-chv');
+    var txt = document.getElementById('stats-txt');
+    if (p)   p.style.height = (_statsOpen ? _statsH : _statsMin) + 'px';
+    if (chv) chv.style.transform = _statsOpen ? 'rotate(180deg)' : '';
+    if (txt) txt.textContent = _statsOpen ? 'Ocultar' : 'Mostrar';
+}
+
+/* ── Vertical resize (stats vs tabla) ── */
+var _vActive = false, _vStartY = 0, _vStartH = 0;
+function _vResizeStart(e) {
+    _vActive = true; _vStartY = e.clientY; _vStartH = _statsH;
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+    var ln = document.getElementById('v-handle-line');
+    if (ln) ln.style.background = 'rgba(168,85,247,.6)';
+}
+
+/* ── Horizontal resize (ancho panel) ── */
+var _hActive = false, _hStartX = 0, _hStartW = 0;
+function _hResizeStart(e) {
+    _hActive = true; _hStartX = e.clientX;
+    var bp = document.getElementById('budget-panel');
+    _hStartW = bp ? bp.offsetWidth : window.innerWidth;
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    var bg = document.getElementById('h-handle-bg');
+    var ln = document.getElementById('h-handle-line');
+    if (bg) bg.style.background = 'rgba(168,85,247,.2)';
+    if (ln) ln.style.background = '#a855f7';
+}
+
+/* ── Eventos globales de mousemove / mouseup ── */
+window.addEventListener('mousemove', function(e) {
+    if (_vActive) {
+        var delta = e.clientY - _vStartY;
+        _statsH = Math.max(_statsMin, Math.min(_statsMax, _vStartH + delta));
+        _statsOpen = _statsH > _statsMin + 10;
+        var p = document.getElementById('stats-panel');
+        if (p) p.style.height = (_statsOpen ? _statsH : _statsMin) + 'px';
+    }
+    if (_hActive) {
+        var delta = e.clientX - _hStartX;
+        var container = document.getElementById('budget-panel').parentElement;
+        var maxW = container ? container.offsetWidth - 8 : window.innerWidth;
+        var newW = Math.max(360, Math.min(maxW, _hStartW + delta));
+        var bp = document.getElementById('budget-panel');
+        var ra = document.getElementById('right-area');
+        if (bp) { bp.style.flex = 'none'; bp.style.width = newW + 'px'; }
+        if (ra) ra.style.cssText = 'flex:1 1 0%;background:#0a0a0a';
+    }
+});
+window.addEventListener('mouseup', function() {
+    if (_vActive) {
+        _vActive = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        var ln = document.getElementById('v-handle-line');
+        if (ln) ln.style.background = '';
+        _statsApply();
+    }
+    if (_hActive) {
+        _hActive = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        var bg = document.getElementById('h-handle-bg');
+        var ln = document.getElementById('h-handle-line');
+        if (bg) bg.style.background = '';
+        if (ln) ln.style.background = 'rgba(255,255,255,.1)';
+    }
+});
+window.addEventListener('touchmove', function(e) {
+    if (_vActive || _hActive) {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }));
+    }
+}, { passive: true });
+window.addEventListener('touchend', function() {
+    window.dispatchEvent(new MouseEvent('mouseup'));
+});
+
+/* ── Hover en handles ── */
+document.addEventListener('mouseover', function(e) {
+    var h = e.target.closest('#v-handle');
+    var ln = document.getElementById('v-handle-line');
+    if (ln) ln.style.background = h ? 'rgba(255,255,255,.35)' : '';
+
+    var hh = e.target.closest('#h-handle');
+    var bg = document.getElementById('h-handle-bg');
+    var hl = document.getElementById('h-handle-line');
+    if (bg) bg.style.background = hh ? 'rgba(255,255,255,.07)' : '';
+    if (hl) hl.style.background = hh ? 'rgba(255,255,255,.3)' : 'rgba(255,255,255,.1)';
+});
+</script>
 
 {{-- Script para cerrar dropdown al hacer click en la página --}}
 <script>
