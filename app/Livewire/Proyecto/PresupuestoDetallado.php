@@ -1538,17 +1538,19 @@ public function invitarUsuariosSeleccionados()
                 ? (float)$precioRaw
                 : (float)str_replace(',', '.', preg_replace('/[^\d,]/', '', $precioRaw));
 
-            if ($typeMarker === 'CAT' || ($typeMarker === '' && $bg === 'E8E8E8')) {
-                // Category separator row
+            // Category: explicit CAT marker OR col B is empty (cells A:penultimate are merged in the export)
+            $isCat = $typeMarker === 'CAT' || ($itemVal === '' && $catVal !== '');
+            // Subrubro: explicit SUB marker OR bg F5F5F5 with a non-empty name (and not a category)
+            $isSub = !$isCat && $itemVal !== '' && ($typeMarker === 'SUB' || ($typeMarker === '' && $bg === 'F5F5F5'));
+
+            if ($isCat) {
                 $nombre = $catVal ?: $itemVal;
                 if ($nombre !== '') {
                     $items[] = ['tipo' => 'categoria', 'nombre' => $nombre, 'unidad' => '', 'cantidad' => 1, 'precio' => 0];
                 }
-            } elseif ($typeMarker === 'SUB' || ($typeMarker === '' && $bg === 'F5F5F5' && $itemVal !== '')) {
-                // Subrubro row — Excel stores per-unit qty (cantidad_display)
+            } elseif ($isSub) {
                 $items[] = ['tipo' => 'subrubro', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $cantVal > 0 ? $cantVal : 1, 'precio' => $precioVal];
-            } elseif ($typeMarker === 'REC' || ($typeMarker === '' && $itemVal !== '')) {
-                // Resource row — Excel stores per-unit qty (cantidad_display); import as-is
+            } elseif ($itemVal !== '') {
                 $items[] = ['tipo' => 'recurso', 'nombre' => $itemVal, 'unidad' => $unidVal, 'cantidad' => $cantVal > 0 ? $cantVal : 1, 'precio' => $precioVal];
             }
         }
