@@ -491,14 +491,42 @@
 @if($modalEditarItem)
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
     <div class="bg-[#141414] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-xl">
-        <h2 class="text-white font-bold text-[15px] mb-4">Editar item</h2>
+        <h2 class="text-white font-bold text-[15px] mb-4">Editar recurso</h2>
 
-        <div class="mb-3">
-            <label class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Nombre</label>
-            <input type="text" wire:model="editItemNombre"
+        {{-- Buscador de recurso --}}
+        <div class="mb-3 relative" x-data="{ q: @entangle('editItemNombre') }">
+            <label class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Recurso</label>
+            <input
+                type="text"
+                x-model="q"
+                x-on:input.debounce.300ms="$wire.set('editItemNombre', q); $wire.buscarRecursosEditar()"
+                placeholder="Buscar recurso..."
                 class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-[14px] focus:outline-none focus:border-purple-500/50">
-            @error('editItemNombre') <p class="text-red-400 text-[11px] mt-1">{{ $message }}</p> @enderror
+            @error('editItemRecursoId') <p class="text-red-400 text-[11px] mt-1">Seleccioná un recurso de la lista.</p> @enderror
+
+            @if(count($editItemSugeridos))
+                <div class="absolute z-[9999] w-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl overflow-hidden">
+                    @foreach($editItemSugeridos as $s)
+                        <button
+                            x-on:mousedown.prevent="q = '{{ $s['nombre'] }}'; $wire.seleccionarRecursoEditar({{ $s['id'] }}, '{{ addslashes($s['nombre']) }}')"
+                            class="w-full text-left px-4 py-2.5 text-[13px] text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between">
+                            <span>{{ $s['nombre'] }}</span>
+                            <span class="text-gray-600 text-[11px]">{{ $s['unidad'] }}</span>
+                        </button>
+                    @endforeach
+                </div>
+            @endif
         </div>
+
+        {{-- Indicador recurso seleccionado --}}
+        @if($editItemRecursoId)
+            @php $rEdit = \App\Models\Recurso::find($editItemRecursoId) @endphp
+            @if($rEdit)
+            <p class="text-[11px] text-purple-400 mb-3">
+                ✓ {{ $rEdit->nombre }} — USD {{ number_format($rEdit->precio_usd, 2) }} / {{ $rEdit->unidad }}
+            </p>
+            @endif
+        @endif
 
         <div class="mb-4">
             <label class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Cantidad</label>
@@ -553,30 +581,41 @@
 @if($modalAgregarItem)
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
     <div class="bg-[#141414] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-xl">
-        <h2 class="text-white font-bold text-[15px] mb-4">Agregar material</h2>
+        <h2 class="text-white font-bold text-[15px] mb-4">Agregar recurso</h2>
 
-        <div class="mb-3 relative overflow-visible" x-data="{ valor: '' }">
+        <div class="mb-3 relative" x-data="{ q: '' }">
             <label class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Buscar recurso</label>
             <input
                 type="text"
-                x-model="valor"
-                x-on:input.debounce.300ms="$wire.set('nuevoItemNombre', valor); $wire.buscarRecursos()"
+                x-model="q"
+                x-on:input.debounce.300ms="$wire.set('nuevoItemNombre', q); $wire.buscarRecursos()"
                 placeholder="Ej: Arena Gruesa..."
                 class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-[14px] focus:outline-none focus:border-purple-500/50">
-            @error('nuevoItemNombre') <p class="text-red-400 text-[11px] mt-1">{{ $message }}</p> @enderror
+            @error('nuevoItemRecursoId') <p class="text-red-400 text-[11px] mt-1">Seleccioná un recurso de la lista.</p> @enderror
 
             @if(count($recursosSugeridos))
                 <div class="absolute z-[9999] w-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl overflow-hidden">
-                    @foreach($recursosSugeridos as $sugerido)
+                    @foreach($recursosSugeridos as $s)
                         <button
-                            x-on:mousedown.prevent="valor = '{{ $sugerido }}'; $wire.seleccionarRecurso('{{ $sugerido }}')"
-                            class="w-full text-left px-4 py-2.5 text-[13px] text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
-                            {{ $sugerido }}
+                            x-on:mousedown.prevent="q = '{{ $s['nombre'] }}'; $wire.seleccionarRecurso({{ $s['id'] }}, '{{ addslashes($s['nombre']) }}')"
+                            class="w-full text-left px-4 py-2.5 text-[13px] text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between">
+                            <span>{{ $s['nombre'] }}</span>
+                            <span class="text-gray-600 text-[11px]">{{ $s['unidad'] }}</span>
                         </button>
                     @endforeach
                 </div>
             @endif
         </div>
+
+        {{-- Indicador recurso seleccionado --}}
+        @if($nuevoItemRecursoId)
+            @php $rNuevo = \App\Models\Recurso::find($nuevoItemRecursoId) @endphp
+            @if($rNuevo)
+            <p class="text-[11px] text-purple-400 mb-3">
+                ✓ {{ $rNuevo->nombre }} — USD {{ number_format($rNuevo->precio_usd, 2) }} / {{ $rNuevo->unidad }}
+            </p>
+            @endif
+        @endif
 
         <div class="mb-4">
             <label class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 block">Cantidad</label>

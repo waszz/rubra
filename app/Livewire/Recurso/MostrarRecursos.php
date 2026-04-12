@@ -35,17 +35,20 @@ class MostrarRecursos extends Component
     public ?int $eliminandoId          = null;
 
     // ── Edición de item de composición ───────────────────────
-public bool $modalEditarItem    = false;
-public ?int $editandoItemId     = null;
-public string $editItemNombre   = '';
-public string $editItemCantidad = '';
+public bool $modalEditarItem       = false;
+public ?int $editandoItemId        = null;
+public string $editItemNombre      = '';
+public string $editItemCantidad    = '';
+public ?int $editItemRecursoId     = null;
+public array $editItemSugeridos    = [];
 
 // ── Agregar item a composición ────────────────────────────
-public bool $modalAgregarItem     = false;
+public bool $modalAgregarItem         = false;
 public ?int $agregarItemComposicionId = null;
-public string $nuevoItemNombre    = '';
-public string $nuevoItemCantidad  = '';
-public array $recursosSugeridos   = [];
+public string $nuevoItemNombre        = '';
+public string $nuevoItemCantidad      = '';
+public ?int $nuevoItemRecursoId       = null;
+public array $recursosSugeridos       = [];
 
 
 // ── Eliminar item a composición ────────────────────────────
@@ -88,24 +91,49 @@ public function cerrarModalComposicion(): void{ $this->modalComposicion = false;
 // ── EDITAR ITEM ───────────────────────────────────────────
 public function editarItem(int $itemId): void
 {
-    $item = \App\Models\ComposicionItem::findOrFail($itemId);
-    $this->editandoItemId    = $itemId;
-    $this->editItemNombre    = $item->nombre;
-    $this->editItemCantidad  = (string) $item->cantidad;
-    $this->modalEditarItem   = true;
+    $item = \App\Models\ComposicionItem::with('recursoBase')->findOrFail($itemId);
+    $this->editandoItemId      = $itemId;
+    $this->editItemRecursoId   = $item->recurso_id;
+    $this->editItemNombre      = $item->recursoBase?->nombre ?? $item->nombre;
+    $this->editItemCantidad    = (string) $item->cantidad;
+    $this->editItemSugeridos   = [];
+    $this->modalEditarItem     = true;
+}
+
+public function buscarRecursosEditar(): void
+{
+    if (empty($this->editItemNombre)) {
+        $this->editItemSugeridos = [];
+        return;
+    }
+
+    $this->editItemSugeridos = Recurso::whereIn('tipo', ['material', 'labor', 'equipment'])
+        ->where('nombre', 'like', '%' . $this->editItemNombre . '%')
+        ->limit(8)
+        ->get(['id', 'nombre', 'unidad'])
+        ->toArray();
+}
+
+public function seleccionarRecursoEditar(int $id, string $nombre): void
+{
+    $this->editItemRecursoId   = $id;
+    $this->editItemNombre      = $nombre;
+    $this->editItemSugeridos   = [];
 }
 
 public function guardarItem(): void
 {
     $this->validate([
-        'editItemNombre'   => 'required|string',
-        'editItemCantidad' => 'required|numeric|min:0',
+        'editItemRecursoId' => 'required|exists:recursos,id',
+        'editItemCantidad'  => 'required|numeric|min:0.001',
     ]);
 
+    $recurso = Recurso::findOrFail($this->editItemRecursoId);
     $item = \App\Models\ComposicionItem::findOrFail($this->editandoItemId);
     $item->update([
-        'nombre'   => $this->editItemNombre,
-        'cantidad' => (float) $this->editItemCantidad,
+        'recurso_id' => $this->editItemRecursoId,
+        'nombre'     => $recurso->nombre,
+        'cantidad'   => (float) $this->editItemCantidad,
     ]);
 
     $this->recalcularComposicion($item->composicion_id);
@@ -115,10 +143,12 @@ public function guardarItem(): void
 
 public function cerrarModalEditarItem(): void
 {
-    $this->modalEditarItem  = false;
-    $this->editandoItemId   = null;
-    $this->editItemNombre   = '';
-    $this->editItemCantidad = '';
+    $this->modalEditarItem     = false;
+    $this->editandoItemId      = null;
+    $this->editItemRecursoId   = null;
+    $this->editItemNombre      = '';
+    $this->editItemCantidad    = '';
+    $this->editItemSugeridos   = [];
     $this->resetErrorBag();
 }
 
@@ -128,39 +158,46 @@ public function abrirAgregarItem(int $composicionId): void
     $this->agregarItemComposicionId = $composicionId;
     $this->nuevoItemNombre          = '';
     $this->nuevoItemCantidad        = '';
+    $this->nuevoItemRecursoId       = null;
     $this->recursosSugeridos        = [];
-    $this->recursoSeleccionado      = false; // ← agregar esto
+    $this->recursoSeleccionado      = false;
     $this->modalAgregarItem         = true;
 }
 
-public function seleccionarRecurso($nombre)
+public function seleccionarRecurso(int $id, string $nombre): void
 {
-    $this->nuevoItemNombre = $nombre;
-    $this->recursosSugeridos = [];
+    $this->nuevoItemRecursoId = $id;
+    $this->nuevoItemNombre    = $nombre;
+    $this->recursosSugeridos  = [];
 }
 
-public function buscarRecursos()
+public function buscarRecursos(): void
 {
     if (empty($this->nuevoItemNombre)) {
         $this->recursosSugeridos = [];
         return;
     }
 
-    $this->recursosSugeridos = Recurso::where('nombre', 'like', '%' . $this->nuevoItemNombre . '%')
+    $this->recursosSugeridos = Recurso::whereIn('tipo', ['material', 'labor', 'equipment'])
+        ->where('nombre', 'like', '%' . $this->nuevoItemNombre . '%')
         ->limit(8)
-        ->pluck('nombre')
+        ->get(['id', 'nombre', 'unidad'])
         ->toArray();
 }
+
 public function guardarNuevoItem(): void
 {
     $this->validate([
-        'nuevoItemNombre'   => 'required|string',
-        'nuevoItemCantidad' => 'required|numeric|min:0',
+        'nuevoItemRecursoId' => 'required|exists:recursos,id',
+        'nuevoItemCantidad'  => 'required|numeric|min:0.001',
     ]);
+
+    $recurso = Recurso::findOrFail($this->nuevoItemRecursoId);
 
     \App\Models\ComposicionItem::create([
         'composicion_id' => $this->agregarItemComposicionId,
-        'nombre'         => $this->nuevoItemNombre,
+        'recurso_id'     => $this->nuevoItemRecursoId,
+        'nombre'         => $recurso->nombre,
         'cantidad'       => (float) $this->nuevoItemCantidad,
     ]);
 
@@ -175,6 +212,7 @@ public function cerrarModalAgregarItem(): void
     $this->agregarItemComposicionId = null;
     $this->nuevoItemNombre          = '';
     $this->nuevoItemCantidad        = '';
+    $this->nuevoItemRecursoId       = null;
     $this->recursosSugeridos        = [];
     $this->resetErrorBag();
 }
