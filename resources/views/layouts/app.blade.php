@@ -305,11 +305,11 @@
 
   @if(auth()->check() && !request()->routeIs('home'))
     {{-- LAYOUT CON SIDEBAR para usuarios logueados (solo en páginas internas) --}}
-    <div class="flex h-screen overflow-hidden">
+    <div class="flex h-screen overflow-visible">
 
         @include('layouts.navigation') 
 
-        <div class="flex flex-col flex-1 overflow-hidden">
+        <div class="flex flex-col flex-1 overflow-visible">
 
             {{-- BANNER IMPERSONACIÓN --}}
             @if(session('impersonating_from'))

@@ -139,7 +139,7 @@ public $rolCompartir = 'supervisor'; // Rol que elegirá quien genera el link
 
     // ── Modal importar presupuesto ────────────────────────────
     public bool  $modalImportarPresupuesto = false;
-    public string $tipoImportPresupuesto   = 'excel';
+    public string $tipoImportPresupuesto   = 'pdf';
     public $archivoImportPresupuesto       = null;
     public array $importPresupuestoResult  = [];
     public bool  $importandoPresupuesto    = false;
@@ -545,21 +545,22 @@ public function exportarExcel()
         $sheet->getRowDimension($row)->setRowHeight(16);
         $row++;
 
-        // Fila Beneficio invisible: texto blanco sobre fondo blanco (igual que el PDF).
-        // No aparece visualmente pero el parser la detecta al importar.
+        // Fila Beneficio: mostrarla claramente en el Excel exportado.
+        // (Anteriormente se exportaba como texto blanco sobre fondo blanco;
+        // eso la hacía "transparente" al abrir el archivo.)
         if ($pctBeneficio > 0) {
-            $styleInvisible = [
-                'font'      => ['color' => ['rgb' => 'FFFFFF'], 'size' => 1],
+            $styleBeneficioVisible = [
+                'font'      => ['color' => ['rgb' => '444444'], 'size' => 9, 'bold' => true],
                 'fill'      => ['fillType' => $Fill, 'startColor' => ['rgb' => 'FFFFFF']],
                 'alignment' => ['horizontal' => $Left],
-                'borders'   => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_NONE]],
+                'borders'   => ['allBorders' => ['borderStyle' => $Thin]],
             ];
             $sheet->setCellValue('A' . $row, 'Beneficio (' . number_format($pctBeneficio, 0) . '%)');
             $sheet->mergeCells('A' . $row . ':F' . $row);
-            $sheet->getStyle('A' . $row . ':G' . $row)->applyFromArray($styleInvisible);
+            $sheet->getStyle('A' . $row . ':G' . $row)->applyFromArray($styleBeneficioVisible);
             $sheet->setCellValue('G' . $row, '$ ' . number_format($beneficioMonto, 2, ',', '.'));
-            $sheet->getStyle('G' . $row)->applyFromArray($styleInvisible);
-            $sheet->getRowDimension($row)->setRowHeight(1);
+            $sheet->getStyle('G' . $row)->applyFromArray($styleBeneficioVisible);
+            $sheet->getRowDimension($row)->setRowHeight(16);
             $row++;
         }
 
@@ -1388,6 +1389,7 @@ public function invitarUsuariosSeleccionados()
         $this->modalImportarPresupuesto  = true;
         $this->importPresupuestoResult   = [];
         $this->archivoImportPresupuesto  = null;
+        $this->tipoImportPresupuesto     = 'pdf';
     }
 
     public function cerrarModalImportarPresupuesto(): void
@@ -1407,29 +1409,35 @@ public function invitarUsuariosSeleccionados()
     {
         ProyectoRecurso::where('proyecto_id', $this->proyecto->id)->delete();
         $this->modalEliminarTodo = false;
+
+        // Resetear el total del presupuesto al eliminar todo
+        $this->proyecto->presupuesto_total = 0;
+        $this->proyecto->save();
         $this->proyecto->refresh();
+
         $this->cargarProyecto();
         $this->guardarEstado();
         $this->dispatch('notify', mensaje: 'Presupuesto eliminado completamente.', tipo: 'success');
+        // Notificar a otros componentes para que refresquen (Livewire 3)
+        $this->dispatch('proyectoActualizado');
     }
 
     public function importarPresupuesto(): void
     {
         $this->validate([
-            'archivoImportPresupuesto' => 'required|file|max:10240|mimes:xlsx,xls,pdf',
+            'archivoImportPresupuesto' => 'required|file|max:10240|mimes:pdf',
         ]);
 
         $this->importandoPresupuesto = true;
         $path = $this->archivoImportPresupuesto->getRealPath();
-        $ext  = strtolower($this->archivoImportPresupuesto->getClientOriginalExtension());
 
         try {
-            $parsed = $ext === 'pdf'
-                ? $this->_parsePDF($path)
-                : $this->_parseExcel($path);
+            // Solo PDF soportado para importación
+            $parsed = $this->_parsePDF($path);
 
-            $items              = $parsed['items'];
-            $beneficioExportado = (float)($parsed['beneficio'] ?? 0);
+            $items                 = $parsed['items'];
+            $beneficioExportado    = (float)($parsed['beneficio'] ?? 0);
+            $parsedPrecioFinal     = (float)($parsed['preciofinal'] ?? $parsed['total'] ?? 0);
 
             if (empty($items)) {
                 $this->importPresupuestoResult = ['error' => 'No se encontraron ítems en el archivo.'];
@@ -1440,7 +1448,39 @@ public function invitarUsuariosSeleccionados()
             $recursosCount = count(array_filter($items, fn($it) => ($it['tipo'] ?? '') === 'recurso'));
             $creados = $this->_crearDesdeItems($items, $beneficioExportado);
             $this->cargarProyecto();
-            $this->importPresupuestoResult = ['ok' => true, 'creados' => $creados, 'recursos' => $recursosCount];
+            // Recalcular y guardar total del presupuesto en el proyecto (incluye beneficio e impuestos)
+            try {
+                $datos = $this->obtenerDatosPresupuesto('completo');
+                $subtotalBase = $datos['total'] ?? 0;
+                $pctBeneficio = $beneficioExportado > 0 ? $beneficioExportado : (float)($this->proyecto->beneficio ?? 0);
+                $beneficioMonto = $subtotalBase * ($pctBeneficio / 100);
+                $pctImpuestos = (float)($this->proyecto->impuestos ?? 22);
+                $impuestosMonto = ($subtotalBase + $beneficioMonto) * ($pctImpuestos / 100);
+                $computedTotalObra = $subtotalBase + $beneficioMonto + $impuestosMonto;
+
+                // Preferir el total detectado en el archivo (si existe), sino usar el calculado
+                if ($parsedPrecioFinal > 0) {
+                    $this->proyecto->presupuesto_total = round($parsedPrecioFinal, 2);
+                } else {
+                    $this->proyecto->presupuesto_total = round($computedTotalObra, 2);
+                }
+                if ($beneficioExportado > 0) {
+                    $this->proyecto->beneficio = $pctBeneficio;
+                }
+                $this->proyecto->save();
+                $this->proyecto->refresh();
+                // Notificar a otros componentes Livewire (ej. listado de proyectos) para refrescar
+                $this->dispatch('proyectoActualizado');
+            } catch (\Throwable $e) {
+                // No bloquear la importación si falla el cálculo del total
+            }
+
+            $this->importPresupuestoResult = [
+                'ok' => true,
+                'creados' => $creados,
+                'recursos' => $recursosCount,
+                'total' => $this->proyecto->presupuesto_total ?? 0,
+            ];
             $this->dispatch('notify', mensaje: "Presupuesto importado: {$recursosCount} recursos, {$creados} nodos creados.", tipo: 'success');
 
             // Cerrar modal y limpiar archivo seleccionado al completar la importación
@@ -1463,6 +1503,12 @@ public function invitarUsuariosSeleccionados()
         $items             = [];
         $state             = 'pre'; // pre → header → data
         $detectedBeneficio = 0.0;
+        $detectedTotal     = 0.0;
+
+        $parseNumExcel = static fn(string $s): float =>
+            (float)str_replace(',', '.', preg_replace('/\.(?=\d{3}[,\.]|\d{3}$)/', '', trim($s)));
+        $detectedPrecioFinalExcel = null;
+        $detectedAnyTotalExcel    = null;
         $colCat    = 0;
         $colItem   = 1;
         $colUnid   = 3;
@@ -1483,6 +1529,21 @@ public function invitarUsuariosSeleccionados()
                 if (preg_match('/beneficio\s*\(\s*(\d+(?:[.,]\d+)?)\s*%\)/iu', $cells[0] ?? '', $bm)) {
                     $detectedBeneficio = (float)str_replace(',', '.', $bm[1]);
                 }
+
+                // Detect explicit totals in resumen (e.g. "PRECIO FINAL USD 150.342" or "TOTAL USD 79.200")
+                $rowStr = implode(' ', $cells);
+                if (preg_match('/\b(?:precio\s*final|preciofinal|total(?:\s+obra)?)\b/iu', $rowStr, $lbl)) {
+                    if (preg_match_all('/([0-9]+(?:[.,][0-9]{3})*(?:[.,][0-9]+)?)/', $rowStr, $ms)) {
+                        $last = end($ms[1]);
+                        $num = $parseNumExcel($last);
+                        if (preg_match('/precio\s*final/i', $lbl[0])) {
+                            $detectedPrecioFinalExcel = $num;
+                        } else {
+                            $detectedAnyTotalExcel = $num;
+                        }
+                    }
+                }
+
                 if (str_contains(strtoupper($cells[0] ?? ''), 'TABLA DE PRESUPUESTO')) {
                     $state = 'header';
                 }
@@ -1555,7 +1616,8 @@ public function invitarUsuariosSeleccionados()
             }
         }
 
-        return ['items' => $items, 'beneficio' => $detectedBeneficio];
+        $detectedTotal = $detectedAnyTotalExcel ?? $detectedPrecioFinalExcel ?? 0;
+        return ['items' => $items, 'beneficio' => $detectedBeneficio, 'preciofinal' => $detectedTotal];
     }
 
     private function _parsePDF(string $path): array
@@ -1570,6 +1632,9 @@ public function invitarUsuariosSeleccionados()
         $pendingName       = '';    // multi-line name accumulation
         $detectedBeneficio = 0.0;
         $lastSubrubroQty   = 1.0;  // cantidad efectiva del último subrubro visto (para dividir recursos)
+        $detectedPrecioFinalPdf = null;
+        $detectedAnyTotalPdf    = null;
+        $prevTotalLabel         = '';
 
         // Substrings that identify non-data lines to skip in the data section
         $skipKeywords = [
@@ -1632,6 +1697,34 @@ public function invitarUsuariosSeleccionados()
                 if (preg_match('/beneficio\s*\(\s*(\d+(?:[.,]\d+)?)\s*%\)/iu', $line, $bm)) {
                     $detectedBeneficio = (float)str_replace(',', '.', $bm[1]);
                 }
+
+                // Detect explicit totals in resumen (e.g. "PRECIO FINAL USD 150.342" or "TOTAL USD 79.200")
+                if (preg_match('/\b(?:precio\s*final|preciofinal|total(?:\s+obra)?)\b/iu', $upper, $lbl)) {
+                    // try to extract number from same line
+                    if (preg_match('/(?:USD\s*)?\$?\s*([\d.,]+)/i', $line, $mn)) {
+                        $num = $parseNum($mn[1]);
+                        if (preg_match('/precio\s*final/i', $lbl[0])) {
+                            $detectedPrecioFinalPdf = $num;
+                        } else {
+                            $detectedAnyTotalPdf = $num;
+                        }
+                    } else {
+                        // mark label — next numeric line may contain the amount
+                        $prevTotalLabel = strtolower($lbl[0]);
+                    }
+                }
+
+                // If previous line was a total label and current line contains a number, capture it
+                if (!empty($prevTotalLabel) && preg_match('/([\d.,]+)/', $line, $mnum)) {
+                    $num = $parseNum($mnum[1]);
+                    if (str_contains($prevTotalLabel, 'precio')) {
+                        $detectedPrecioFinalPdf = $num;
+                    } else {
+                        $detectedAnyTotalPdf = $num;
+                    }
+                    $prevTotalLabel = '';
+                }
+
                 if (str_contains($upper, 'TABLA DE PRESUPUESTO')) {
                     $state = 'header';
                 }
@@ -1725,7 +1818,8 @@ public function invitarUsuariosSeleccionados()
             $pendingName = $pendingName !== '' ? $pendingName . ' ' . $line : $line;
         }
 
-        return ['items' => $items, 'beneficio' => $detectedBeneficio];
+        $detectedTotal = $detectedAnyTotalPdf ?? $detectedPrecioFinalPdf ?? 0;
+        return ['items' => $items, 'beneficio' => $detectedBeneficio, 'preciofinal' => $detectedTotal];
     }
 
     private function _crearDesdeItems(array $items, float $beneficioExportado = 0.0): int

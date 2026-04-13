@@ -97,6 +97,7 @@ $proyectos = Proyecto::where(function ($q) use ($user) {
     $gananciasTotal     = 0;
     $totalesPorProyecto = [];
 
+    
     foreach ($proyectos as $p) {
         $subtotal = \App\Models\ProyectoRecurso::where('proyecto_id', $p->id)
             ->whereNotNull('recurso_id')
@@ -105,7 +106,10 @@ $proyectos = Proyecto::where(function ($q) use ($user) {
 
         $beneficio = $subtotal * (($p->beneficio ?? 0) / 100);
         $iva       = ($subtotal + $beneficio) * (($p->impuestos ?? 22) / 100);
-        $total     = $subtotal + $beneficio + $iva;
+        $computedTotal = $subtotal + $beneficio + $iva;
+
+        // Si existe un `presupuesto_total` guardado (por ejemplo tras una importación), preferirlo
+        $total = ($p->presupuesto_total && $p->presupuesto_total > 0) ? (float)$p->presupuesto_total : $computedTotal;
 
         $totalesPorProyecto[$p->id] = $total;
 

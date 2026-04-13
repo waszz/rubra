@@ -104,7 +104,7 @@
 </nav>
 
 {{-- BARRA DE HERRAMIENTAS --}}
-<div class="shrink-0 flex flex-col sm:flex-row sm:items-center gap-1.5 px-3 py-1.5 border-b border-gray-200 dark:border-white/5 bg-white/80 dark:bg-[#0d0d0d]/80 backdrop-blur-sm text-black dark:text-white">
+<div class="shrink-0 relative z-30 flex flex-col sm:flex-row sm:items-center gap-1.5 px-3 py-1.5 border-b border-gray-200 dark:border-white/5 bg-white/80 dark:bg-[#0d0d0d]/80 backdrop-blur-sm text-black dark:text-white">
 
     {{-- IZQUIERDA: toggle presupuesto/ejecución + buscador --}}
     <div class="flex items-center gap-2 flex-wrap">
@@ -188,7 +188,7 @@
 
             {{-- Dropdown Menu --}}
             @if($mostrarDropdownExportar)
-            <div class="absolute top-full right-0 mt-2 bg-[#1a1a1a] border border-gray-700 rounded-lg shadow-xl z-40 min-w-[200px] overflow-hidden">
+            <div class="absolute top-full right-0 mt-2 bg-[#1a1a1a] border border-gray-700 rounded-lg shadow-2xl z-50 min-w-[200px] overflow-hidden">
                 <button wire:click="abrirModalPDF" class="w-full flex items-center gap-2 px-4 py-2.5 text-white hover:bg-white/10 transition-all text-left text-sm font-black uppercase tracking-wider border-b border-gray-700">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
@@ -319,20 +319,23 @@
         return $totalCS;
     }
 
+
     $subtotalBase = 0;
     $cargaSocialCalculada = 0;
     $pctCSGlobal = (float) ($proyecto->carga_social ?? 0);
 
     foreach ($categorias as $nodosRaiz) {
         foreach ($nodosRaiz as $nodoPadre) {
-            $subtotalBase         += calcularSubtotalRecursivo($nodoPadre->hijos);
+            $subtotalBase += calcularSubtotalRecursivo($nodoPadre->hijos);
             $cargaSocialCalculada += calcularCargaSocialRecursiva($nodoPadre->hijos, 1, $pctCSGlobal);
         }
     }
 
+    // NOTA: El subtotal y el beneficio NO deben sumar la carga social.
+    // La carga social solo se muestra como dato aparte.
 
-   // Cálculos Finales
-$costoTotalConLeyes = $subtotalBase + $cargaSocialCalculada;
+
+   // Cálculos Finales (sin carga social en subtotal ni beneficio)
 $beneficioCalculado = $mostrarBeneficio
     ? $subtotalBase * (($proyecto->beneficio ?? 0) / 100)
     : 0;
@@ -341,17 +344,10 @@ $iva = $subtotalConBeneficio * (($proyecto->impuestos ?? 22) / 100);
 $totalFinal = $subtotalConBeneficio + $iva;
 @endphp
 
-  {{-- Toggle header --}}
-  <div class="flex items-center justify-between mb-2">
-    <p class="text-xs text-gray-600 font-black uppercase tracking-widest">Resumen</p>
-    <button onclick="_statsToggle()" class="flex items-center gap-1 px-2 py-1 rounded text-gray-500 hover:text-white hover:bg-white/5 transition-all text-xs font-black uppercase tracking-wider">
-      <svg id="stats-chv" class="w-3 h-3" style="transition:transform .2s;transform:rotate(180deg)"
-           fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
-      </svg>
-      <span id="stats-txt">Ocultar</span>
-    </button>
-  </div>
+    {{-- Header: Resumen --}}
+    <div class="flex items-center justify-between mb-2">
+        <p class="text-xs text-gray-600 font-black uppercase tracking-widest">Resumen</p>
+    </div>
 
   {{-- Cards scroll horizontal en mobile, grid en desktop --}}
   <div id="stats-cards">
@@ -409,8 +405,8 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
 {{-- DRAG HANDLE VERTICAL (resize stats vs tabla) --}}
 <div id="v-handle" class="shrink-0 h-2 flex items-center justify-center cursor-ns-resize select-none relative z-10"
-     onmousedown="_vResizeStart(event)" ondblclick="_statsToggle()"
-     ontouchstart="_vResizeStart(event.touches[0]);event.preventDefault()">
+    onmousedown="_vResizeStart(event)"
+    ontouchstart="_vResizeStart(event.touches[0]);event.preventDefault()">
   <div id="v-handle-line" class="w-12 h-0.5 rounded-full bg-white/10" style="transition:background .15s"></div>
 </div>
 
@@ -1697,12 +1693,6 @@ var _statsOpen = true;
 var _statsH    = 130;
 var _statsMin  = 44;
 var _statsMax  = 320;
-
-function _statsToggle() {
-    _statsOpen = !_statsOpen;
-    if (_statsOpen) _statsH = Math.max(_statsH, 130);
-    _statsApply();
-}
 function _statsApply() {
     var p   = document.getElementById('stats-panel');
     var chv = document.getElementById('stats-chv');
@@ -1835,25 +1825,17 @@ document.addEventListener('click', function(event) {
 
             {{-- Info --}}
             <div class="bg-orange-500/10 border border-orange-500/20 rounded-lg px-4 py-3 text-[11px] text-orange-300 leading-relaxed">
-                Importa un presupuesto exportado desde Rubra en formato <strong>Excel (.xlsx)</strong> o <strong>PDF</strong>.
+                Importa un presupuesto exportado desde Rubra en formato <strong>PDF</strong>.
                 Los ítems se agregarán al proyecto manteniendo la estructura de categorías, rubros y subrubros.
                 Si un recurso coincide con el catálogo, se vinculará automáticamente.
             </div>
 
-            {{-- Tipo --}}
+            {{-- Formato fijo: PDF --}}
             <div class="flex gap-2">
-                <button wire:click="$set('tipoImportPresupuesto', 'excel')"
-                    class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all
-                        {{ $tipoImportPresupuesto === 'excel' ? 'bg-green-500/20 border-green-500/40 text-green-300' : 'border-white/10 text-gray-500 hover:border-white/20' }}">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Excel (.xlsx)
-                </button>
-                <button wire:click="$set('tipoImportPresupuesto', 'pdf')"
-                    class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all
-                        {{ $tipoImportPresupuesto === 'pdf' ? 'bg-red-500/20 border-red-500/40 text-red-300' : 'border-white/10 text-gray-500 hover:border-white/20' }}">
+                <div class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider bg-red-500/10 border-red-500/20 text-red-300">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                    PDF
-                </button>
+                    PDF (.pdf)
+                </div>
             </div>
 
             {{-- Upload zone --}}
@@ -1867,13 +1849,11 @@ document.addEventListener('click', function(event) {
                         <span class="text-[10px] text-gray-500">Click para cambiar</span>
                     @else
                         <span class="text-xs text-gray-400 font-bold">Arrastrá o hacé click para seleccionar</span>
-                        <span class="text-[10px] text-gray-600">
-                            {{ $tipoImportPresupuesto === 'excel' ? '.xlsx, .xls' : '.pdf' }} — Máx. 10 MB
-                        </span>
+                        <span class="text-[10px] text-gray-600">.pdf — Máx. 10 MB</span>
                     @endif
                     <input type="file"
                            wire:model="archivoImportPresupuesto"
-                           accept="{{ $tipoImportPresupuesto === 'excel' ? '.xlsx,.xls' : '.pdf' }}"
+                           accept=".pdf"
                            class="absolute inset-0 opacity-0 cursor-pointer">
                 </label>
                 @error('archivoImportPresupuesto')
