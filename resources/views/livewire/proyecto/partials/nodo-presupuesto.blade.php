@@ -68,6 +68,32 @@
         1 => 'pl-3',
         default => 'pl-6',
     };
+
+    // Carga social del nodo: si es labor → su propio monto; si es subrubro → suma de hijos
+    $calcCSHijos = function($nodos, float $mult = 1) use (&$calcCSHijos, $proyecto) {
+        $total = 0;
+        $pctGlobal = isset($proyecto) ? (float)($proyecto->carga_social ?? 0) : 0;
+        foreach ($nodos as $n) {
+            $esLaborN = !is_null($n->recurso_id) && in_array($n->recurso?->tipo, ['labor', 'mano_obra']);
+            if ($esLaborN) {
+                $pct    = $pctGlobal > 0 ? $pctGlobal : (float)($n->recurso?->social_charges_percentage ?? 0);
+                $precio = $n->precio_unitario ?? $n->precio_usd ?? 0;
+                $total += $precio * ($pct / 100) * ($n->cantidad ?? 1) * $mult;
+            }
+            if ($n->hijos && $n->hijos->count() > 0) {
+                $total += $calcCSHijos($n->hijos, $mult * ($n->cantidad ?? 1));
+            }
+        }
+        return $total;
+    };
+
+    if ($esLabor) {
+        $csNodo = $montoCS;
+    } elseif (!$esRecurso) {
+        $csNodo = $calcCSHijos($hijos);
+    } else {
+        $csNodo = 0;
+    }
 @endphp
 
 <div class="border-t border-white/[0.025]" wire:key="{{ 'node-' . $nodo->id }}">
@@ -80,7 +106,7 @@
 
         <div class="col-span-1"></div>
 
-        <div class="col-span-5 flex items-center justify-between pr-2 {{ $indent }}">
+        <div class="col-span-4 flex items-center justify-between pr-2 {{ $indent }}">
             <div class="flex items-center gap-2 min-w-0 flex-1">
 
                 {{-- Ícono izquierdo según tipo --}}
@@ -113,8 +139,8 @@
                         {{ $nodo->nombre }}
                     </p>
                     @if($esLabor && $csAplicada > 0)
-                        <span class="shrink-0 text-[9px] font-bold text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded px-1 leading-4 whitespace-nowrap">
-                            CS {{ number_format($csAplicada, 1) }}% · {{ number_format($montoCS, 2, ',', '.') }}
+                        <span class="shrink-0 text-[9px] font-bold text-blue-300/70 bg-blue-500/10 border border-blue-500/20 rounded px-1 leading-4 whitespace-nowrap">
+                            CS {{ number_format($csAplicada, 1) }}%
                         </span>
                     @endif
                 </div>
@@ -206,6 +232,10 @@
 
         <div class="col-span-2 text-center text-xs text-gray-600 font-mono">
             {{ number_format($perUnitMostrar, 2, ',', '.') }}
+        </div>
+
+        <div class="col-span-1 text-center text-xs font-mono {{ $csNodo > 0 ? 'text-blue-400' : 'text-gray-700' }}">
+            {{ $csNodo > 0 ? number_format($csNodo, 2, ',', '.') : '—' }}
         </div>
 
         <div class="col-span-2 text-right text-xs font-bold {{ $colorTexto }} font-mono">

@@ -570,16 +570,19 @@
         <table>
         <thead>
             <tr>
-                <th style="width: 45%;">Ítem</th>
+                <th style="width: 40%;">Ítem</th>
                 @if($opciones['incluirUnidad'])
-                    <th style="width: 10%; text-align: center;">Unidad</th>
+                    <th style="width: 8%; text-align: center;">Unidad</th>
                 @endif
                 @if($opciones['incluirCantidad'])
-                    <th style="width: 10%; text-align: right;">Cantidad</th>
+                    <th style="width: 8%; text-align: right;">Cantidad</th>
+                @endif
+                @if($opciones['incluirCargaSocial'])
+                    <th style="width: 14%; text-align: right;">Carga Social</th>
                 @endif
                 @if($opciones['incluirPrecio'])
-                    <th style="width: 18%; text-align: right;">Precio USD</th>
-                    <th style="width: 17%; text-align: right;">Subtotal</th>
+                    <th style="width: 15%; text-align: right;">Precio USD</th>
+                    <th style="width: 15%; text-align: right;">Subtotal</th>
                 @endif
             </tr>
         </thead>
@@ -595,23 +598,21 @@
                 @php
                     $precioConBeneficio   = ($item['precio_usd'] ?? 0) * $factorBeneficio;
                     $subtotalConBeneficio = ($item['subtotal'] ?? 0)   * $factorBeneficio;
+                    $csItem = $item['carga_social_total'] ?? 0;
                 @endphp
 
                 {{-- Fila gris de categoría cuando cambia (no emitir para apu_item) --}}
                 @if($item['tipo'] !== 'apu_item' && $item['categoria'] !== '' && $item['categoria'] !== $categoriaActual)
                     @php $categoriaActual = $item['categoria'] @endphp
+                    @php
+                        $colsExtra = $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + $opciones['incluirCargaSocial'];
+                    @endphp
                     <tr class="category-row">
                         @if($opciones['incluirPrecio'])
-                            <td colspan="{{ $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + 2 }}">
-                                {{ $item['categoria'] }}
-                            </td>
-                            <td class="text-right">
-                                $ {{ number_format(($datos['cat_subtotales'][$item['categoria']] ?? 0) * $factorBeneficio, 2, ',', '.') }}
-                            </td>
+                            <td colspan="{{ $colsExtra + 2 }}">{{ $item['categoria'] }}</td>
+                            <td class="text-right">$ {{ number_format(($datos['cat_subtotales'][$item['categoria']] ?? 0) * $factorBeneficio, 2, ',', '.') }}</td>
                         @else
-                            <td colspan="{{ $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + 1 }}">
-                                {{ $item['categoria'] }}
-                            </td>
+                            <td colspan="{{ $colsExtra + 1 }}">{{ $item['categoria'] }}</td>
                         @endif
                     </tr>
                 @endif
@@ -631,6 +632,9 @@
                         @endif
                         @if($opciones['incluirCantidad'])
                             <td class="text-right">{{ number_format($cantDisplay, 2, ',', '.') }}</td>
+                        @endif
+                        @if($opciones['incluirCargaSocial'])
+                            <td class="text-right apu-carga-social">{{ $csItem > 0 ? '$ ' . number_format($csItem, 2, ',', '.') : '—' }}</td>
                         @endif
                         @if($opciones['incluirPrecio'])
                             <td class="text-right">$ {{ number_format($precioSubrubro, 2, ',', '.') }}</td>
@@ -652,6 +656,9 @@
                         @endif
                         @if($opciones['incluirCantidad'])
                             <td class="text-right">{{ number_format($cantDisplay, 4, ',', '.') }}</td>
+                        @endif
+                        @if($opciones['incluirCargaSocial'])
+                            <td class="text-right apu-carga-social">{{ $csItem > 0 ? '$ ' . number_format($csItem, 2, ',', '.') : '—' }}</td>
                         @endif
                         @if($opciones['incluirPrecio'])
                             <td class="text-right">$ {{ number_format($precioConBeneficio, 2, ',', '.') }}</td>
@@ -677,6 +684,9 @@
                         @if($opciones['incluirCantidad'])
                             <td class="text-right">{{ number_format($cantDisplay, 4, ',', '.') }}</td>
                         @endif
+                        @if($opciones['incluirCargaSocial'])
+                            <td class="text-right apu-carga-social">{{ $csItem > 0 ? '$ ' . number_format($csItem, 2, ',', '.') : '—' }}</td>
+                        @endif
                         @if($opciones['incluirPrecio'])
                             <td class="text-right">$ {{ number_format($precioConBeneficio, 2, ',', '.') }}</td>
                             <td class="text-right">$ {{ number_format($subtotalDisplay, 2, ',', '.') }}</td>
@@ -687,7 +697,7 @@
 
             @if($opciones['incluirPrecio'])
             <tr class="total-row">
-                <td colspan="{{ $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + 1 }}" style="text-align: right;">
+                <td colspan="{{ $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + $opciones['incluirCargaSocial'] + 1 }}" style="text-align: right;">
                     TOTAL PRESUPUESTO:
                 </td>
                 <td class="text-right">

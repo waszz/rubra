@@ -421,20 +421,40 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
         <div class="grid grid-cols-12 px-3 py-1.5 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.01]">
             <div class="col-span-1 text-xs text-gray-600 font-black">#</div>
-            <div class="col-span-5 text-xs text-gray-600 font-black uppercase tracking-widest">Descripción</div>
+            <div class="col-span-4 text-xs text-gray-600 font-black uppercase tracking-widest">Descripción</div>
             <div class="col-span-1 text-xs text-gray-600 font-black text-center">Ud.</div>
             <div class="col-span-1 text-xs text-gray-600 font-black text-center">Cant.</div>
             <div class="col-span-2 text-xs text-gray-600 font-black text-center">P. Unit.</div>
+            <div class="col-span-1 text-xs text-gray-600 font-black text-center">C. Social</div>
             <div class="col-span-2 text-right text-xs text-gray-600 font-black">Total</div>
         </div>
 
         @forelse($categorias as $nombreCategoria => $nodosRaiz)
             @php
-                $nodoPadre = $nodosRaiz->first();
-$nodosReales = $nodoPadre?->hijos ?? collect();
+                $nodoPadre   = $nodosRaiz->first();
+                $nodosReales = $nodoPadre?->hijos ?? collect();
                 $totalCategoria = calcularSubtotalRecursivo($nodosReales);
                 $catKey         = 'cat_' . $nombreCategoria;
                 $catAbierta     = in_array($catKey, $nodosAbiertos ?? []);
+
+                // Carga social total de todos los recursos labor dentro de esta categoría
+                $calcularCSRecursivo = function($nodos, float $mult = 1) use (&$calcularCSRecursivo, $proyecto) {
+                    $total = 0;
+                    $pctGlobal = (float)($proyecto->carga_social ?? 0);
+                    foreach ($nodos as $n) {
+                        $esLaborN = !is_null($n->recurso_id) && in_array($n->recurso?->tipo, ['labor', 'mano_obra']);
+                        if ($esLaborN) {
+                            $pct    = $pctGlobal > 0 ? $pctGlobal : (float)($n->recurso?->social_charges_percentage ?? 0);
+                            $precio = $n->precio_unitario ?? $n->precio_usd ?? 0;
+                            $total += $precio * ($pct / 100) * ($n->cantidad ?? 1) * $mult;
+                        }
+                        if ($n->hijos && $n->hijos->count() > 0) {
+                            $total += $calcularCSRecursivo($n->hijos, $mult * ($n->cantidad ?? 1));
+                        }
+                    }
+                    return $total;
+                };
+                $csCategoria = $calcularCSRecursivo($nodosReales);
             @endphp
 
             {{-- CATEGORÍA --}}
@@ -449,7 +469,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                         {{ $loop->iteration }}
                     </div>
 
-                    <div class="col-span-5 flex items-center justify-between pr-2">
+                    <div class="col-span-4 flex items-center justify-between pr-2">
 
                         {{-- IZQUIERDA --}}
                         <div onclick="_lwToggle('{{ $catKey }}')" class="flex items-center gap-1.5 cursor-pointer min-w-0">
@@ -521,7 +541,15 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
                     </div>
 
-                    <div class="col-span-6 text-right text-xs font-black text-white font-mono">
+                    <div class="col-span-1"></div>
+                    <div class="col-span-1"></div>
+                    <div class="col-span-2"></div>
+                    <div class="col-span-1 text-center text-xs font-bold text-blue-300 font-mono">
+                        @if($csCategoria > 0)
+                            {{ number_format($csCategoria, 2, ',', '.') }}
+                        @endif
+                    </div>
+                    <div class="col-span-2 text-right text-xs font-black text-white font-mono">
                         {{ number_format($totalCategoria, 2, ',', '.') }}
                     </div>
 
@@ -1366,6 +1394,10 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                         <input type="checkbox" wire:model="incluirPrecio" class="w-4 h-4 rounded">
                         <span class="text-gray-300 text-xs">Incluir Precio</span>
                     </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" wire:model="incluirCargaSocial" class="w-4 h-4 rounded">
+                        <span class="text-gray-300 text-xs">Incluir Carga Social</span>
+                    </label>
                 </div>
             </div>
 
@@ -1388,7 +1420,7 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
 
         {{-- FOOTER / BOTONES --}}
         <div class="sticky bottom-0 bg-[#1a1a1a] border-t border-gray-700 p-6 flex items-center gap-3 justify-end">
-            <button 
+            <button
                 wire:click="cerrarModalPDF"
                 class="px-6 py-2 rounded-lg bg-gray-700 text-white font-bold text-xs uppercase tracking-wider hover:bg-gray-600 transition-all">
                 Cancelar
@@ -1481,6 +1513,10 @@ $nodosReales = $nodoPadre?->hijos ?? collect();
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" wire:model="excelIncluirPrecio" class="w-4 h-4 rounded">
                         <span class="text-gray-300 text-xs">Precio</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" wire:model="excelIncluirCargaSocial" class="w-4 h-4 rounded">
+                        <span class="text-gray-300 text-xs">Carga Social</span>
                     </label>
                 </div>
             </div>

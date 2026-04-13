@@ -129,6 +129,7 @@ public $rolCompartir = 'supervisor'; // Rol que elegirá quien genera el link
     public $incluirUnidad = true;
     public $incluirCantidad = true;
     public $incluirPrecio = true;
+    public $incluirCargaSocial = false;
 
     // Alcance de exportación: 'completo' | 'rubros_subrubros'
     public $exportScope = 'completo';
@@ -142,6 +143,7 @@ public $rolCompartir = 'supervisor'; // Rol que elegirá quien genera el link
     public $excelIncluirUnidad = true;
     public $excelIncluirCantidad = true;
     public $excelIncluirPrecio = true;
+    public $excelIncluirCargaSocial = false;
 
     // Historial undo/redo
     public $historialEstados = [];
@@ -239,6 +241,7 @@ public function resetearFormularioPDF()
     $this->incluirUnidad = true;
     $this->incluirCantidad = true;
     $this->incluirPrecio = true;
+    $this->incluirCargaSocial = false;
 }
 
 public function abrirModalExcel()
@@ -257,6 +260,7 @@ public function cerrarModalExcel()
     $this->excelIncluirUnidad = true;
     $this->excelIncluirCantidad = true;
     $this->excelIncluirPrecio = true;
+    $this->excelIncluirCargaSocial = false;
 }
 
 public function exportarPDF()
@@ -326,6 +330,7 @@ public function exportarPDF()
                 'incluirUnidad'       => $this->incluirUnidad,
                 'incluirCantidad'     => $this->incluirCantidad,
                 'incluirPrecio'       => $this->incluirPrecio,
+                'incluirCargaSocial'  => $this->incluirCargaSocial,
                 'exportScope'         => $this->exportScope,
             ],
             'alcance'      => $this->incluirAlcance     ? $this->alcancePresupuesto  : '',
@@ -640,8 +645,9 @@ public function exportarExcel()
         $col = 1;
         $sheet->setCellValueByColumnAndRow($col++, $row, 'Categoría');
         $sheet->setCellValueByColumnAndRow($col++, $row, 'Ítem');
-        if ($this->excelIncluirUnidad)   $sheet->setCellValueByColumnAndRow($col++, $row, 'Unidad');
-        if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, 'Cantidad');
+        if ($this->excelIncluirUnidad)        $sheet->setCellValueByColumnAndRow($col++, $row, 'Unidad');
+        if ($this->excelIncluirCantidad)      $sheet->setCellValueByColumnAndRow($col++, $row, 'Cantidad');
+        if ($this->excelIncluirCargaSocial)   $sheet->setCellValueByColumnAndRow($col++, $row, 'Carga Social');
         if ($this->excelIncluirPrecio) {
             $sheet->setCellValueByColumnAndRow($col++, $row, 'Precio ' . $monedaBase);
             $sheet->setCellValueByColumnAndRow($col++, $row, 'Subtotal');
@@ -687,7 +693,8 @@ public function exportarExcel()
                 $sheet->setCellValueByColumnAndRow($col++, $row, $item['nombre']);
                 if ($this->excelIncluirUnidad)   $sheet->setCellValueByColumnAndRow($col++, $row, $item['unidad'] ?? '');
                 $cantSubrubro = $item['cantidad_display'] ?? $item['cantidad'] ?? 0;
-                if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $cantSubrubro);
+                if ($this->excelIncluirCantidad)    $sheet->setCellValueByColumnAndRow($col++, $row, $cantSubrubro);
+                if ($this->excelIncluirCargaSocial) $sheet->setCellValueByColumnAndRow($col++, $row, $item['carga_social_total'] ?? 0);
                 if ($this->excelIncluirPrecio) {
                     // Precio y subtotal incluyen todos los recursos hijos (precio_usd = perUnit sumando hijos)
                     $precioConBeneficioExcel   = ($item['precio_usd'] ?? 0) * (1 + $pctBeneficio / 100);
@@ -708,8 +715,9 @@ public function exportarExcel()
             $col = 1;
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['categoria']);
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['nombre']);
-            if ($this->excelIncluirUnidad)   $sheet->setCellValueByColumnAndRow($col++, $row, $item['unidad']);
-            if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $item['cantidad_display'] ?? $item['cantidad']);
+            if ($this->excelIncluirUnidad)      $sheet->setCellValueByColumnAndRow($col++, $row, $item['unidad']);
+            if ($this->excelIncluirCantidad)    $sheet->setCellValueByColumnAndRow($col++, $row, $item['cantidad_display'] ?? $item['cantidad']);
+            if ($this->excelIncluirCargaSocial) $sheet->setCellValueByColumnAndRow($col++, $row, $item['carga_social_total'] ?? 0);
             if ($this->excelIncluirPrecio) {
                 $precioConBeneficioExcel   = ($item['precio_usd'] ?? 0) * (1 + $pctBeneficio / 100);
                 $subtotalConBeneficioExcel = ($item['subtotal_display'] ?? $item['subtotal'] ?? 0) * (1 + $pctBeneficio / 100);
@@ -864,6 +872,31 @@ private function obtenerDatosPresupuesto($scope = 'completo')
     ];
 }
 
+/**
+ * Calcula la carga social total de un nodo (recursivo sobre sus hijos).
+ * Para recursos labor: precio * pct_cs / 100 * cantidad * multiplier.
+ * Para subrubros: suma de CS de todos sus descendientes.
+ */
+private function calcularCSNodo($nodo, float $multiplier = 1): float
+{
+    $pctGlobal = (float)($this->proyecto->carga_social ?? 0);
+    $total = 0;
+
+    $esLabor = !is_null($nodo->recurso_id) && in_array($nodo->recurso?->tipo, ['labor', 'mano_obra']);
+
+    if ($esLabor) {
+        $pct    = $pctGlobal > 0 ? $pctGlobal : (float)($nodo->recurso?->social_charges_percentage ?? 0);
+        $precio = $nodo->precio_usd ?? $nodo->precio_unitario ?? 0;
+        $total  = $precio * ($pct / 100) * ($nodo->cantidad ?? 1) * $multiplier;
+    } elseif ($nodo->hijos && $nodo->hijos->count() > 0) {
+        foreach ($nodo->hijos as $hijo) {
+            $total += $this->calcularCSNodo($hijo, $multiplier * ($nodo->cantidad ?? 1));
+        }
+    }
+
+    return $total;
+}
+
 private function calcularCargaSocialPDF(): float
 {
     $totalCS = 0;
@@ -976,20 +1009,17 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
             $subrubroSubtotal = $perUnit * $cantidadNodo * $multiplier;
 
             $items[] = [
-                'tipo'             => 'subrubro',
-                'categoria'        => $catEste,
-                'nombre'           => $nodo->nombre,
-                'descripcion'      => '',
-                'unidad'           => $nodo->unidad ?? '',
-                // cantidad ya escalada por el multiplicador
-                'cantidad'         => $cantidadNodo * $multiplier,
-                // cantidad_display: sólo la cantidad propia del nodo (por unidad del padre)
-                'cantidad_display' => $cantidadNodo,
-                // precio_usd: precio POR UNIDAD calculado en base a lo que contiene (para mostrar)
-                'precio_usd'       => $perUnit,
-                // precio_own: precio propio asignado al nodo (sin sumar hijos)
-                'precio_own'       => $nodo->precio_usd ?? $nodo->precio_unitario ?? 0,
-                'subtotal'         => $subrubroSubtotal,
+                'tipo'               => 'subrubro',
+                'categoria'          => $catEste,
+                'nombre'             => $nodo->nombre,
+                'descripcion'        => '',
+                'unidad'             => $nodo->unidad ?? '',
+                'cantidad'           => $cantidadNodo * $multiplier,
+                'cantidad_display'   => $cantidadNodo,
+                'precio_usd'         => $perUnit,
+                'precio_own'         => $nodo->precio_usd ?? $nodo->precio_unitario ?? 0,
+                'subtotal'           => $subrubroSubtotal,
+                'carga_social_total' => $this->calcularCSNodo($nodo, $multiplier),
             ];
 
             if ($tieneHijos) {
@@ -1008,16 +1038,17 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
             $cantidadDisplay = $nodo->cantidad ?? 1; // cantidad por unidad del padre (para mostrar en PDF)
 
             $items[] = [
-                'tipo'             => $esComposicion ? 'apu_header' : 'item',
-                'categoria'        => $catEste,
-                'nombre'           => $nodo->nombre,
-                'descripcion'      => '',
-                'unidad'           => $nodo->unidad ?? '',
-                'cantidad'         => $cantidadEffective,                      // total efectivo (Excel)
-                'cantidad_display' => $cantidadDisplay,                        // por unidad (PDF)
-                'precio_usd'       => $precioUnitario,
-                'subtotal'         => $subtotal,                               // total efectivo (Excel / cat_subtotales)
-                'subtotal_display' => $cantidadDisplay * $precioUnitario,      // por unidad (PDF)
+                'tipo'               => $esComposicion ? 'apu_header' : 'item',
+                'categoria'          => $catEste,
+                'nombre'             => $nodo->nombre,
+                'descripcion'        => '',
+                'unidad'             => $nodo->unidad ?? '',
+                'cantidad'           => $cantidadEffective,
+                'cantidad_display'   => $cantidadDisplay,
+                'precio_usd'         => $precioUnitario,
+                'subtotal'           => $subtotal,
+                'subtotal_display'   => $cantidadDisplay * $precioUnitario,
+                'carga_social_total' => $this->calcularCSNodo($nodo, $multiplier),
             ];
 
             // Expandir items del APU como sub-filas para mostrar el desglose en el PDF
