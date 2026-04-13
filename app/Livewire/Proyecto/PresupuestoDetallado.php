@@ -880,17 +880,30 @@ private function obtenerDatosPresupuesto($scope = 'completo')
 private function calcularCSNodo($nodo, float $multiplier = 1): float
 {
     $pctGlobal = (float)($this->proyecto->carga_social ?? 0);
-    $total = 0;
+    $total     = 0;
+    $cantNodo  = ($nodo->cantidad ?? 1) * $multiplier;
 
-    $esLabor = !is_null($nodo->recurso_id) && in_array($nodo->recurso?->tipo, ['labor', 'mano_obra']);
-
-    if ($esLabor) {
+    // Recurso labor directo
+    if (!is_null($nodo->recurso_id) && in_array($nodo->recurso?->tipo, ['labor', 'mano_obra'])) {
         $pct    = $pctGlobal > 0 ? $pctGlobal : (float)($nodo->recurso?->social_charges_percentage ?? 0);
         $precio = $nodo->precio_usd ?? $nodo->precio_unitario ?? 0;
-        $total  = $precio * ($pct / 100) * ($nodo->cantidad ?? 1) * $multiplier;
+        $total  = $precio * ($pct / 100) * $cantNodo;
+
+    // Composición APU: sumar CS de los items labor internos
+    } elseif (!is_null($nodo->recurso_id) && $nodo->recurso?->tipo === 'composition') {
+        $itemsInternos = \App\Models\ComposicionItem::where('composicion_id', $nodo->recurso_id)->get();
+        foreach ($itemsInternos as $interno) {
+            $resBase = $interno->recursoBase;
+            if (!$resBase || !in_array($resBase->tipo, ['labor', 'mano_obra'])) continue;
+            $pct    = $pctGlobal > 0 ? $pctGlobal : (float)($resBase->social_charges_percentage ?? 0);
+            $precio = $resBase->precio_usd ?? 0;
+            $total += $precio * ($pct / 100) * $interno->cantidad * $cantNodo;
+        }
+
+    // Subrubro: recorrer hijos
     } elseif ($nodo->hijos && $nodo->hijos->count() > 0) {
         foreach ($nodo->hijos as $hijo) {
-            $total += $this->calcularCSNodo($hijo, $multiplier * ($nodo->cantidad ?? 1));
+            $total += $this->calcularCSNodo($hijo, $cantNodo);
         }
     }
 
