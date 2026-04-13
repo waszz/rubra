@@ -268,12 +268,8 @@
             vertical-align: top;
         }
         
-        table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
         table tr:hover {
-            background-color: #f0f0f0;
+            background-color: inherit;
         }
         
         .text-right {
@@ -284,19 +280,34 @@
             text-align: center;
         }
         
-        .category-row {
-            background-color: #e8e8e8;
+        .category-row td {
+            background-color: #2a2a2a;
+            color: #fff;
             font-weight: bold;
-            color: #1a1a1a;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-left: 4px solid #ff6b35;
         }
 
         .subrubro-row td {
-            background-color: #f5f5f5;
+            background-color: #fff4ee;
             font-weight: bold;
             color: #444;
-            padding-left: 16px;
-            font-style: italic;
+            padding-left: 20px;
+            font-style: normal;
+            font-size: 9.5px;
+        }
+
+        .recurso-row td {
+            background-color: #fff;
+            color: #444;
             font-size: 9px;
+            padding-left: 32px;
+        }
+
+        .recurso-row:nth-child(even) td {
+            background-color: #fafafa;
         }
         
         .total-row {
@@ -554,13 +565,12 @@
 
     {{-- PRESUPUESTO --}}
     <div class="presupuesto-container">
-        <div class="section-title">📊 Tabla de Presupuesto</div>
+        <div class="section-title">Tabla de Presupuesto</div>
         <div class="presupuesto-content">
         <table>
         <thead>
             <tr>
-                <th style="width: 25%;">Ítem</th>
-                <th style="width: 25%;">Descripción</th>
+                <th style="width: 45%;">Ítem</th>
                 @if($opciones['incluirUnidad'])
                     <th style="width: 10%; text-align: center;">Unidad</th>
                 @endif
@@ -568,8 +578,8 @@
                     <th style="width: 10%; text-align: right;">Cantidad</th>
                 @endif
                 @if($opciones['incluirPrecio'])
-                    <th style="width: 15%; text-align: right;">Precio USD</th>
-                    <th style="width: 15%; text-align: right;">Subtotal</th>
+                    <th style="width: 18%; text-align: right;">Precio USD</th>
+                    <th style="width: 17%; text-align: right;">Subtotal</th>
                 @endif
             </tr>
         </thead>
@@ -592,14 +602,14 @@
                     @php $categoriaActual = $item['categoria'] @endphp
                     <tr class="category-row">
                         @if($opciones['incluirPrecio'])
-                            <td colspan="{{ $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + 3 }}">
+                            <td colspan="{{ $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + 2 }}">
                                 {{ $item['categoria'] }}
                             </td>
                             <td class="text-right">
                                 $ {{ number_format(($datos['cat_subtotales'][$item['categoria']] ?? 0) * $factorBeneficio, 2, ',', '.') }}
                             </td>
                         @else
-                            <td colspan="{{ $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + 2 }}">
+                            <td colspan="{{ $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + 1 }}">
                                 {{ $item['categoria'] }}
                             </td>
                         @endif
@@ -616,7 +626,6 @@
                     @endphp
                     <tr class="subrubro-row">
                         <td><strong>{{ $item['nombre'] }}</strong></td>
-                        <td>{{ $item['descripcion'] ?? '—' }}</td>
                         @if($opciones['incluirUnidad'])
                             <td class="text-center">{{ $item['unidad'] ?? '—' }}</td>
                         @endif
@@ -639,10 +648,9 @@
                         $cantDisplay     = $item['cantidad_display'] ?? $item['cantidad'];
                         $subtotalDisplay = ($item['subtotal_display'] ?? $item['subtotal']) * $factorBeneficio;
                     @endphp
-                    {{-- APU: se muestra como ítem normal (cantidad por unidad, sin desglose) --}}
-                    <tr>
-                        <td><strong>{{ $item['nombre'] }}</strong></td>
-                        <td>{{ $item['descripcion'] ?? '—' }}</td>
+                    {{-- APU: se muestra como recurso normal (cantidad por unidad, sin desglose) --}}
+                    <tr class="recurso-row">
+                        <td>{{ $item['nombre'] }}</td>
                         @if($opciones['incluirUnidad'])
                             <td class="text-center">{{ $item['unidad'] ?? '—' }}</td>
                         @endif
@@ -664,10 +672,9 @@
                         $cantDisplay     = $item['cantidad_display'] ?? $item['cantidad'];
                         $subtotalDisplay = ($item['subtotal_display'] ?? $item['subtotal']) * $factorBeneficio;
                     @endphp
-                    {{-- Ítem normal: muestra cantidad por unidad del padre --}}
-                    <tr>
-                        <td><strong>{{ $item['nombre'] }}</strong></td>
-                        <td>{{ $item['descripcion'] ?? '—' }}</td>
+                    {{-- Recurso: muestra cantidad por unidad del padre --}}
+                    <tr class="recurso-row">
+                        <td>{{ $item['nombre'] }}</td>
                         @if($opciones['incluirUnidad'])
                             <td class="text-center">{{ $item['unidad'] ?? '—' }}</td>
                         @endif
@@ -684,7 +691,7 @@
 
             @if($opciones['incluirPrecio'])
             <tr class="total-row">
-                <td colspan="{{ $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + 2 }}" style="text-align: right;">
+                <td colspan="{{ $opciones['incluirUnidad'] + $opciones['incluirCantidad'] + 1 }}" style="text-align: right;">
                     TOTAL PRESUPUESTO:
                 </td>
                 <td class="text-right">

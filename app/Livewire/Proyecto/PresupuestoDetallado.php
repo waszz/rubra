@@ -933,8 +933,6 @@ public function actualizarCargaSocial(mixed $valor): void
     $pct = max(0, min(100, (float) $valor));
     $this->proyecto->carga_social = $pct;
     $this->proyecto->save();
-    Recurso::where('tipo', 'labor')->update(['social_charges_percentage' => $pct]);
-    Proyecto::query()->update(['carga_social' => $pct]);
 }
 
 private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 0, $multiplier = 1)
