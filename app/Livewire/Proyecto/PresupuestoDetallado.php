@@ -948,7 +948,7 @@ private function recorrerCargaSocial($nodos, float &$totalCS, float $multiplier 
         $precioUnitario = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
 
         // Recurso directo de mano de obra
-        if (($nodo->recurso && $nodo->recurso->tipo === 'labor') || $nodo->tipo === 'labor') {
+        if (($nodo->recurso && in_array($nodo->recurso->tipo, ['labor', 'mano_obra'])) || in_array($nodo->tipo, ['labor', 'mano_obra'])) {
             $porcentajeCS = !is_null($pctGlobal)
                 ? (float)$pctGlobal
                 : ($nodo->recurso->social_charges_percentage ?? $nodo->social_charges_percentage ?? 0);
