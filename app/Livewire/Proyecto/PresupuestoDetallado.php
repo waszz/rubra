@@ -640,7 +640,6 @@ public function exportarExcel()
         $col = 1;
         $sheet->setCellValueByColumnAndRow($col++, $row, 'Categoría');
         $sheet->setCellValueByColumnAndRow($col++, $row, 'Ítem');
-        $sheet->setCellValueByColumnAndRow($col++, $row, 'Descripción');
         if ($this->excelIncluirUnidad)   $sheet->setCellValueByColumnAndRow($col++, $row, 'Unidad');
         if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, 'Cantidad');
         if ($this->excelIncluirPrecio) {
@@ -673,29 +672,26 @@ public function exportarExcel()
                     $sheet->mergeCells('A' . $row . ':' . $lastColLetter . $row);
                     $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleCatRow);
                 }
-                $sheet->setCellValueByColumnAndRow(8, $row, 'CAT');
+                $sheet->setCellValueByColumnAndRow($lastCol + 1, $row, 'CAT');
                 $row++;
             }
 
             if ($item['tipo'] === 'subrubro') {
                 $styleSubrubro = [
-                    'font'      => ['bold' => true, 'italic' => true, 'size' => 8, 'color' => ['rgb' => '444444']],
-                    'fill'      => ['fillType' => $Fill, 'startColor' => ['rgb' => 'F5F5F5']],
+                    'font'      => ['bold' => true, 'size' => 8, 'color' => ['rgb' => '444444']],
+                    'fill'      => ['fillType' => $Fill, 'startColor' => ['rgb' => 'FFF4EE']],
                     'alignment' => ['horizontal' => $Left, 'indent' => 2],
                 ];
                 $col = 1;
                 $sheet->setCellValueByColumnAndRow($col++, $row, $item['categoria']);
                 $sheet->setCellValueByColumnAndRow($col++, $row, $item['nombre']);
-                $sheet->setCellValueByColumnAndRow($col++, $row, $item['descripcion'] ?? '');
                 if ($this->excelIncluirUnidad)   $sheet->setCellValueByColumnAndRow($col++, $row, $item['unidad'] ?? '');
-                // Subrubro: cantidad_display no existe, usar cantidad directamente
-                // (= cantidadNodo × multiplier; si la categoría padre tiene qty=1 es el qty propio)
-                $cantSubrubro     = $item['cantidad_display'] ?? $item['cantidad'] ?? 0;
-                $subtotalSubrubro = $item['subtotal_display'] ?? $item['subtotal'] ?? 0;
+                $cantSubrubro = $item['cantidad_display'] ?? $item['cantidad'] ?? 0;
                 if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $cantSubrubro);
                 if ($this->excelIncluirPrecio) {
+                    // Precio y subtotal incluyen todos los recursos hijos (precio_usd = perUnit sumando hijos)
                     $precioConBeneficioExcel   = ($item['precio_usd'] ?? 0) * (1 + $pctBeneficio / 100);
-                    $subtotalConBeneficioExcel = $subtotalSubrubro           * (1 + $pctBeneficio / 100);
+                    $subtotalConBeneficioExcel = $precioConBeneficioExcel * $cantSubrubro;
                     $sheet->setCellValueByColumnAndRow($col++, $row, $precioConBeneficioExcel);
                     $sheet->setCellValueByColumnAndRow($col++, $row, $subtotalConBeneficioExcel);
                     $penult = $lastCol - 1;
@@ -704,7 +700,7 @@ public function exportarExcel()
                     $sheet->getStyle($lastColLetter . $row)->getNumberFormat()->setFormatCode('#,##0.00');
                 }
                 $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleSubrubro);
-                $sheet->setCellValueByColumnAndRow(8, $row, 'SUB');
+                $sheet->setCellValueByColumnAndRow($lastCol + 1, $row, 'SUB');
                 $row++;
                 continue;
             }
@@ -712,7 +708,6 @@ public function exportarExcel()
             $col = 1;
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['categoria']);
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['nombre']);
-            $sheet->setCellValueByColumnAndRow($col++, $row, $item['descripcion'] ?? '');
             if ($this->excelIncluirUnidad)   $sheet->setCellValueByColumnAndRow($col++, $row, $item['unidad']);
             if ($this->excelIncluirCantidad) $sheet->setCellValueByColumnAndRow($col++, $row, $item['cantidad_display'] ?? $item['cantidad']);
             if ($this->excelIncluirPrecio) {
@@ -722,7 +717,7 @@ public function exportarExcel()
                 $sheet->setCellValueByColumnAndRow($col++, $row, $subtotalConBeneficioExcel);
             }
             $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleData);
-            $sheet->setCellValueByColumnAndRow(8, $row, 'REC');
+            $sheet->setCellValueByColumnAndRow($lastCol + 1, $row, 'REC');
             $row++;
         }
 
@@ -768,13 +763,14 @@ public function exportarExcel()
         // ANCHOS DE COLUMNA
         // ─────────────────────────────────────────────────────
         $sheet->getColumnDimension('A')->setWidth(22);
-        $sheet->getColumnDimension('B')->setWidth(28);
-        $sheet->getColumnDimension('C')->setWidth(30);
-        $sheet->getColumnDimension('D')->setWidth(10);
-        $sheet->getColumnDimension('E')->setWidth(12);
-        $sheet->getColumnDimension('F')->setWidth(16);
-        $sheet->getColumnDimension('G')->setWidth(18);
-        $sheet->getColumnDimension('H')->setVisible(false); // hidden type marker column (CAT/SUB/REC)
+        $sheet->getColumnDimension('B')->setWidth(38);
+        $sheet->getColumnDimension('C')->setWidth(10);
+        $sheet->getColumnDimension('D')->setWidth(12);
+        $sheet->getColumnDimension('E')->setWidth(16);
+        $sheet->getColumnDimension('F')->setWidth(18);
+        // Columna oculta con marcador de tipo (CAT/SUB/REC) — siempre una después de la última visible
+        $markerColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($lastCol + 1);
+        $sheet->getColumnDimension($markerColLetter)->setVisible(false);
 
         // ─────────────────────────────────────────────────────
         // CONFIGURACIÓN DE PÁGINA PARA EXPORTAR COMO PDF
@@ -785,7 +781,7 @@ public function exportarExcel()
         $pageSetup->setFitToPage(true);
         $pageSetup->setFitToWidth(1);   // todo el contenido en 1 página de ancho
         $pageSetup->setFitToHeight(0);  // sin límite de alto (N páginas)
-        $pageSetup->setPrintArea('A1:G' . $sheet->getHighestRow());
+        $pageSetup->setPrintArea('A1:' . $lastColLetter . $sheet->getHighestRow());
         $pageSetup->setHorizontalCentered(true);
         $pageSetup->setRowsToRepeatAtTopByStartAndEnd(1, 1); // repetir encabezado
 
