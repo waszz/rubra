@@ -618,11 +618,11 @@
 
                 @if($item['tipo'] === 'subrubro')
                     @php $prevApuTipo = null; @endphp
-                    {{-- Subrubro: mostrar unidad, cantidad y precio propio (sin contar hijos) --}}
+                    {{-- Subrubro: muestra precio y subtotal sumando todos sus recursos (hijos) --}}
                     @php
-                        $precioPropio = $item['precio_own'] ?? ($item['precio_usd'] ?? 0);
-                        $precioPropioCon = $precioPropio * $factorBeneficio;
-                        $subtotalPropioCon = $precioPropioCon * ($item['cantidad'] ?? 0);
+                        $cantDisplay       = $item['cantidad_display'] ?? ($item['cantidad'] ?? 0);
+                        $precioSubrubro    = ($item['precio_usd'] ?? 0) * $factorBeneficio;
+                        $subtotalSubrubro  = $precioSubrubro * $cantDisplay;
                     @endphp
                     <tr class="subrubro-row">
                         <td><strong>{{ $item['nombre'] }}</strong></td>
@@ -630,15 +630,11 @@
                             <td class="text-center">{{ $item['unidad'] ?? '—' }}</td>
                         @endif
                         @if($opciones['incluirCantidad'])
-                            <td class="text-right">{{ number_format($item['cantidad'] ?? 0, 2, ',', '.') }}</td>
+                            <td class="text-right">{{ number_format($cantDisplay, 2, ',', '.') }}</td>
                         @endif
                         @if($opciones['incluirPrecio'])
-                            <td class="text-right">$ {{ number_format($precioPropioCon, 2, ',', '.') }}</td>
-                            <td class="text-right">$ {{ number_format($subtotalPropioCon, 2, ',', '.') }}</td>
-                            @php
-                                // sumar solo la parte propia del subrubro al total general (evitar duplicar hijos)
-                                $totalGeneral += $subtotalPropioCon;
-                            @endphp
+                            <td class="text-right">$ {{ number_format($precioSubrubro, 2, ',', '.') }}</td>
+                            <td class="text-right">$ {{ number_format($subtotalSubrubro, 2, ',', '.') }}</td>
                         @endif
                     </tr>
 
