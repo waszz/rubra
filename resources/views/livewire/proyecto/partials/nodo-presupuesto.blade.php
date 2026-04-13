@@ -69,14 +69,16 @@
         default => 'pl-6',
     };
 
-    // Carga social del nodo: si es labor → su propio monto; si es subrubro → suma de hijos
+    // Carga social del nodo: si es labor → su propio monto; si es subrubro → suma de hijos; si es composición → suma de mano de obra interna
     $calcCSHijos = function($nodos, float $mult = 1) use (&$calcCSHijos, $proyecto) {
         $total = 0;
-        $pctGlobal = isset($proyecto) ? (float)($proyecto->carga_social ?? 0) : 0;
+        $pctGlobal = isset($proyecto) ? $proyecto->carga_social : null;
         foreach ($nodos as $n) {
             $esLaborN = !is_null($n->recurso_id) && in_array($n->recurso?->tipo, ['labor', 'mano_obra']);
             if ($esLaborN) {
-                $pct    = $pctGlobal > 0 ? $pctGlobal : (float)($n->recurso?->social_charges_percentage ?? 0);
+                $pct    = !is_null($pctGlobal)
+                    ? (float)$pctGlobal
+                    : (float)($n->recurso?->social_charges_percentage ?? 0);
                 $precio = $n->precio_unitario ?? $n->precio_usd ?? 0;
                 $total += $precio * ($pct / 100) * ($n->cantidad ?? 1) * $mult;
             }
@@ -87,8 +89,21 @@
         return $total;
     };
 
+    // Si es composición, sumar CS de items labor internos
     if ($esLabor) {
         $csNodo = $montoCS;
+    } elseif ($esComposicion) {
+        $csNodo = 0;
+        foreach ($itemsComposicionLocal as $item) {
+            $base = $item->recursoBase;
+            if ($base && in_array($base->tipo, ['labor', 'mano_obra'])) {
+                $pct = !is_null($proyecto->carga_social)
+                    ? (float)$proyecto->carga_social
+                    : (float)($base->social_charges_percentage ?? 0);
+                $pUnit = $base->precio_usd ?? 0;
+                $csNodo += $pUnit * ($pct / 100) * $item->cantidad * ($nodo->cantidad ?? 1);
+            }
+        }
     } elseif (!$esRecurso) {
         $csNodo = $calcCSHijos($hijos);
     } else {
@@ -274,6 +289,11 @@
                         <span class="text-sm text-gray-400 font-bold">
                             Cant: {{ number_format($nodo->cantidad ?? 1, 2) }} — P.Unit: {{ number_format($perUnitNodo ?? 0, 2, ',', '.') }}
                         </span>
+                        @if($csNodo > 0)
+                            <span class="text-xs font-bold text-blue-300/70 bg-blue-500/10 border border-blue-500/20 rounded px-2 py-1 ml-2">
+                                C. Social total: {{ number_format($csNodo, 2, ',', '.') }}
+                            </span>
+                        @endif
                         @if(!$modoLectura)
                         <button wire:click="abrirModalRecursosParaApu({{ $nodo->recurso_id }}, '{{ addslashes($nodo->nombre) }}')"
                             title="Agregar recurso al APU"
