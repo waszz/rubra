@@ -8,6 +8,9 @@ use App\Models\Proyecto;
 use App\Livewire\Concerns\AutorizaProyecto;
 use App\Models\Recurso;
 use App\Models\ProyectoRecurso;
+
+
+
 use App\Models\ConfiguracionGeneral;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -18,6 +21,22 @@ class PresupuestoDetallado extends Component
     use AutorizaProyecto, WithFileUploads;
 
     public Proyecto $proyecto;
+
+    /**
+     * Recalcula el total del presupuesto y lo guarda en el campo presupuesto_total del proyecto.
+     * Se debe llamar después de cualquier cambio relevante en el presupuesto.
+     */
+    private function actualizarPresupuestoTotalGuardado(): void
+    {
+        $datos = $this->obtenerDatosPresupuesto();
+        $subtotalBase = $datos['total'];
+        $beneficio = $subtotalBase * (($this->proyecto->beneficio ?? 0) / 100);
+        $subtotalConBeneficio = $subtotalBase + $beneficio;
+        $iva = $subtotalConBeneficio * (($this->proyecto->impuestos ?? 22) / 100);
+        $totalFinal = $subtotalConBeneficio + $iva;
+        $this->proyecto->presupuesto_total = $totalFinal;
+        $this->proyecto->save();
+    }
 
     // UI
     public $nodosAbiertos     = [];
@@ -1138,6 +1157,7 @@ public function invitarUsuariosSeleccionados()
         $this->recalcularComposicion($item->composicion_id);
         $this->cerrarModalEditarItemApu();
         $this->cargarProyecto();
+        $this->actualizarPresupuestoTotalGuardado();
     }
 
     public function cerrarModalEditarItemApu(): void
@@ -1197,6 +1217,7 @@ public function invitarUsuariosSeleccionados()
         $this->recalcularComposicion($this->apuComposicionId);
         $this->cerrarModalAgregarItemApu();
         $this->cargarProyecto();
+        $this->actualizarPresupuestoTotalGuardado();
     }
 
     public function cerrarModalAgregarItemApu(): void
@@ -1225,6 +1246,7 @@ public function invitarUsuariosSeleccionados()
         $this->modalEliminarItemApu = false;
         $this->eliminarItemApuId    = null;
         $this->cargarProyecto();
+        $this->actualizarPresupuestoTotalGuardado();
     }
 
     public function cerrarModalEliminarItemApu(): void
@@ -1255,6 +1277,8 @@ public function invitarUsuariosSeleccionados()
                   ->orderBy('orden')
                   ->with($this->relacionesRecursivas(6)),
         ]);
+        // Cada vez que se recarga el proyecto, actualizamos el total guardado
+        $this->actualizarPresupuestoTotalGuardado();
     }
 
     private function relacionesRecursivas(int $depth): array
@@ -1294,6 +1318,7 @@ public function invitarUsuariosSeleccionados()
 
         $this->proyecto->refresh();
         $this->cargarProyecto();
+        $this->actualizarPresupuestoTotalGuardado();
     }
 
     public function bajarNodo($id)
@@ -1315,6 +1340,7 @@ public function invitarUsuariosSeleccionados()
 
         $this->proyecto->refresh();
         $this->cargarProyecto();
+        $this->actualizarPresupuestoTotalGuardado();
     }
 
     public function moverNodo(int $draggedId, int $targetId, string $posicion): void
@@ -1341,6 +1367,7 @@ public function invitarUsuariosSeleccionados()
         }
 
         $this->cargarProyecto();
+        $this->actualizarPresupuestoTotalGuardado();
     }
 
     public function copiarNodo(int $id): void
@@ -1416,6 +1443,7 @@ public function invitarUsuariosSeleccionados()
         $this->proyecto->refresh();
 
         $this->cargarProyecto();
+        $this->actualizarPresupuestoTotalGuardado();
         $this->guardarEstado();
         $this->dispatch('notify', mensaje: 'Presupuesto eliminado completamente.', tipo: 'success');
         // Notificar a otros componentes para que refresquen (Livewire 3)
