@@ -887,7 +887,10 @@ private function calcularCSNodo($nodo, float $multiplier = 1): float
 
     // Recurso labor directo
     if (!is_null($nodo->recurso_id) && in_array($nodo->recurso?->tipo, ['labor', 'mano_obra'])) {
-        $pct    = $pctGlobal > 0 ? $pctGlobal : (float)($nodo->recurso?->social_charges_percentage ?? 0);
+        // Si carga_social es null, usar la del recurso; si es 0 o >0, usar la del proyecto (0 fuerza 0)
+        $pct = !is_null($this->proyecto->carga_social)
+            ? (float)$this->proyecto->carga_social
+            : (float)($nodo->recurso?->social_charges_percentage ?? 0);
         $precio = $nodo->precio_usd ?? $nodo->precio_unitario ?? 0;
         $total  = $precio * ($pct / 100) * $cantNodo;
 
@@ -897,7 +900,9 @@ private function calcularCSNodo($nodo, float $multiplier = 1): float
         foreach ($itemsInternos as $interno) {
             $resBase = $interno->recursoBase;
             if (!$resBase || !in_array($resBase->tipo, ['labor', 'mano_obra'])) continue;
-            $pct    = $pctGlobal > 0 ? $pctGlobal : (float)($resBase->social_charges_percentage ?? 0);
+            $pct = !is_null($this->proyecto->carga_social)
+                ? (float)$this->proyecto->carga_social
+                : (float)($resBase->social_charges_percentage ?? 0);
             $precio = $resBase->precio_usd ?? 0;
             $total += $precio * ($pct / 100) * $interno->cantidad * $cantNodo;
         }
@@ -936,7 +941,7 @@ private function calcularCargaSocialPDF(): float
 private function recorrerCargaSocial($nodos, float &$totalCS, float $multiplier = 1): void
 {
     // Si el proyecto tiene un % global de carga social definido, lo usa como override
-    $pctGlobal = (float) ($this->proyecto->carga_social ?? 0);
+    $pctGlobal = $this->proyecto->carga_social;
 
     foreach ($nodos as $nodo) {
         $cantNodo       = $nodo->cantidad ?? 1;
@@ -944,8 +949,8 @@ private function recorrerCargaSocial($nodos, float &$totalCS, float $multiplier 
 
         // Recurso directo de mano de obra
         if (($nodo->recurso && $nodo->recurso->tipo === 'labor') || $nodo->tipo === 'labor') {
-            $porcentajeCS = $pctGlobal > 0
-                ? $pctGlobal
+            $porcentajeCS = !is_null($pctGlobal)
+                ? (float)$pctGlobal
                 : ($nodo->recurso->social_charges_percentage ?? $nodo->social_charges_percentage ?? 0);
             $totalCS += $multiplier * $cantNodo * $precioUnitario * ($porcentajeCS / 100);
         }
@@ -958,8 +963,8 @@ private function recorrerCargaSocial($nodos, float &$totalCS, float $multiplier 
                 if (!$resBase) continue;
                 if (in_array($resBase->tipo, ['labor', 'mano_obra'])) {
                     $pBase        = $resBase->precio_usd ?? 0;
-                    $porcentajeCS = $pctGlobal > 0
-                        ? $pctGlobal
+                    $porcentajeCS = !is_null($pctGlobal)
+                        ? (float)$pctGlobal
                         : ($resBase->social_charges_percentage ?? 0);
                     $totalCS += $multiplier * $cantNodo * $interno->cantidad * $pBase * ($porcentajeCS / 100);
                 }
@@ -975,8 +980,14 @@ private function recorrerCargaSocial($nodos, float &$totalCS, float $multiplier 
 public function actualizarCargaSocial(mixed $valor): void
 {
     $pct = max(0, min(100, (float) $valor));
-    $this->proyecto->carga_social = $pct;
+    // Si el valor es '', null o no numérico, setea a null (sin override global)
+    if ($valor === '' || is_null($valor) || !is_numeric($valor)) {
+        $this->proyecto->carga_social = null;
+    } else {
+        $this->proyecto->carga_social = $pct;
+    }
     $this->proyecto->save();
+    $this->cargarProyecto(); // Recarga nodos y totales tras guardar
 }
 
 private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 0, $multiplier = 1)

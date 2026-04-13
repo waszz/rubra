@@ -283,16 +283,16 @@
     }
 
     // Función recursiva para calcular carga social
-    // $pctGlobal: si > 0 sobreescribe el % individual de cada recurso (viene de $proyecto->carga_social)
-    function calcularCargaSocialRecursiva($nodos, float $multiplier = 1, float $pctGlobal = 0) {
+    // $pctGlobal: si es null usa el del recurso, si es 0 o >0 fuerza ese valor (igual que PHP)
+    function calcularCargaSocialRecursiva($nodos, float $multiplier = 1, $pctGlobal = null) {
         $totalCS = 0;
         foreach ($nodos as $nodo) {
             $cantNodo       = $nodo->cantidad ?? 1;
             $precioUnitario = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
 
             if (($nodo->recurso && $nodo->recurso->tipo === 'labor') || $nodo->tipo === 'labor') {
-                $porcentajeCS = $pctGlobal > 0
-                    ? $pctGlobal
+                $porcentajeCS = !is_null($pctGlobal)
+                    ? (float)$pctGlobal
                     : ($nodo->recurso->social_charges_percentage ?? $nodo->social_charges_percentage ?? 0);
                 $totalCS += $multiplier * $cantNodo * $precioUnitario * ($porcentajeCS / 100);
             }
@@ -304,8 +304,8 @@
                     if (!$resBase) continue;
                     if (in_array($resBase->tipo, ['labor', 'mano_obra'])) {
                         $pBase        = $resBase->precio_usd ?? 0;
-                        $porcentajeCS = $pctGlobal > 0
-                            ? $pctGlobal
+                        $porcentajeCS = !is_null($pctGlobal)
+                            ? (float)$pctGlobal
                             : ($resBase->social_charges_percentage ?? 0);
                         $totalCS += $multiplier * $cantNodo * $interno->cantidad * $pBase * ($porcentajeCS / 100);
                     }
@@ -322,7 +322,7 @@
 
     $subtotalBase = 0;
     $cargaSocialCalculada = 0;
-    $pctCSGlobal = (float) ($proyecto->carga_social ?? 0);
+    $pctCSGlobal = $proyecto->carga_social;
 
     foreach ($categorias as $nodosRaiz) {
         foreach ($nodosRaiz as $nodoPadre) {
