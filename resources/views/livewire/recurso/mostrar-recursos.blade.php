@@ -136,6 +136,9 @@
                 {{-- INFO --}}
                 <div class="mb-6">
                     <h3 class="text-black dark:text-white text-[15px] font-bold uppercase tracking-wide leading-tight">{{ $recurso->nombre }}</h3>
+                    @if($recurso->codigo)
+                        <span class="inline-block mt-1 text-[9px] font-mono font-bold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded px-1.5 py-0.5 tracking-wider">{{ $recurso->codigo }}</span>
+                    @endif
                     <div class="flex items-center gap-2 mt-1">
                         <span class="text-gray-500 dark:text-gray-400 text-[11px] uppercase font-bold">{{ $recurso->unidad }}</span>
                         <span class="text-gray-700 dark:text-gray-500 text-[11px]">•</span>
@@ -236,6 +239,9 @@
                                 </td>
                                 <td class="px-3 py-4">
                                     <span class="text-black dark:text-white text-[13px] font-medium">{{ $recurso->nombre }}</span>
+                                    @if($recurso->codigo)
+                                        <span class="ml-2 text-[9px] font-mono text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded px-1.5 py-0.5 tracking-wider">{{ $recurso->codigo }}</span>
+                                    @endif
                                 </td>
                                 <td class="px-3 py-4 text-center">
                                     <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-gray-200 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-white/5 uppercase inline-block">
@@ -305,98 +311,137 @@
         </div>
 
         {{-- Formulario --}}
-        <div class="px-6 py-5 space-y-4">
+        <div class="px-6 py-5 space-y-4 overflow-y-auto max-h-[65vh]">
 
             {{-- Nombre --}}
             <div>
                 <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Nombre</label>
-                <input
-                    type="text"
-                    wire:model="editNombre"
+                <input type="text" wire:model="editNombre" placeholder="Ej: Cemento Portland 50kg"
                     class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border text-[13px] focus:outline-none transition-colors
-                           {{ $errors->has('editNombre') ? 'border-red-500/50 focus:border-red-500' : 'border-gray-800 focus:border-gray-600' }}"
-                    placeholder="Ej: Cemento Portland 50kg"
-                >
-                @error('editNombre')
-                    <p class="mt-1 text-[11px] text-red-400">{{ $message }}</p>
-                @enderror
+                           {{ $errors->has('editNombre') ? 'border-red-500/50' : 'border-gray-800 focus:border-gray-600' }}">
+                @error('editNombre') <p class="mt-1 text-[11px] text-red-400">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Tipo + Unidad (2 col) --}}
+            {{-- Código de Venta --}}
+            @if ($editTipo !== 'labor')
+            <div>
+                <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Código de Venta</label>
+                <input type="text" wire:model="editCodigo" placeholder="Ej: MAT-001, SKU-123..."
+                    class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border border-gray-800 text-[13px] focus:outline-none focus:border-gray-600 transition-colors">
+            </div>
+            @endif
+
+            {{-- Tipo + Unidad --}}
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Tipo</label>
-                    <select
-                        wire:model.live="editTipo"
+                    <select wire:model.live="editTipo"
                         class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border text-[13px] focus:outline-none cursor-pointer transition-colors
-                               {{ $errors->has('editTipo') ? 'border-red-500/50' : 'border-gray-800 focus:border-gray-600' }}"
-                    >
-                        <option value="">Seleccionar...</option>
+                               {{ $errors->has('editTipo') ? 'border-red-500/50' : 'border-gray-800 focus:border-gray-600' }}">
                         <option value="material">Material</option>
-                        <option value="labor">Mano de obra</option>
-                        <option value="equipment">Equipo</option>
-                        <option value="Composición">Composición</option>
+                        <option value="labor">Mano de Obra</option>
+                        <option value="equipment">Equipo/Herramienta</option>
                     </select>
-                    @error('editTipo')
-                        <p class="mt-1 text-[11px] text-red-400">{{ $message }}</p>
-                    @enderror
+                    @error('editTipo') <p class="mt-1 text-[11px] text-red-400">{{ $message }}</p> @enderror
                 </div>
-
                 <div>
                     <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Unidad</label>
-                    <input
-                        type="text"
-                        wire:model="editUnidad"
+                    <select wire:model="editUnidad"
                         class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border text-[13px] focus:outline-none transition-colors
-                               {{ $errors->has('editUnidad') ? 'border-red-500/50' : 'border-gray-800 focus:border-gray-600' }}"
-                        placeholder="Ej: m², hr, kg"
-                    >
-                    @error('editUnidad')
-                        <p class="mt-1 text-[11px] text-red-400">{{ $message }}</p>
-                    @enderror
+                               {{ $errors->has('editUnidad') ? 'border-red-500/50' : 'border-gray-800 focus:border-gray-600' }}">
+                        <option value="un">und (Unidad)</option>
+                        <option value="m">m (Metro)</option>
+                        <option value="m2">m² (Metro cuadrado)</option>
+                        <option value="m3">m³ (Metro cúbico)</option>
+                        <option value="kg">kg (Kilogramo)</option>
+                        <option value="l">l (Litro)</option>
+                        <option value="h">h (Hora)</option>
+                        <option value="d">d (Día)</option>
+                        <option value="p2">p² (Pie cuadrado)</option>
+                        <option value="ml">ml (Metro lineal)</option>
+                        <option value="mes">mes</option>
+                    </select>
+                    @error('editUnidad') <p class="mt-1 text-[11px] text-red-400">{{ $message }}</p> @enderror
                 </div>
             </div>
 
-            {{-- Precio --}}
-            <div>
-                <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Precio USD</label>
-                <div class="relative">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-600 font-mono">USD</span>
-                    <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        wire:model="editPrecio"
-                        class="w-full pl-10 pr-3 py-2 rounded-lg bg-[#0a0a0a] text-white border text-[13px] focus:outline-none transition-colors
-                               {{ $errors->has('editPrecio') ? 'border-red-500/50' : 'border-gray-800 focus:border-gray-600' }}"
-                        placeholder="0.00"
-                    >
+            {{-- Precio + Moneda --}}
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Precio Unitario</label>
+                    <input type="number" step="0.001" min="0" wire:model="editPrecio" placeholder="0.00"
+                        class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border text-[13px] focus:outline-none transition-colors
+                               {{ $errors->has('editPrecio') ? 'border-red-500/50' : 'border-gray-800 focus:border-gray-600' }}">
+                    @error('editPrecio') <p class="mt-1 text-[11px] text-red-400">{{ $message }}</p> @enderror
                 </div>
-                @error('editPrecio')
-                    <p class="mt-1 text-[11px] text-red-400">{{ $message }}</p>
-                @enderror
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Moneda</label>
+                    <select wire:model="editMoneda"
+                        class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border border-gray-800 text-[13px] focus:outline-none focus:border-gray-600 transition-colors">
+                        <option value="USD">USD - Dólar Estadounidense</option>
+                        <option value="UYU">UYU - Peso Uruguayo</option>
+                        <option value="ARS">ARS - Peso Argentino</option>
+                        <option value="BRL">BRL - Real Brasileño</option>
+                    </select>
+                </div>
             </div>
 
-            {{-- Carga Social (solo para mano de obra) --}}
+            {{-- Carga Social (solo mano de obra) --}}
             @if ($editTipo === 'labor')
             <div>
                 <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Carga Social (%)</label>
-                <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    wire:model="editSocialChargesPercentage"
+                <input type="number" min="0" max="100" step="0.01" wire:model="editSocialChargesPercentage" placeholder="Ej: 72"
                     class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border text-[13px] focus:outline-none transition-colors
-                           {{ $errors->has('editSocialChargesPercentage') ? 'border-red-500/50' : 'border-gray-800 focus:border-gray-600' }}"
-                    placeholder="Ej: 72"
-                >
+                           {{ $errors->has('editSocialChargesPercentage') ? 'border-red-500/50' : 'border-gray-800 focus:border-gray-600' }}">
                 <p class="text-[9px] text-gray-500 mt-1">Porcentaje de carga social sobre el costo de mano de obra</p>
-                @error('editSocialChargesPercentage')
-                    <p class="mt-1 text-[11px] text-red-400">{{ $message }}</p>
-                @enderror
+                @error('editSocialChargesPercentage') <p class="mt-1 text-[11px] text-red-400">{{ $message }}</p> @enderror
             </div>
             @endif
+
+            {{-- Región + Vendedor --}}
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Región de Referencia</label>
+                    <select wire:model="editRegion"
+                        class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border border-gray-800 text-[13px] focus:outline-none focus:border-gray-600 transition-colors">
+                        <option value="Uruguay">Uruguay</option>
+                        <option value="Argentina">Argentina</option>
+                        <option value="Brasil">Brasil</option>
+                        <option value="Paraguay">Paraguay</option>
+                    </select>
+                </div>
+                @if ($editTipo !== 'labor')
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Vendedor Referente</label>
+                    <input type="text" wire:model="editVendedor" placeholder="Ej: Home Depot, Sodimac..."
+                        class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border border-gray-800 text-[13px] focus:outline-none focus:border-gray-600 transition-colors">
+                </div>
+                @endif
+            </div>
+
+            {{-- Precio estimativo --}}
+            <div class="flex items-center gap-3">
+                <input type="checkbox" wire:model="editPrecioEstimativo" id="editPrecioEstimativo"
+                    class="w-4 h-4 rounded bg-[#0a0a0a] border border-gray-700 accent-orange-500">
+                <label for="editPrecioEstimativo" class="text-[13px] text-gray-400 cursor-pointer">Precio Estimativo</label>
+            </div>
+
+            {{-- Marca / Modelo --}}
+            @if ($editTipo !== 'labor')
+            <div>
+                <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Marca / Modelo</label>
+                <input type="text" wire:model="editMarcaModelo" placeholder="Ej: Makita, Bosch, etc..."
+                    class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border border-gray-800 text-[13px] focus:outline-none focus:border-gray-600 transition-colors">
+            </div>
+            @endif
+
+            {{-- Observaciones --}}
+            <div>
+                <label class="block text-[11px] font-medium text-gray-500 uppercase tracking-widest mb-1.5">Observaciones</label>
+                <textarea wire:model="editObservaciones" placeholder="Detalles adicionales..."
+                    class="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border border-gray-800 text-[13px] focus:outline-none focus:border-gray-600 transition-colors h-20 resize-none"></textarea>
+            </div>
+
         </div>
 
         {{-- Footer --}}
@@ -703,10 +748,11 @@
                 <p class="text-[10px] font-bold text-gray-400 uppercase mb-2">Formato requerido</p>
                 <p class="text-[10px] text-gray-500">
                     <strong>Columna A:</strong> Nombre del recurso<br>
-                    <strong>Columna B:</strong> Unidad (ej: m, kg, broca)<br>
-                    <strong>Columna C:</strong> Precio USD
+                    <strong>Columna B:</strong> Código de venta (opcional, ej: MAT-001)<br>
+                    <strong>Columna C:</strong> Unidad (ej: m, kg, und)<br>
+                    <strong>Columna D:</strong> Precio USD
                 </p>
-                <p class="text-[9px] text-gray-600 mt-2">Ejemplo: Cable Unipolar 2.5mm | m | 0.80</p>
+                <p class="text-[9px] text-gray-600 mt-2">Ejemplo: Cable Unipolar 2.5mm | EL-001 | m | 0.80</p>
             </div>
 
             {{-- Estado de carga --}}
@@ -746,7 +792,12 @@
                             @foreach($recursosBienImportados as $recurso)
                                 <div class="p-2.5 bg-white/5 border border-white/10 rounded-lg text-[10px]">
                                     <p class="font-bold text-white">{{ $recurso['nombre'] }}</p>
-                                    <p class="text-gray-500">{{ $recurso['unidad'] }} • USD {{ number_format($recurso['precio'], 2) }}</p>
+                                    <p class="text-gray-500">
+                                        @if(!empty($recurso['codigo']))
+                                            <span class="text-gray-400 font-mono">{{ $recurso['codigo'] }}</span> •
+                                        @endif
+                                        {{ $recurso['unidad'] }} • USD {{ number_format($recurso['precio'], 2) }}
+                                    </p>
                                 </div>
                             @endforeach
                         </div>

@@ -25,10 +25,18 @@ class MostrarRecursos extends Component
     public bool $modalEditar = false;
     public ?int $editandoId  = null;
 
-    public string $editNombre = '';
-    public string $editTipo   = '';
-    public string $editUnidad = '';
-    public string $editPrecio = '';    public string $editSocialChargesPercentage = '';
+    public string $editNombre              = '';
+    public string $editCodigo              = '';
+    public string $editTipo                = '';
+    public string $editUnidad              = '';
+    public string $editPrecio              = '';
+    public string $editMoneda              = 'USD';
+    public string $editRegion              = 'Uruguay';
+    public string $editVendedor            = '';
+    public bool   $editPrecioEstimativo    = false;
+    public string $editMarcaModelo         = '';
+    public string $editObservaciones       = '';
+    public string $editSocialChargesPercentage = '';
     public float  $cargaSocialGlobal = 0;
     // ── Modal eliminación ────────────────────────────────────
     public bool $modalEliminar         = false;
@@ -302,16 +310,22 @@ public function eliminarItem()
     // ── EDITAR ────────────────────────────────────────────────
     public function editar(int $id): void
     {
-        // Cerrar modal anterior si estaba abierto
         $this->cerrarModalEditar();
 
         $recurso = Recurso::findOrFail($id);
 
-        $this->editandoId = $id;
-        $this->editNombre = $recurso->nombre;
-        $this->editTipo   = $recurso->tipo;
-        $this->editUnidad = $recurso->unidad;
-        $this->editPrecio = (string) $recurso->precio_usd;
+        $this->editandoId              = $id;
+        $this->editNombre              = $recurso->nombre;
+        $this->editCodigo              = $recurso->codigo ?? '';
+        $this->editTipo                = $recurso->tipo;
+        $this->editUnidad              = $recurso->unidad;
+        $this->editPrecio              = (string) $recurso->precio_usd;
+        $this->editMoneda              = $recurso->moneda ?? 'USD';
+        $this->editRegion              = $recurso->region ?? 'Uruguay';
+        $this->editVendedor            = $recurso->vendedor ?? '';
+        $this->editPrecioEstimativo    = (bool) ($recurso->precio_estimativo ?? false);
+        $this->editMarcaModelo         = $recurso->marca_modelo ?? '';
+        $this->editObservaciones       = $recurso->observaciones ?? '';
         $this->editSocialChargesPercentage = (string) ($recurso->social_charges_percentage ?? 0);
 
         $this->modalEditar = true;
@@ -327,9 +341,16 @@ public function eliminarItem()
 
         $recurso->update([
             'nombre'                    => trim($this->editNombre),
+            'codigo'                    => trim($this->editCodigo) ?: null,
             'tipo'                      => $this->editTipo,
             'unidad'                    => trim($this->editUnidad),
             'precio_usd'                => $precioNuevo,
+            'moneda'                    => $this->editMoneda,
+            'region'                    => $this->editRegion,
+            'vendedor'                  => trim($this->editVendedor) ?: null,
+            'precio_estimativo'         => $this->editPrecioEstimativo,
+            'marca_modelo'              => trim($this->editMarcaModelo) ?: null,
+            'observaciones'             => trim($this->editObservaciones) ?: null,
             'social_charges_percentage' => $this->editTipo === 'labor' ? (float) $this->editSocialChargesPercentage : 0,
         ]);
 
@@ -350,12 +371,19 @@ public function eliminarItem()
     public function cerrarModalEditar(): void
     {
         $this->resetErrorBag();
-        $this->modalEditar = false;
-        $this->editandoId  = null;
-        $this->editNombre  = '';
-        $this->editTipo    = 'material';
-        $this->editUnidad  = '';
-        $this->editPrecio  = '';
+        $this->modalEditar             = false;
+        $this->editandoId              = null;
+        $this->editNombre              = '';
+        $this->editCodigo              = '';
+        $this->editTipo                = 'material';
+        $this->editUnidad              = '';
+        $this->editPrecio              = '';
+        $this->editMoneda              = 'USD';
+        $this->editRegion              = 'Uruguay';
+        $this->editVendedor            = '';
+        $this->editPrecioEstimativo    = false;
+        $this->editMarcaModelo         = '';
+        $this->editObservaciones       = '';
         $this->editSocialChargesPercentage = '';
     }
 
@@ -505,12 +533,20 @@ public function eliminarItem()
                 while (($row = fgetcsv($handle, 1000, $delimitador)) !== false) {
                     $rowIndex++;
                     // Saltar encabezado (primera fila) solo si parece un encabezado
-                    if ($rowIndex === 1 && !is_numeric(trim($row[2] ?? ''))) continue;
+                    if ($rowIndex === 1 && !is_numeric(trim($row[3] ?? $row[2] ?? ''))) continue;
 
                     // Obtener valores de las columnas
                     $nombre = trim($row[0] ?? '');
-                    $unidad = trim($row[1] ?? '');
-                    $precio = trim($row[2] ?? '');
+                    $codigo = trim($row[1] ?? '');
+                    $unidad = trim($row[2] ?? '');
+                    $precio = trim($row[3] ?? '');
+
+                    // Soporte formato viejo (3 columnas sin código)
+                    if (!is_numeric($precio) && is_numeric($unidad)) {
+                        $precio = $unidad;
+                        $unidad = $codigo;
+                        $codigo = '';
+                    }
 
                     // Si la fila está vacía, continuar
                     if (!$nombre) {
@@ -523,7 +559,7 @@ public function eliminarItem()
                         continue;
                     }
 
-                    $this->crearRecursoDesdeImportacion($nombre, $unidad, $precio, $rowIndex, $exitosos, $errores);
+                    $this->crearRecursoDesdeImportacion($nombre, $unidad, $precio, $rowIndex, $exitosos, $errores, $codigo);
                 }
                 fclose($handle);
 
@@ -536,10 +572,18 @@ public function eliminarItem()
 
                 // Iterar por cada fila (comenzar en fila 2 para saltar encabezado)
                 for ($rowIndex = 2; $rowIndex <= $maxRow; $rowIndex++) {
-                    // Obtener valores de las columnas A, B, C
+                    // Obtener valores de las columnas A, B, C, D
                     $nombre = trim($sheet->getCell('A' . $rowIndex)->getValue() ?? '');
-                    $unidad = trim($sheet->getCell('B' . $rowIndex)->getValue() ?? '');
-                    $precio = trim($sheet->getCell('C' . $rowIndex)->getValue() ?? '');
+                    $codigo = trim($sheet->getCell('B' . $rowIndex)->getValue() ?? '');
+                    $unidad = trim($sheet->getCell('C' . $rowIndex)->getValue() ?? '');
+                    $precio = trim($sheet->getCell('D' . $rowIndex)->getValue() ?? '');
+
+                    // Soporte formato viejo (3 columnas sin código)
+                    if (!is_numeric($precio) && is_numeric($unidad)) {
+                        $precio = $unidad;
+                        $unidad = $codigo;
+                        $codigo = '';
+                    }
 
                     // Si la fila está vacía, continuar
                     if (!$nombre) {
@@ -552,7 +596,7 @@ public function eliminarItem()
                         continue;
                     }
 
-                    $this->crearRecursoDesdeImportacion($nombre, $unidad, $precio, $rowIndex, $exitosos, $errores);
+                    $this->crearRecursoDesdeImportacion($nombre, $unidad, $precio, $rowIndex, $exitosos, $errores, $codigo);
                 }
             }
 
@@ -574,14 +618,15 @@ public function eliminarItem()
         }
     }
 
-    private function crearRecursoDesdeImportacion(string $nombre, string $unidad, string $precio, int $rowIndex, &$exitosos, &$errores): void
+    private function crearRecursoDesdeImportacion(string $nombre, string $unidad, string $precio, int $rowIndex, &$exitosos, &$errores, string $codigo = ''): void
     {
         try {
             $recurso = Recurso::create([
-                'nombre' => $nombre,
-                'tipo' => $this->tipoImportacion,
-                'unidad' => $unidad ?: 'unidad',
-                'precio_usd' => (float) $precio,
+                'nombre'    => $nombre,
+                'codigo'    => $codigo ?: null,
+                'tipo'      => $this->tipoImportacion,
+                'unidad'    => $unidad ?: 'unidad',
+                'precio_usd'=> (float) $precio,
             ]);
 
             // Registrar precio inicial en historial
@@ -593,10 +638,11 @@ public function eliminarItem()
             ]);
 
             $this->recursosBienImportados[] = [
-                'nombre' => $recurso->nombre,
-                'tipo' => $recurso->tipo,
-                'unidad' => $recurso->unidad,
-                'precio' => $recurso->precio_usd,
+                'nombre'  => $recurso->nombre,
+                'codigo'  => $recurso->codigo,
+                'tipo'    => $recurso->tipo,
+                'unidad'  => $recurso->unidad,
+                'precio'  => $recurso->precio_usd,
             ];
 
             $exitosos++;

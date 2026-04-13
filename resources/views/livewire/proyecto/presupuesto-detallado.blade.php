@@ -973,7 +973,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
             @endif
 
             <div class="flex gap-3 pt-1">
-                <button wire:click="$set('mostrarModalRecursos', false)"
+                <button wire:click="cancelarModalRecursos"
                     class="w-1/2 py-3 rounded-xl border border-white/10 text-white text-xs font-bold hover:bg-white/5 transition-all">
                     CANCELAR
                 </button>

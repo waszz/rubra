@@ -15,6 +15,19 @@
         @error('nombre') <span class="text-red-400 text-xs mt-1 block">{{ $message }}</span> @enderror
     </div>
 
+    {{-- CÓDIGO DE VENTA --}}
+    @if ($tipo !== 'labor')
+    <div>
+        <label class="text-[10px] tracking-widest text-gray-500 uppercase">Código de Venta</label>
+        <input
+            type="text"
+            wire:model="codigo"
+            placeholder="Ej: MAT-001, SKU-123..."
+            class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 focus:border-white/30 focus:outline-none"
+        >
+    </div>
+    @endif
+
     {{-- TIPO + UNIDAD --}}
     <div class="grid grid-cols-2 gap-4">
         <div>
@@ -95,6 +108,7 @@
                 <option value="Paraguay">Paraguay</option>
             </select>
         </div>
+        @if ($tipo !== 'labor')
         <div>
             <label class="text-[10px] text-gray-500 uppercase">Vendedor Referente</label>
             <input
@@ -104,6 +118,7 @@
                 class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 focus:border-white/30 focus:outline-none"
             >
         </div>
+        @endif
     </div>
 
     {{-- PRECIO ESTIMATIVO --}}
@@ -118,6 +133,7 @@
     </div>
 
     {{-- MARCA / MODELO --}}
+    @if ($tipo !== 'labor')
     <div>
         <label class="text-[10px] text-gray-500 uppercase">Marca / Modelo</label>
         <input
@@ -127,6 +143,7 @@
             class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 focus:border-white/30 focus:outline-none"
         >
     </div>
+    @endif
 
     {{-- OBSERVACIONES --}}
     <div>

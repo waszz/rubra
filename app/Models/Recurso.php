@@ -13,9 +13,16 @@ class Recurso extends Model
 
   protected $fillable = [
     'nombre',
+    'codigo',
     'tipo',
     'unidad',
     'precio_usd',
+    'moneda',
+    'region',
+    'vendedor',
+    'precio_estimativo',
+    'marca_modelo',
+    'observaciones',
     'social_charges_percentage',
 ];
 

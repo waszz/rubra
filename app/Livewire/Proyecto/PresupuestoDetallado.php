@@ -93,6 +93,8 @@ class PresupuestoDetallado extends Component
     // Modal agregar item APU
     public bool $modalAgregarItemApu      = false;
     public ?int $apuComposicionId         = null;
+    // Cuando se abre el modal de recursos normales en modo APU
+    public ?int $apuComposicionIdCtx      = null;
     public string $nuevoItemApuNombre     = '';
     public string $nuevoItemApuCantidad   = '';
     public ?int $nuevoItemApuRecursoId    = null;
@@ -1220,6 +1222,16 @@ public function invitarUsuariosSeleccionados()
         $this->modalAgregarItemApu    = true;
     }
 
+    public function abrirModalRecursosParaApu(int $composicionId, string $nombre): void
+    {
+        $this->reset(['itemsRecursos', 'buscarSelector']);
+        $this->apuComposicionIdCtx   = $composicionId;
+        $this->nombreCtx             = $nombre;
+        $this->mostrarModalRecursos  = true;
+        $this->modalSelectorRecursos = false;
+        $this->filtroTipo            = 'Todos';
+    }
+
     public function buscarRecursosAgregarApu(): void
     {
         if (empty($this->nuevoItemApuNombre)) {
@@ -2194,9 +2206,16 @@ public function actualizarCostoReal($id, $valor)
         $this->parentId              = $parentId;
         $this->categoriaCtx          = $categoria;
         $this->nombreCtx             = $nombrePadre;
+        $this->apuComposicionIdCtx   = null;
         $this->mostrarModalRecursos  = true;
         $this->modalSelectorRecursos = false;
         $this->filtroTipo            = 'Todos';
+    }
+
+    public function cancelarModalRecursos(): void
+    {
+        $this->mostrarModalRecursos = false;
+        $this->apuComposicionIdCtx  = null;
     }
 
     public function toggleItemRecurso($recursoId, $cantidad = 1)
@@ -2229,6 +2248,24 @@ public function actualizarCostoReal($id, $valor)
     public function guardarRecursos()
     {
         $this->validate(['itemsRecursos' => 'required|array|min:1']);
+
+        // Modo APU: guardar como ComposicionItem en lugar de ProyectoRecurso
+        if ($this->apuComposicionIdCtx) {
+            foreach ($this->itemsRecursos as $item) {
+                \App\Models\ComposicionItem::create([
+                    'composicion_id' => $this->apuComposicionIdCtx,
+                    'recurso_id'     => $item['recurso_id'],
+                    'nombre'         => $item['nombre'],
+                    'cantidad'       => $item['cantidad'],
+                ]);
+            }
+            $this->recalcularComposicion($this->apuComposicionIdCtx);
+            $this->apuComposicionIdCtx  = null;
+            $this->mostrarModalRecursos = false;
+            $this->proyecto->refresh();
+            $this->cargarProyecto();
+            return;
+        }
 
         $maxOrden = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
             ->where('parent_id', $this->parentId)

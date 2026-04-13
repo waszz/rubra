@@ -9,6 +9,7 @@ use App\Models\PrecioHistorial;
 class CrearRecurso extends Component
 {
     public $nombre;
+    public $codigo;
     public $tipo = 'material';
     public $unidad = 'un';
     public $precio_usd = 0;
@@ -34,9 +35,16 @@ class CrearRecurso extends Component
 
         $recurso = Recurso::create([
             'nombre'                    => $this->nombre,
+            'codigo'                    => $this->codigo ?: null,
             'tipo'                      => $this->tipo,
             'unidad'                    => $this->unidad,
             'precio_usd'                => $this->precio_usd,
+            'moneda'                    => $this->moneda,
+            'region'                    => $this->region,
+            'vendedor'                  => $this->vendedor,
+            'precio_estimativo'         => $this->precio_estimativo,
+            'marca_modelo'              => $this->marca_modelo,
+            'observaciones'             => $this->observaciones,
             'social_charges_percentage' => $this->tipo === 'labor' ? $this->social_charges_percentage : 0,
         ]);
 

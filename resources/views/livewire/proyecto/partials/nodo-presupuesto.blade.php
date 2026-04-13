@@ -275,7 +275,7 @@
                             Cant: {{ number_format($nodo->cantidad ?? 1, 2) }} — P.Unit: {{ number_format($perUnitNodo ?? 0, 2, ',', '.') }}
                         </span>
                         @if(!$modoLectura)
-                        <button wire:click="abrirModalAgregarItemApu({{ $nodo->recurso_id }})"
+                        <button wire:click="abrirModalRecursosParaApu({{ $nodo->recurso_id }}, '{{ addslashes($nodo->nombre) }}')"
                             title="Agregar recurso al APU"
                             class="flex items-center gap-1 px-2 py-1 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 text-xs font-bold transition">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
