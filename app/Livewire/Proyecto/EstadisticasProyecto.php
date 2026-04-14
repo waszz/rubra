@@ -283,22 +283,24 @@ public function mount($proyectoId = null): void
                     $this->sumarManoDeObraRecursiva($nodo->hijos, $map, $cantNodo, $pctCS);
                 }
             } elseif ($nodo->recurso && in_array($nodo->recurso->tipo, ['labor', 'mano_obra'])) {
-                $nombre   = $nodo->nombre ?? $nodo->recurso->nombre ?? 'Sin nombre';
+                $nombreRaw = $nodo->nombre ?? $nodo->recurso->nombre ?? 'Sin nombre';
+                $nombre    = trim($nombreRaw);
+                $key       = mb_strtolower($nombre); // clave normalizada para agrupar
                 $cantEfec = ($nodo->cantidad ?? 0) * $multiplier;
                 $precio   = $nodo->precio_usd ?? 0;
                 $subtotal = $precio * $cantEfec;
                 $pct      = $pctCS > 0 ? $pctCS : (float)($nodo->recurso->social_charges_percentage ?? 0);
                 $cs       = $precio * ($pct / 100) * $cantEfec;
-                if (!isset($map[$nombre])) {
-                    $map[$nombre] = [
+                if (!isset($map[$key])) {
+                    $map[$key] = [
                         'nombre'      => $nombre,
                         'unidad'      => $nodo->unidad ?? $nodo->recurso->unidad ?? 'h',
                         'totalCosto'  => 0,
                         'cargaSocial' => 0,
                     ];
                 }
-                $map[$nombre]['totalCosto']  += $subtotal;
-                $map[$nombre]['cargaSocial'] += $cs;
+                $map[$key]['totalCosto']  += $subtotal;
+                $map[$key]['cargaSocial'] += $cs;
             }
         }
     }
