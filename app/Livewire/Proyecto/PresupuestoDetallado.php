@@ -884,8 +884,9 @@ private function obtenerDatosPresupuesto($scope = 'completo')
         if ($item['tipo'] === 'item' || $item['tipo'] === 'apu_header') {
             $catSubtotales[$cat] = ($catSubtotales[$cat] ?? 0) + ($item['subtotal'] ?? 0);
         } elseif ($item['tipo'] === 'subrubro') {
-            // Subrubros llevan la CS ya multiplicada por su cantidad → usarlos para el total de categoría
-            $catCsTotales[$cat] = ($catCsTotales[$cat] ?? 0) + ($item['carga_social_total'] ?? 0);
+            // CS del rubro padre = suma de (CS_por_unidad × cantidad) de cada subrubro hijo
+            $cantDisplay = $item['cantidad_display'] ?? $item['cantidad'] ?? 1;
+            $catCsTotales[$cat] = ($catCsTotales[$cat] ?? 0) + (($item['carga_social_total'] ?? 0) * $cantDisplay);
             if ($scope === 'completo') {
                 // En vista completa sólo sumar la parte propia del subrubro (evitar duplicar hijos)
                 $own = ($item['precio_own'] ?? 0) * ($item['cantidad'] ?? 0);

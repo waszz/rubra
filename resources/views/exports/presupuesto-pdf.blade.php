@@ -569,7 +569,7 @@
         <div class="section-title">Tabla de Presupuesto</div>
         <div class="presupuesto-content">
         <table>
-        <thead>
+        <thead style="display: table-row-group;">
             <tr>
                 <th style="width: 35%;">Ítem</th>
                 @if($opciones['incluirUnidad'])
