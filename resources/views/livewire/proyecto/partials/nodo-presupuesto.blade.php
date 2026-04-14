@@ -129,14 +129,14 @@
 <div class="border-t border-white/[0.025]" wire:key="{{ 'node-' . $nodo->id }}">
 
     {{-- FILA DEL NODO --}}
-    <div class="{{ $bgFila }} grid grid-cols-12 px-3 py-1.5 items-center group hover:brightness-110 transition-all {{ !$modoLectura ? 'cursor-grab active:cursor-grabbing' : '' }}"
+    <div class="{{ $bgFila }} trow grid px-3 py-1.5 items-center group hover:brightness-110 transition-all {{ !$modoLectura ? 'cursor-grab active:cursor-grabbing' : '' }}"
          data-node-id="{{ $nodo->id }}"
          data-parent-id="{{ $nodo->parent_id ?? '' }}"
          @if(!$modoLectura) draggable="true" @endif>
 
-        <div class="col-span-1"></div>
+        <div></div>
 
-        <div class="col-span-4 flex items-center justify-between pr-2 {{ $indent }}">
+        <div class="flex items-center justify-between pr-2 {{ $indent }} min-w-0 overflow-hidden">
             <div class="flex items-center gap-2 min-w-0 flex-1">
 
                 {{-- Ícono izquierdo según tipo --}}
@@ -244,11 +244,11 @@
             }
         @endphp
 
-        <div class="col-span-1 text-xs text-gray-600 text-center uppercase">
+        <div class="text-xs text-gray-600 text-center uppercase">
             {{ $nodo->unidad }}
         </div>
 
-        <div class="col-span-1 flex justify-center">
+        <div class="flex justify-center">
             @if(!$modoLectura)
                 <input type="number"
                        wire:change="updateCantidad({{ $nodo->id }}, $event.target.value)"
@@ -256,19 +256,19 @@
                        step="0.01"
                        class="w-14 bg-[#0a0a0a] border border-white/5 rounded px-1 py-0.5 text-xs text-center text-white font-bold focus:border-white/20 focus:outline-none">
             @else
-                <span class="text-xs text-gray-500 font-mono">{{ number_format($nodo->cantidad, 2) }}</span>
+                <span class="text-sm text-gray-500 font-mono">{{ number_format($nodo->cantidad, 2) }}</span>
             @endif
         </div>
 
-        <div class="col-span-2 text-center text-xs text-gray-600 font-mono">
+        <div class="text-center text-sm text-gray-600 font-mono">
             {{ number_format($perUnitMostrar, 2, ',', '.') }}
         </div>
 
-        <div class="col-span-1 text-center text-xs font-mono {{ $csNodo > 0 ? 'text-blue-400' : 'text-gray-700' }}">
+        <div class="text-center text-sm font-mono {{ $csNodo > 0 ? 'text-blue-400' : 'text-gray-700' }}">
             {{ $csNodo > 0 ? number_format($csNodo, 2, ',', '.') : '—' }}
         </div>
 
-        <div class="col-span-2 text-right text-xs font-bold {{ $colorTexto }} font-mono">
+        <div class="text-right text-sm font-bold {{ $colorTexto }} font-mono">
             {{ number_format($subtotalNodo, 2, ',', '.') }}
         </div>
     </div>

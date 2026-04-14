@@ -6,7 +6,14 @@
 @auth
 @php $user = auth()->user(); @endphp
 
-<div x-data="{ sidebarOpen: false }" @keydown.escape.window="sidebarOpen = false" class="contents">
+<div x-data="{
+    sidebarOpen: false,
+    sidebarCollapsed: localStorage.getItem('sb_col') === '1',
+    toggleCollapse() {
+        this.sidebarCollapsed = !this.sidebarCollapsed;
+        localStorage.setItem('sb_col', this.sidebarCollapsed ? '1' : '0');
+    }
+}" @keydown.escape.window="sidebarOpen = false" class="contents">
 
 {{-- ── Backdrop móvil ──────────────────────────────────────── --}}
 <div
@@ -22,19 +29,7 @@
     style="display: none;"
 ></div>
 
-{{-- ── Botón hamburguesa (solo móvil) ─────────────────────── --}}
-<button
-    @click="sidebarOpen = !sidebarOpen"
-    class="fixed top-3.5 left-4 z-[300] lg:hidden flex items-center justify-center w-9 h-9
-           bg-[#1a1a1a] border border-gray-800 hover:border-[#e85d27] rounded-xl
-           text-gray-400 hover:text-white transition-all duration-200">
-    <svg x-show="!sidebarOpen" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-    </svg>
-    <svg x-show="sidebarOpen" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-    </svg>
-</button>
+
 
 <aside
     :class="sidebarOpen ? 'translate-x-0 visible' : '-translate-x-full lg:translate-x-0 invisible lg:visible'"

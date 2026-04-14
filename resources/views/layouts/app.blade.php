@@ -305,9 +305,57 @@
 
   @if(auth()->check() && !request()->routeIs('home'))
     {{-- LAYOUT CON SIDEBAR para usuarios logueados (solo en páginas internas) --}}
-    <div class="flex h-screen overflow-visible">
+    @php $initHidden = !empty($hideSidebar) ? 'true' : 'false'; @endphp
+    <div class="flex h-screen overflow-visible" id="main-layout">
 
-        @include('layouts.navigation') 
+        <div id="sidebar-wrapper" style="display:flex;">
+            @include('layouts.navigation')
+        </div>
+
+        {{-- Botón central en el borde del sidebar --}}
+        <button onclick="rubraNavToggle()"
+                id="nav-toggle-btn"
+                class="hidden lg:flex fixed top-1/2 -translate-y-1/2 z-[250] items-center justify-center w-5 h-12
+                       bg-[#1a1a1a] border border-l-0 border-gray-800 hover:border-[#e85d27] rounded-r-xl
+                       text-gray-500 hover:text-[#e85d27] transition-all duration-300 ease-in-out"
+                style="left:256px">
+            <svg id="nav-toggle-icon-close" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+            </svg>
+            <svg id="nav-toggle-icon-open" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:none">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+
+        <script>
+        (function() {
+            var initHidden = {{ $initHidden }};
+            var saved = localStorage.getItem('rubra_nav');
+            var hidden = (saved !== null) ? (saved === '0') : initHidden;
+            if (hidden) {
+                var sw = document.getElementById('sidebar-wrapper');
+                var btn = document.getElementById('nav-toggle-btn');
+                var ic = document.getElementById('nav-toggle-icon-close');
+                var io = document.getElementById('nav-toggle-icon-open');
+                if (sw) sw.style.display = 'none';
+                if (btn) btn.style.left = '0';
+                if (ic) ic.style.display = 'none';
+                if (io) io.style.display = '';
+            }
+        })();
+        function rubraNavToggle() {
+            var sw  = document.getElementById('sidebar-wrapper');
+            var btn = document.getElementById('nav-toggle-btn');
+            var ic  = document.getElementById('nav-toggle-icon-close');
+            var io  = document.getElementById('nav-toggle-icon-open');
+            var visible = sw && sw.style.display !== 'none';
+            if (sw)  sw.style.display  = visible ? 'none' : 'flex';
+            if (btn) btn.style.left    = visible ? '0' : '256px';
+            if (ic)  ic.style.display  = visible ? 'none' : '';
+            if (io)  io.style.display  = visible ? '' : 'none';
+            localStorage.setItem('rubra_nav', visible ? '0' : '1');
+        }
+        </script>
 
         <div class="flex flex-col flex-1 overflow-visible">
 

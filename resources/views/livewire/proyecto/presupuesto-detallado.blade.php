@@ -216,13 +216,10 @@
     </div>
 </div>
 
-   <div class="flex-1 flex min-h-0 overflow-hidden">
-
-{{-- ═══ PANEL PRESUPUESTO (ancho arrastrable) ═══ --}}
-<div id="budget-panel" class="flex flex-col min-h-0 overflow-hidden" style="flex:1 1 0%">
+<div id="budget-panel" class="flex-1 flex flex-col min-h-0 overflow-hidden">
 
 {{-- PANEL SUPERIOR: banner + stats (colapsable / arrastrable) --}}
-<div id="stats-panel" class="shrink-0 px-6 pt-3 overflow-hidden" style="height:130px">
+<div id="stats-panel" class="shrink-0 px-6 pt-3 overflow-hidden" style="height:160px">
 
 {{-- BANNER MODO LECTURA --}}
 @if(($modoLectura || in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion'])) && $vistaActiva === 'presupuesto')
@@ -352,47 +349,47 @@ $totalFinal = $subtotalConBeneficio + $iva;
   <div class="flex gap-3 overflow-x-auto pb-1 md:grid md:grid-cols-3 {{ $mostrarBeneficio ? 'lg:grid-cols-5' : 'lg:grid-cols-4' }} md:overflow-visible">
 
     {{-- Subtotal --}}
-    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-2.5 text-center shrink-0 w-32 md:w-auto text-black dark:text-white">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-3 text-center shrink-0 w-32 md:w-auto text-black dark:text-white">
         <p class="text-[10px] text-gray-500 font-black uppercase mb-1">Subtotal</p>
-        <p class="text-sm font-black text-white leading-tight">
+        <p class="text-lg font-black text-white leading-tight">
             USD {{ number_format($subtotalBase, 0, ',', '.') }}
         </p>
     </div>
 
     {{-- Beneficio --}}
     @if($mostrarBeneficio)
-    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-2.5 text-center shrink-0 w-36 md:w-auto text-black dark:text-white">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-3 text-center shrink-0 w-36 md:w-auto text-black dark:text-white">
         <p class="text-[10px] text-gray-500 font-black uppercase mb-1">
             Benef. ({{ number_format($proyecto->beneficio ?? 0, 0) }}%)
         </p>
-        <p class="text-sm font-black text-orange-400 leading-tight">
+        <p class="text-lg font-black text-orange-400 leading-tight">
             USD {{ number_format($beneficioCalculado, 0, ',', '.') }}
         </p>
     </div>
     @endif
 
     {{-- Impuestos --}}
-    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-2.5 text-center shrink-0 w-36 md:w-auto text-black dark:text-white">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-3 text-center shrink-0 w-36 md:w-auto text-black dark:text-white">
         <p class="text-[10px] text-gray-500 font-black uppercase mb-1">
             IVA ({{ $proyecto->impuestos ?? 22 }}%)
         </p>
-        <p class="text-sm font-black text-white leading-tight">
+        <p class="text-lg font-black text-white leading-tight">
             USD {{ number_format($iva, 0, ',', '.') }}
         </p>
     </div>
 
     {{-- Precio Final --}}
-    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-2.5 text-center shadow-lg shadow-white/5 shrink-0 w-40 md:w-auto text-black dark:text-white">
-        <p class="text-[10px] text-gray-400 font-black uppercase mb-1">Precio Final</p>
-        <p class="text-sm font-black text-black dark:text-white leading-tight">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-3 text-center shadow-lg shadow-white/5 shrink-0 w-44 md:w-auto text-black dark:text-white ring-1 ring-[#e85d27]/30">
+        <p class="text-[10px] text-gray-400 font-black uppercase mb-1 tracking-widest">Precio Final</p>
+        <p class="text-2xl font-black text-black dark:text-white leading-tight">
             USD {{ number_format($totalFinal, 0, ',', '.') }}
         </p>
     </div>
 
     {{-- Carga Social --}}
-    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-2.5 text-center shrink-0 w-32 md:w-auto text-black dark:text-white {{ $cargaSocialCalculada > 0 ? '' : 'opacity-50' }}">
+    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-3 text-center shrink-0 w-32 md:w-auto text-black dark:text-white {{ $cargaSocialCalculada > 0 ? '' : 'opacity-50' }}">
         <p class="text-[10px] text-gray-500 font-black uppercase mb-1">C. Social</p>
-        <p class="text-sm font-black text-blue-400 leading-tight">
+        <p class="text-lg font-black text-blue-400 leading-tight">
             USD {{ number_format($cargaSocialCalculada, 0, ',', '.') }}
         </p>
     </div>
@@ -401,30 +398,33 @@ $totalFinal = $subtotalConBeneficio + $iva;
   </div>{{-- /stats-cards --}}
 </div>{{-- /panel superior --}}
 
-{{-- DRAG HANDLE VERTICAL (resize stats vs tabla) --}}
-<div id="v-handle" class="shrink-0 h-2 flex items-center justify-center cursor-ns-resize select-none relative z-10"
-    onmousedown="_vResizeStart(event)"
-    ontouchstart="_vResizeStart(event.touches[0]);event.preventDefault()">
-  <div id="v-handle-line" class="w-12 h-0.5 rounded-full bg-white/10" style="transition:background .15s"></div>
-</div>
 
 {{-- AREA SCROLLABLE: tabla / ejecución --}}
 <div class="flex-1 min-h-0 overflow-auto px-6 pb-6 pt-2">
 
     {{-- TABLA PRESUPUESTO --}}
     @if($vistaActiva === 'presupuesto')
-    <div class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden text-black dark:text-white">
+    <div id="bt" class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden text-black dark:text-white">
         <div class="overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
         <div class="min-w-[580px]">
 
-        <div class="grid grid-cols-12 px-3 py-1.5 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.01]">
-            <div class="col-span-1 text-xs text-gray-600 font-black">#</div>
-            <div class="col-span-4 text-xs text-gray-600 font-black uppercase tracking-widest">Descripción</div>
-            <div class="col-span-1 text-xs text-gray-600 font-black text-center">Ud.</div>
-            <div class="col-span-1 text-xs text-gray-600 font-black text-center">Cant.</div>
-            <div class="col-span-2 text-xs text-gray-600 font-black text-center">P. Unit.</div>
-            <div class="col-span-1 text-xs text-gray-600 font-black text-center">C. Social</div>
-            <div class="col-span-2 text-right text-xs text-gray-600 font-black">Total</div>
+        <div class="trow grid px-3 py-1.5 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.01]">
+            <div class="text-xs text-gray-600 font-black">#</div>
+            <div class="text-xs text-gray-600 font-black uppercase tracking-widest relative flex items-center">
+                Descripción
+                {{-- Handle para ajustar ancho de la columna de nombres --}}
+                <div id="dc-handle"
+                     onmousedown="_dcStart(event)"
+                     class="absolute right-0 inset-y-0 w-3 flex items-center justify-center cursor-col-resize group/dch"
+                     title="Arrastrar para ajustar ancho de nombres">
+                    <div class="w-px h-3.5 rounded-full bg-white/20 group-hover/dch:bg-purple-400/70 transition-colors"></div>
+                </div>
+            </div>
+            <div class="text-xs text-gray-600 font-black text-center">Ud.</div>
+            <div class="text-xs text-gray-600 font-black text-center">Cant.</div>
+            <div class="text-xs text-gray-600 font-black text-center">P. Unit.</div>
+            <div class="text-xs text-gray-600 font-black text-center">C. Social</div>
+            <div class="text-right text-xs text-gray-600 font-black">Total</div>
         </div>
 
         @forelse($categorias as $nombreCategoria => $nodosRaiz)
@@ -472,16 +472,16 @@ $totalFinal = $subtotalConBeneficio + $iva;
             {{-- CATEGORÍA --}}
             <div class="border-b border-gray-200 dark:border-white/5" wire:key="{{ 'cat-' . Str::slug($nombreCategoria) }}">
 
-                <div class="grid grid-cols-12 px-3 py-2 bg-gray-100 dark:bg-white/[0.02] items-center group {{ !$modoLectura && !in_array($proyecto->estado_obra, ['ejecucion','en_ejecucion']) ? 'cursor-grab active:cursor-grabbing' : '' }}"
+                <div class="trow grid px-3 py-2 bg-gray-100 dark:bg-white/[0.02] items-center group {{ !$modoLectura && !in_array($proyecto->estado_obra, ['ejecucion','en_ejecucion']) ? 'cursor-grab active:cursor-grabbing' : '' }}"
                      data-node-id="{{ $nodosRaiz->first()->id }}"
                      data-parent-id=""
                      @if(!$modoLectura && !in_array($proyecto->estado_obra, ['ejecucion','en_ejecucion'])) draggable="true" @endif>
 
-                    <div class="col-span-1 text-xs text-gray-600 font-mono">
+                    <div class="text-xs text-gray-600 font-mono">
                         {{ $loop->iteration }}
                     </div>
 
-                    <div class="col-span-4 flex items-center justify-between pr-2">
+                    <div class="flex items-center justify-between pr-2 min-w-0 overflow-hidden">
 
                         {{-- IZQUIERDA --}}
                         <div onclick="_lwToggle('{{ $catKey }}')" class="flex items-center gap-1.5 cursor-pointer min-w-0">
@@ -553,15 +553,15 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
                     </div>
 
-                    <div class="col-span-1"></div>
-                    <div class="col-span-1"></div>
-                    <div class="col-span-2"></div>
-                    <div class="col-span-1 text-center text-xs font-bold text-blue-300 font-mono">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div class="text-center text-sm font-bold text-blue-300 font-mono">
                         @if($csCategoria > 0)
                             {{ number_format($csCategoria, 2, ',', '.') }}
                         @endif
                     </div>
-                    <div class="col-span-2 text-right text-xs font-black text-white font-mono">
+                    <div class="text-right text-sm font-black text-white font-mono">
                         {{ number_format($totalCategoria, 2, ',', '.') }}
                     </div>
 
@@ -832,19 +832,6 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
 </div>{{-- /area scrollable --}}
 </div>{{-- /budgetPanel --}}
-
-{{-- ═══ HANDLE HORIZONTAL (drag izq/der para redimensionar) ═══ --}}
-<div id="h-handle" class="hidden sm:flex shrink-0 w-1.5 cursor-ew-resize relative items-stretch select-none z-20"
-     onmousedown="_hResizeStart(event)"
-     ontouchstart="_hResizeStart(event.touches[0]);event.preventDefault()">
-  <div id="h-handle-bg" class="absolute inset-0" style="transition:background .15s"></div>
-  <div id="h-handle-line" class="absolute inset-y-0 left-1/2 w-px bg-white/10" style="transform:translateX(-50%);transition:background .15s"></div>
-</div>
-
-{{-- ═══ AREA DERECHA: solo aparece cuando el panel está redimensionado ═══ --}}
-<div id="right-area" class="bg-[#0a0a0a]" style="display:none"></div>
-
-</div>{{-- /flex row externo --}}
     {{-- ══════════════════════════════════════════════════════
          MODAL: NUEVO RUBRO (CATEGORÍA RAÍZ)
     ══════════════════════════════════════════════════════ --}}
@@ -1721,7 +1708,16 @@ $totalFinal = $subtotalConBeneficio + $iva;
 </div>
 @endif
 
-{{-- JS puro: toggles + resize panel (sin Alpine) --}}
+{{-- Estilos y JS: toggles + drag columna nombres --}}
+<style>
+/* Columna descripción ajustable: el valor inicial vive en #bt */
+#bt { --dc: 360px; }
+#bt .trow {
+    display: grid;
+    grid-template-columns: 36px var(--dc) 52px 72px 1fr 72px 1fr;
+    min-width: 0;
+}
+</style>
 <script>
 /* ── Toggle rubros/subrubros ── */
 function _lwToggle(key) {
@@ -1738,7 +1734,7 @@ function _lwToggle(key) {
 
 /* ── Stats panel collapse ── */
 var _statsOpen = true;
-var _statsH    = 130;
+var _statsH    = 160;
 var _statsMin  = 44;
 var _statsMax  = 320;
 function _statsApply() {
@@ -1750,89 +1746,52 @@ function _statsApply() {
     if (txt) txt.textContent = _statsOpen ? 'Ocultar' : 'Mostrar';
 }
 
-/* ── Vertical resize (stats vs tabla) ── */
-var _vActive = false, _vStartY = 0, _vStartH = 0;
-function _vResizeStart(e) {
-    _vActive = true; _vStartY = e.clientY; _vStartH = _statsH;
-    document.body.style.cursor = 'ns-resize';
+/* ── Drag columna Descripción ── */
+var _dcActive = false, _dcStartX = 0, _dcStartW = 360;
+function _dcStart(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    _dcActive  = true;
+    _dcStartX  = e.clientX;
+    var bt = document.getElementById('bt');
+    _dcStartW  = parseInt(getComputedStyle(bt).getPropertyValue('--dc')) || 360;
+    document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-    var ln = document.getElementById('v-handle-line');
-    if (ln) ln.style.background = 'rgba(168,85,247,.6)';
 }
 
-/* ── Horizontal resize (ancho panel) ── */
-var _hActive = false, _hStartX = 0, _hStartW = 0;
-function _hResizeStart(e) {
-    _hActive = true; _hStartX = e.clientX;
-    var bp = document.getElementById('budget-panel');
-    _hStartW = bp ? bp.offsetWidth : window.innerWidth;
-    document.body.style.cursor = 'ew-resize';
-    document.body.style.userSelect = 'none';
-    var bg = document.getElementById('h-handle-bg');
-    var ln = document.getElementById('h-handle-line');
-    if (bg) bg.style.background = 'rgba(168,85,247,.2)';
-    if (ln) ln.style.background = '#a855f7';
-}
-
-/* ── Eventos globales de mousemove / mouseup ── */
-window.addEventListener('mousemove', function(e) {
-    if (_vActive) {
-        var delta = e.clientY - _vStartY;
-        _statsH = Math.max(_statsMin, Math.min(_statsMax, _vStartH + delta));
-        _statsOpen = _statsH > _statsMin + 10;
-        var p = document.getElementById('stats-panel');
-        if (p) p.style.height = (_statsOpen ? _statsH : _statsMin) + 'px';
+/* Restaurar ancho guardado */
+(function() {
+    var saved = localStorage.getItem('rubra_dc');
+    if (saved) {
+        var bt = document.getElementById('bt');
+        if (bt) bt.style.setProperty('--dc', saved + 'px');
     }
-    if (_hActive) {
-        var delta = e.clientX - _hStartX;
-        var container = document.getElementById('budget-panel').parentElement;
-        var maxW = container ? container.offsetWidth - 8 : window.innerWidth;
-        var newW = Math.max(360, Math.min(maxW, _hStartW + delta));
-        var bp = document.getElementById('budget-panel');
-        var ra = document.getElementById('right-area');
-        if (bp) { bp.style.flex = 'none'; bp.style.width = newW + 'px'; }
-        if (ra) ra.style.cssText = 'flex:1 1 0%;background:#0a0a0a';
+})();
+
+/* ── Eventos globales mousemove / mouseup ── */
+window.addEventListener('mousemove', function(e) {
+    if (_dcActive) {
+        var newW = Math.max(120, Math.min(560, _dcStartW + (e.clientX - _dcStartX)));
+        document.getElementById('bt').style.setProperty('--dc', newW + 'px');
     }
 });
 window.addEventListener('mouseup', function() {
-    if (_vActive) {
-        _vActive = false;
+    if (_dcActive) {
+        _dcActive = false;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
-        var ln = document.getElementById('v-handle-line');
-        if (ln) ln.style.background = '';
-        _statsApply();
-    }
-    if (_hActive) {
-        _hActive = false;
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        var bg = document.getElementById('h-handle-bg');
-        var ln = document.getElementById('h-handle-line');
-        if (bg) bg.style.background = '';
-        if (ln) ln.style.background = 'rgba(255,255,255,.1)';
+        var bt = document.getElementById('bt');
+        var w = parseInt(getComputedStyle(bt).getPropertyValue('--dc'));
+        if (w) localStorage.setItem('rubra_dc', w);
     }
 });
 window.addEventListener('touchmove', function(e) {
-    if (_vActive || _hActive) {
+    if (_dcActive) {
         window.dispatchEvent(new MouseEvent('mousemove', { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }));
     }
 }, { passive: true });
 window.addEventListener('touchend', function() {
     window.dispatchEvent(new MouseEvent('mouseup'));
-});
-
-/* ── Hover en handles ── */
-document.addEventListener('mouseover', function(e) {
-    var h = e.target.closest('#v-handle');
-    var ln = document.getElementById('v-handle-line');
-    if (ln) ln.style.background = h ? 'rgba(255,255,255,.35)' : '';
-
-    var hh = e.target.closest('#h-handle');
-    var bg = document.getElementById('h-handle-bg');
-    var hl = document.getElementById('h-handle-line');
-    if (bg) bg.style.background = hh ? 'rgba(255,255,255,.07)' : '';
-    if (hl) hl.style.background = hh ? 'rgba(255,255,255,.3)' : 'rgba(255,255,255,.1)';
 });
 </script>
 

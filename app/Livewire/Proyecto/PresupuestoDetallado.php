@@ -131,7 +131,7 @@ public $rolCompartir = 'supervisor'; // Rol que elegirá quien genera el link
     public $incluirUnidad = true;
     public $incluirCantidad = true;
     public $incluirPrecio = true;
-    public $incluirCargaSocial = false;
+    public $incluirCargaSocial = true;
 
     // Alcance de exportación: 'completo' | 'rubros_subrubros'
     public $exportScope = 'completo';
@@ -145,7 +145,7 @@ public $rolCompartir = 'supervisor'; // Rol que elegirá quien genera el link
     public $excelIncluirUnidad = true;
     public $excelIncluirCantidad = true;
     public $excelIncluirPrecio = true;
-    public $excelIncluirCargaSocial = false;
+    public $excelIncluirCargaSocial = true;
 
     // Historial undo/redo
     public $historialEstados = [];
@@ -185,10 +185,7 @@ public $rolCompartir = 'supervisor'; // Rol que elegirá quien genera el link
         // en_revision permite editar el presupuesto pero no acceder a la vista de ejecución
         $this->modoLectura = in_array($proyecto->estado_obra, ['ejecucion', 'finalizado', 'pausado']);
 
-        $primera = $this->proyecto->proyectoRecursos->first()?->categoria;
-        if ($primera) {
-            $this->nodosAbiertos[] = 'cat_' . $primera;
-        }
+        // Todas las categorías inician cerradas
 
         // Guardar estado inicial para historial
         $this->guardarEstado();
@@ -243,7 +240,7 @@ public function resetearFormularioPDF()
     $this->incluirUnidad = true;
     $this->incluirCantidad = true;
     $this->incluirPrecio = true;
-    $this->incluirCargaSocial = false;
+    $this->incluirCargaSocial = true;
 }
 
 public function abrirModalExcel()
@@ -262,7 +259,7 @@ public function cerrarModalExcel()
     $this->excelIncluirUnidad = true;
     $this->excelIncluirCantidad = true;
     $this->excelIncluirPrecio = true;
-    $this->excelIncluirCargaSocial = false;
+    $this->excelIncluirCargaSocial = true;
 }
 
 public function exportarPDF()
@@ -276,13 +273,7 @@ public function exportarPDF()
         $config = ConfiguracionGeneral::instancia();
 
         $subtotalBase         = $datos['total'];
-        // Sumar carga social solo de los ítems que se muestran en la tabla (item, apu_header, subrubro)
-        $cargaSocial = 0;
-        foreach ($datos['items'] as $it) {
-            if (in_array($it['tipo'], ['item', 'apu_header', 'subrubro'])) {
-                $cargaSocial += (float)($it['carga_social_total'] ?? 0);
-            }
-        }
+        $cargaSocial          = $this->calcularCargaSocialPDF();
         $pctBeneficio         = (float) ($this->proyecto->beneficio ?? 0);
         $beneficioMonto       = $subtotalBase * ($pctBeneficio / 100);
         $subtotalConBeneficio = $subtotalBase + $beneficioMonto;
@@ -355,7 +346,7 @@ public function exportarPDF()
         ])->render();
 
         // ── PDF ───────────────────────────────────────────────
-        $pdf        = Pdf::loadHTML($html)->setPaper('A4', 'portrait');
+        $pdf        = Pdf::loadHTML($html)->setPaper('A4', 'landscape');
         $pdfContent = $pdf->output();
         // ─────────────────────────────────────────────────────
 
@@ -442,13 +433,15 @@ public function exportarExcel()
             'borders'   => ['allBorders' => ['borderStyle' => $Thin]],
         ];
         $styleData = [
-            'borders'   => ['allBorders' => ['borderStyle' => $Thin]],
-            'alignment' => ['vertical' => 'center', 'wrapText' => true],
+            'borders'   => ['allBorders' => ['borderStyle' => $Thin, 'color' => ['rgb' => 'DDDDDD']]],
+            'alignment' => ['vertical' => 'center', 'wrapText' => false],
+            'font'      => ['size' => 9],
         ];
         $styleCatRow = [
             'font'      => ['bold' => true, 'size' => 9, 'color' => ['rgb' => '1a1a1a']],
             'fill'      => ['fillType' => $Fill, 'startColor' => ['rgb' => 'E8E8E8']],
-            'borders'   => ['allBorders' => ['borderStyle' => $Thin]],
+            'borders'   => ['allBorders' => ['borderStyle' => $Thin, 'color' => ['rgb' => 'CCCCCC']]],
+            'alignment' => ['vertical' => 'center'],
         ];
         $styleTotalRow = [
             'font'      => ['bold' => true, 'size' => 10, 'color' => ['rgb' => 'FFFFFF']],
@@ -655,11 +648,11 @@ public function exportarExcel()
         $sheet->setCellValueByColumnAndRow($col++, $row, 'Ítem');
         if ($this->excelIncluirUnidad)        $sheet->setCellValueByColumnAndRow($col++, $row, 'Unidad');
         if ($this->excelIncluirCantidad)      $sheet->setCellValueByColumnAndRow($col++, $row, 'Cantidad');
-        if ($this->excelIncluirCargaSocial)   $sheet->setCellValueByColumnAndRow($col++, $row, 'Carga Social');
         if ($this->excelIncluirPrecio) {
-            $sheet->setCellValueByColumnAndRow($col++, $row, 'Precio ' . $monedaBase);
-            $sheet->setCellValueByColumnAndRow($col++, $row, 'Subtotal');
+            $sheet->setCellValueByColumnAndRow($col++, $row, 'P. Unit. ' . $monedaBase);
+            $sheet->setCellValueByColumnAndRow($col++, $row, 'Total');
         }
+        if ($this->excelIncluirCargaSocial)   $sheet->setCellValueByColumnAndRow($col++, $row, 'Carga Social');
         $lastCol = $col - 1;
         $lastColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($lastCol);
         $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleColHeader);
@@ -687,6 +680,7 @@ public function exportarExcel()
                     $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleCatRow);
                 }
                 $sheet->setCellValueByColumnAndRow($lastCol + 1, $row, 'CAT');
+                $sheet->getRowDimension($row)->setRowHeight(16);
                 $row++;
             }
 
@@ -702,19 +696,21 @@ public function exportarExcel()
                 if ($this->excelIncluirUnidad)   $sheet->setCellValueByColumnAndRow($col++, $row, $item['unidad'] ?? '');
                 $cantSubrubro = $item['cantidad_display'] ?? $item['cantidad'] ?? 0;
                 if ($this->excelIncluirCantidad)    $sheet->setCellValueByColumnAndRow($col++, $row, $cantSubrubro);
-                if ($this->excelIncluirCargaSocial) $sheet->setCellValueByColumnAndRow($col++, $row, $item['carga_social_total'] ?? 0);
                 if ($this->excelIncluirPrecio) {
                     // Precio y subtotal incluyen todos los recursos hijos (precio_usd = perUnit sumando hijos)
                     $precioConBeneficioExcel   = ($item['precio_usd'] ?? 0) * (1 + $pctBeneficio / 100);
                     $subtotalConBeneficioExcel = $precioConBeneficioExcel * $cantSubrubro;
                     $sheet->setCellValueByColumnAndRow($col++, $row, $precioConBeneficioExcel);
                     $sheet->setCellValueByColumnAndRow($col++, $row, $subtotalConBeneficioExcel);
-                    $penult = $lastCol - 1;
+                    $penult = $lastCol - ($this->excelIncluirCargaSocial ? 2 : 1);
                     $penultLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($penult);
+                    $totalColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($penult + 1);
                     $sheet->getStyle($penultLetter . $row)->getNumberFormat()->setFormatCode('#,##0.00');
-                    $sheet->getStyle($lastColLetter . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                    $sheet->getStyle($totalColLetter . $row)->getNumberFormat()->setFormatCode('#,##0.00');
                 }
+                if ($this->excelIncluirCargaSocial) $sheet->setCellValueByColumnAndRow($col++, $row, $item['carga_social_total'] ?? 0);
                 $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleSubrubro);
+                $sheet->getRowDimension($row)->setRowHeight(15);
                 $sheet->setCellValueByColumnAndRow($lastCol + 1, $row, 'SUB');
                 $row++;
                 continue;
@@ -724,15 +720,30 @@ public function exportarExcel()
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['categoria']);
             $sheet->setCellValueByColumnAndRow($col++, $row, $item['nombre']);
             if ($this->excelIncluirUnidad)      $sheet->setCellValueByColumnAndRow($col++, $row, $item['unidad']);
-            if ($this->excelIncluirCantidad)    $sheet->setCellValueByColumnAndRow($col++, $row, $item['cantidad_display'] ?? $item['cantidad']);
-            if ($this->excelIncluirCargaSocial) $sheet->setCellValueByColumnAndRow($col++, $row, $item['carga_social_total'] ?? 0);
+            if ($this->excelIncluirCantidad) {
+                $cantVal = $item['cantidad_display'] ?? $item['cantidad'];
+                $sheet->setCellValueByColumnAndRow($col, $row, $cantVal);
+                $sheet->getStyleByColumnAndRow($col, $row)->getNumberFormat()->setFormatCode('#,##0.0000');
+                $col++;
+            }
             if ($this->excelIncluirPrecio) {
                 $precioConBeneficioExcel   = ($item['precio_usd'] ?? 0) * (1 + $pctBeneficio / 100);
                 $subtotalConBeneficioExcel = ($item['subtotal_display'] ?? $item['subtotal'] ?? 0) * (1 + $pctBeneficio / 100);
-                $sheet->setCellValueByColumnAndRow($col++, $row, $precioConBeneficioExcel);
-                $sheet->setCellValueByColumnAndRow($col++, $row, $subtotalConBeneficioExcel);
+                $sheet->setCellValueByColumnAndRow($col, $row, $precioConBeneficioExcel);
+                $sheet->getStyleByColumnAndRow($col, $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                $col++;
+                $sheet->setCellValueByColumnAndRow($col, $row, $subtotalConBeneficioExcel);
+                $sheet->getStyleByColumnAndRow($col, $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                $col++;
+            }
+            if ($this->excelIncluirCargaSocial) {
+                $csVal = $item['carga_social_total'] ?? 0;
+                $sheet->setCellValueByColumnAndRow($col, $row, $csVal);
+                $sheet->getStyleByColumnAndRow($col, $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                $col++;
             }
             $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleData);
+            $sheet->getRowDimension($row)->setRowHeight(15);
             $sheet->setCellValueByColumnAndRow($lastCol + 1, $row, 'REC');
             $row++;
         }
@@ -776,15 +787,25 @@ public function exportarExcel()
         }
 
         // ─────────────────────────────────────────────────────
-        // ANCHOS DE COLUMNA
+        // ANCHOS DE COLUMNA — dinámicos según columnas incluidas
         // ─────────────────────────────────────────────────────
-        $sheet->getColumnDimension('A')->setWidth(22);
-        $sheet->getColumnDimension('B')->setWidth(38);
-        $sheet->getColumnDimension('C')->setWidth(10);
-        $sheet->getColumnDimension('D')->setWidth(12);
-        $sheet->getColumnDimension('E')->setWidth(16);
-        $sheet->getColumnDimension('F')->setWidth(18);
-        // Columna oculta con marcador de tipo (CAT/SUB/REC) — siempre una después de la última visible
+        $colWidths = [];
+        $colWidths[] = 20;  // A: Categoría
+        $colWidths[] = 42;  // B: Ítem (más ancho, texto largo)
+        if ($this->excelIncluirUnidad)      $colWidths[] = 10;  // Unidad
+        if ($this->excelIncluirCantidad)    $colWidths[] = 12;  // Cantidad
+        if ($this->excelIncluirPrecio) {
+            $colWidths[] = 18;  // P. Unit.
+            $colWidths[] = 18;  // Total
+        }
+        if ($this->excelIncluirCargaSocial) $colWidths[] = 18;  // Carga Social
+
+        foreach ($colWidths as $i => $width) {
+            $letter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
+            $sheet->getColumnDimension($letter)->setWidth($width);
+        }
+
+        // Columna oculta con marcador de tipo (CAT/SUB/REC)
         $markerColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($lastCol + 1);
         $sheet->getColumnDimension($markerColLetter)->setVisible(false);
 
@@ -2446,7 +2467,7 @@ public function actualizarCostoReal($id, $valor)
                                     : collect([]),
             'modoLectura'       => $this->modoLectura,
             'vistaActiva'       => $this->vistaActiva,
-        ])->layout('layouts.app');
+        ])->layout('layouts.app', ['hideSidebar' => true]);
     }
 
     /**
