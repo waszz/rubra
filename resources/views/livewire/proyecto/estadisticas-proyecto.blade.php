@@ -349,6 +349,60 @@
         @endif
     </div>
 
+    {{-- TODOS LOS MATERIALES --}}
+    @if($stats['todosLosMateriales']->count())
+    <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h2 class="text-sm font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">Todos los Materiales</h2>
+            <span class="text-xs font-bold text-gray-400 dark:text-gray-600 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/10 px-2.5 py-1 rounded-full">
+                {{ $stats['todosLosMateriales']->count() }} ítems
+            </span>
+        </div>
+        @php $totalTodosMat = $stats['todosLosMateriales']->sum('costoReal'); @endphp
+        <div class="overflow-x-auto">
+            <table class="w-full text-base">
+                <thead class="sticky top-0 bg-gray-100 dark:bg-[#111] z-10">
+                    <tr class="border-b border-gray-200 dark:border-gray-700/50">
+                        <th class="text-left px-4 py-3 text-gray-500 font-black uppercase tracking-widest">#</th>
+                        <th class="text-left px-4 py-3 text-gray-500 font-black uppercase tracking-widest">Material</th>
+                        <th class="text-center px-4 py-3 text-gray-500 font-black uppercase tracking-widest">Cantidad</th>
+                        <th class="text-right px-4 py-3 text-gray-500 font-black uppercase tracking-widest">P. Unit.</th>
+                        <th class="text-right px-4 py-3 text-gray-500 font-black uppercase tracking-widest">Total</th>
+                        <th class="text-right px-4 py-3 text-gray-500 font-black uppercase tracking-widest">%</th>
+                    </tr>
+                </thead>
+            </table>
+            {{-- Scroll container --}}
+            <div class="overflow-y-auto" style="max-height: 480px;">
+                <table class="w-full text-base">
+                    <tbody>
+                        @foreach($stats['todosLosMateriales'] as $index => $material)
+                            @php $pctMat = $totalTodosMat > 0 ? ($material['costoReal'] / $totalTodosMat) * 100 : 0; @endphp
+                            <tr class="border-b border-gray-200 dark:border-gray-700/20 hover:bg-gray-200/50 dark:hover:bg-white/5 transition-colors">
+                                <td class="px-4 py-2 text-gray-400 dark:text-gray-600 font-bold text-sm">{{ $index + 1 }}</td>
+                                <td class="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-sm">{{ $material['nombre'] }}</td>
+                                <td class="px-4 py-2 text-center text-gray-500 dark:text-gray-400 text-sm tabular-nums">
+                                    {{ number_format($material['cantidad'], 2) }}
+                                    @if($material['unidad']) <span class="text-gray-400 dark:text-gray-600">{{ $material['unidad'] }}</span> @endif
+                                </td>
+                                <td class="px-4 py-2 text-right text-gray-500 dark:text-gray-400 text-sm font-mono tabular-nums">USD {{ number_format($material['precioUnitario'], 2, ',', '.') }}</td>
+                                <td class="px-4 py-2 text-right font-black font-mono tabular-nums text-black dark:text-white text-sm">USD {{ number_format($material['costoReal'], 0, ',', '.') }}</td>
+                                <td class="px-4 py-2 text-right">
+                                    <span class="inline-block bg-orange-500/20 text-orange-500 dark:text-orange-400 px-2 py-0.5 rounded text-xs font-bold">{{ number_format($pctMat, 1) }}%</span>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700/50 flex justify-between items-center">
+            <span class="text-sm text-gray-500 font-black uppercase">Total Materiales</span>
+            <span class="text-lg font-black text-orange-500 dark:text-orange-400">USD {{ number_format($totalTodosMat, 0, ',', '.') }}</span>
+        </div>
+    </div>
+    @endif
+
     {{-- EVOLUCIÓN TEMPORAL --}}
     @if($stats['evolucion']->count())
     <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-6">

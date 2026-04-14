@@ -150,10 +150,9 @@ public function mount($proyectoId = null): void
             $materialesMap,
             1
         );
-        $mayoresMateriales = collect($materialesMap)
-            ->sortByDesc('costoReal')
-            ->take(10)
-            ->values();
+        $materialesCollection = collect($materialesMap)->sortByDesc('costoReal')->values();
+        $mayoresMateriales    = $materialesCollection->take(10);
+        $todosLosMateriales   = $materialesCollection; // sin límite
 
         // ── MANO DE OBRA POR CARGO/ESPECIALIDAD ─────────────────────────────
         $pctCS = (float)($proyecto->carga_social ?? 0);
@@ -187,6 +186,7 @@ public function mount($proyectoId = null): void
             'topPartidas',
             'distribucion',
             'mayoresMateriales',
+            'todosLosMateriales',
             'evolucion',
             'subtotal',
             'beneficio'
@@ -251,11 +251,13 @@ public function mount($proyectoId = null): void
                     $this->sumarMaterialesRecursiva($nodo->hijos, $map, $cantNodo);
                 }
             } elseif ($nodo->recurso && $nodo->recurso->tipo === 'material') {
-                $nombre   = $nodo->nombre ?? $nodo->recurso->nombre ?? 'Sin nombre';
+                $nombreRaw = $nodo->nombre ?? $nodo->recurso->nombre ?? 'Sin nombre';
+                $nombre    = trim($nombreRaw);
+                $key       = mb_strtolower($nombre);
                 $cantEfec = ($nodo->cantidad ?? 0) * $multiplier;
                 $subtotal = ($nodo->precio_usd ?? 0) * $cantEfec;
-                if (!isset($map[$nombre])) {
-                    $map[$nombre] = [
+                if (!isset($map[$key])) {
+                    $map[$key] = [
                         'nombre'         => $nombre,
                         'cantidad'       => 0,
                         'unidad'         => $nodo->unidad ?? $nodo->recurso->unidad ?? '',
@@ -263,8 +265,8 @@ public function mount($proyectoId = null): void
                         'costoReal'      => 0,
                     ];
                 }
-                $map[$nombre]['cantidad']  += $cantEfec;
-                $map[$nombre]['costoReal'] += $subtotal;
+                $map[$key]['cantidad']  += $cantEfec;
+                $map[$key]['costoReal'] += $subtotal;
             }
         }
     }
