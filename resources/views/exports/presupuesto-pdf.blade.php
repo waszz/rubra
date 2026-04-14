@@ -612,7 +612,10 @@
                         @if($opciones['incluirPrecio'])
                             <td colspan="{{ $colsExtra + 2 }}">{{ $item['categoria'] }}</td>
                             <td class="text-right">$ {{ number_format(($datos['cat_subtotales'][$item['categoria']] ?? 0) * $factorBeneficio, 2, ',', '.') }}</td>
-                            @if($opciones['incluirCargaSocial'])<td></td>@endif
+                            @if($opciones['incluirCargaSocial'])
+                                @php $catCS = $datos['cat_cs_totales'][$item['categoria']] ?? 0; @endphp
+                                <td class="text-right">{{ $catCS > 0 ? '$ ' . number_format($catCS, 2, ',', '.') : '—' }}</td>
+                            @endif
                         @else
                             <td colspan="{{ $colsExtra + 1 + ($opciones['incluirCargaSocial'] ? 1 : 0) }}">{{ $item['categoria'] }}</td>
                         @endif

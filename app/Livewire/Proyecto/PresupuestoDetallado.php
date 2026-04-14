@@ -667,13 +667,21 @@ public function exportarExcel()
             if ($item['categoria'] !== '' && $item['categoria'] !== $categoriaActual) {
                 $categoriaActual = $item['categoria'];
                 $catSubtotal = (($datos['cat_subtotales'][$item['categoria']] ?? 0)) * (1 + $pctBeneficio / 100);
+                $catCsTotal  = $datos['cat_cs_totales'][$item['categoria']] ?? 0;
                 if ($this->excelIncluirPrecio && $lastCol > 1) {
-                    $penultimateColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($lastCol - 1);
+                    // When CS column present: Total goes in (lastCol-1), CS goes in lastCol
+                    $totalColIndex = $this->excelIncluirCargaSocial ? $lastCol - 1 : $lastCol;
+                    $mergeUntil    = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($totalColIndex - 1);
+                    $totalColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($totalColIndex);
                     $sheet->setCellValue('A' . $row, $item['categoria']);
-                    $sheet->mergeCells('A' . $row . ':' . $penultimateColLetter . $row);
+                    $sheet->mergeCells('A' . $row . ':' . $mergeUntil . $row);
                     $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleCatRow);
-                    $sheet->setCellValueByColumnAndRow($lastCol, $row, $catSubtotal);
-                    $sheet->getStyle($lastColLetter . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                    $sheet->setCellValueByColumnAndRow($totalColIndex, $row, $catSubtotal);
+                    $sheet->getStyle($totalColLetter . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                    if ($this->excelIncluirCargaSocial) {
+                        $sheet->setCellValueByColumnAndRow($lastCol, $row, $catCsTotal > 0 ? $catCsTotal : '');
+                        $sheet->getStyle($lastColLetter . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+                    }
                 } else {
                     $sheet->setCellValue('A' . $row, $item['categoria']);
                     $sheet->mergeCells('A' . $row . ':' . $lastColLetter . $row);
@@ -868,13 +876,16 @@ private function obtenerDatosPresupuesto($scope = 'completo')
 
     $this->recorrerNodos($this->proyecto->proyectoRecursos->whereNull('parent_id'), '', $items, $total);
 
-    // Subtotal por categoría.
+    // Subtotal y carga social por categoría.
     $catSubtotales = [];
+    $catCsTotales  = [];
     foreach ($items as $item) {
         $cat = $item['categoria'] ?? '';
         if ($item['tipo'] === 'item' || $item['tipo'] === 'apu_header') {
             $catSubtotales[$cat] = ($catSubtotales[$cat] ?? 0) + ($item['subtotal'] ?? 0);
         } elseif ($item['tipo'] === 'subrubro') {
+            // Subrubros llevan la CS ya multiplicada por su cantidad → usarlos para el total de categoría
+            $catCsTotales[$cat] = ($catCsTotales[$cat] ?? 0) + ($item['carga_social_total'] ?? 0);
             if ($scope === 'completo') {
                 // En vista completa sólo sumar la parte propia del subrubro (evitar duplicar hijos)
                 $own = ($item['precio_own'] ?? 0) * ($item['cantidad'] ?? 0);
@@ -895,9 +906,10 @@ private function obtenerDatosPresupuesto($scope = 'completo')
     }
 
     return [
-        'items'          => $items,
-        'total'          => $totalGeneral,
-        'cat_subtotales' => $catSubtotales,
+        'items'           => $items,
+        'total'           => $totalGeneral,
+        'cat_subtotales'  => $catSubtotales,
+        'cat_cs_totales'  => $catCsTotales,
     ];
 }
 
@@ -933,10 +945,10 @@ private function calcularCSNodo($nodo, float $multiplier = 1): float
             $total += ($resBase->precio_usd ?? 0) * ($pct / 100) * $interno->cantidad * $cantNodo;
         }
 
-    // Subrubro: recorrer hijos
+    // Subrubro: sumar CS de hijos sin propagar la cantidad del subrubro padre
     } elseif ($nodo->hijos && $nodo->hijos->count() > 0) {
         foreach ($nodo->hijos as $hijo) {
-            $total += $this->calcularCSNodo($hijo, $cantNodo);
+            $total += $this->calcularCSNodo($hijo, 1);
         }
     }
 
@@ -1068,7 +1080,7 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
                 'precio_usd'         => $perUnit,
                 'precio_own'         => $nodo->precio_usd ?? $nodo->precio_unitario ?? 0,
                 'subtotal'           => $subrubroSubtotal,
-                'carga_social_total' => $this->calcularCSNodo($nodo, $multiplier),
+                'carga_social_total' => $this->calcularCSNodo($nodo, $cantidadNodo),
             ];
 
             if ($tieneHijos) {
@@ -1097,7 +1109,7 @@ private function recorrerNodos($nodos, $categoria = '', &$items = [], &$total = 
                 'precio_usd'         => $precioUnitario,
                 'subtotal'           => $subtotal,
                 'subtotal_display'   => $cantidadDisplay * $precioUnitario,
-                'carga_social_total' => $this->calcularCSNodo($nodo, $multiplier),
+                'carga_social_total' => $this->calcularCSNodo($nodo, 1),
             ];
 
             // Expandir items del APU como sub-filas para mostrar el desglose en el PDF
