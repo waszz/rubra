@@ -554,8 +554,8 @@ $totalFinal = $subtotalConBeneficio + $iva;
                                 $todosSubAbiertos = count($subKeys) > 0 && count(array_intersect($subKeys, $nodosAbiertos)) === count($subKeys);
                             @endphp
                             @if(count($subKeys) > 0)
-                            <button wire:click.stop="toggleSubrubrosDeCategoria({{ $nodosRaiz->first()->id }})"
-                                title="{{ $todosSubAbiertos ? 'Cerrar subrubros' : 'Abrir subrubros' }}"
+                            <button wire:click.stop="toggleSubrubrosDeCategoria({{ $nodosRaiz->first()->id }}, '{{ $catKey }}')"
+                                onclick="_lwEnsureCatOpen('{{ $catKey }}')"
                                 class="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider transition
                                     {{ $todosSubAbiertos ? 'bg-white/10 text-gray-300 hover:bg-white/20' : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300' }}">
                                 @if($todosSubAbiertos)
@@ -1795,6 +1795,14 @@ function _lwToggle(key) {
     if (el)  el.style.display  = open ? 'none' : '';
     if (apu) apu.style.display = open ? 'none' : '';
     if (chv) chv.style.transform = open ? '' : 'rotate(90deg)';
+}
+
+// Ensures a category stays visually open after a Livewire re-render
+function _lwEnsureCatOpen(key) {
+    var el  = document.getElementById('children-' + key);
+    var chv = document.getElementById('chv-' + key);
+    if (el)  el.style.display = '';
+    if (chv) chv.style.transform = 'rotate(90deg)';
 }
 
 function _expandirTodosDOM() {

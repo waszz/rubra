@@ -2313,7 +2313,7 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
     /**
      * Abre o cierra todos los subrubros (hijos directos sin recurso) de una categoría.
      */
-    public function toggleSubrubrosDeCategoria(int $catNodeId): void
+    public function toggleSubrubrosDeCategoria(int $catNodeId, string $catKey): void
     {
         $keys = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
             ->where('parent_id', $catNodeId)
@@ -2327,11 +2327,16 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
         $abiertos = array_filter($keys, fn($k) => in_array($k, $this->nodosAbiertos));
 
         if (count($abiertos) === count($keys)) {
-            // Todos abiertos → cerrar todos
+            // Todos abiertos → cerrar todos (mantener categoría abierta)
             $this->nodosAbiertos = array_values(array_diff($this->nodosAbiertos, $keys));
         } else {
             // Alguno/ninguno cerrado → abrir todos
             $this->nodosAbiertos = array_values(array_unique(array_merge($this->nodosAbiertos, $keys)));
+        }
+
+        // Asegurar que la categoría padre quede abierta en el servidor
+        if (!in_array($catKey, $this->nodosAbiertos)) {
+            $this->nodosAbiertos[] = $catKey;
         }
     }
 
