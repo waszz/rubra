@@ -901,7 +901,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
          MODAL: NUEVO RUBRO (CATEGORÍA RAÍZ)
     ══════════════════════════════════════════════════════ --}}
     @if($mostrarModalRubro)
-    <div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+    <div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
         <div class="w-full max-w-md border border-white/10 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl">
 
             <div class="text-center">
@@ -954,7 +954,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
          MODAL: NUEVO SUB-RUBRO
     ══════════════════════════════════════════════════════ --}}
     @if($mostrarModalSubrubro)
-    <div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+    <div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
         <div class="w-full max-w-sm border border-white/10 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl">
             <div class="text-center">
                 <p class="text-xs text-gray-600 uppercase font-black mb-1">Nuevo Sub-Rubro en</p>
@@ -1006,7 +1006,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
          MODAL: AGREGAR RECURSOS DIRECTOS
     ══════════════════════════════════════════════════════ --}}
     @if($mostrarModalRecursos)
-    <div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+    <div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
         <div class="w-full max-w-md border border-white/10 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl">
             <div class="text-center">
                 <p class="text-xs text-gray-600 uppercase font-black mb-1">Recursos en</p>
@@ -1029,7 +1029,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
                             <p class="text-gray-500 text-xs uppercase">USD {{ number_format($item['precio_usd'] ?? 0, 2) }}</p>
                         </div>
                         <input type="number" step="0.01" wire:model="itemsRecursos.{{ $index }}.cantidad"
-                            class="w-16 bg-[#0f1115] border border-white/10 rounded-lg px-2 py-1 text-white text-base text-center">
+                            class="w-28 bg-[#0f1115] border border-white/10 rounded-lg px-2 py-1 text-white text-base text-center">
                         <button wire:click="quitarItemRecurso({{ $index }})" class="text-gray-600 hover:text-red-400 transition-colors px-1 text-lg">×</button>
                     </div>
                 @endforeach
@@ -1054,7 +1054,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
          MODAL: SELECTOR DE RECURSOS (compartido)
     ══════════════════════════════════════════════════════ --}}
     @if($modalSelectorRecursos)
-    <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+    <div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
         <div class="bg-[#141414] border border-white/10 rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[85vh]">
             <div class="px-8 pt-8 pb-6">
                 <div class="flex justify-between items-start mb-6">
@@ -1095,7 +1095,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
                             </div>
                             <div class="flex items-center gap-2 bg-black/20 p-1 rounded-xl border border-white/5">
                                 <input type="number" id="qty-r-{{ $recurso->id }}" value="1"
-                                    class="w-12 bg-transparent text-white text-xs font-bold text-center focus:outline-none">
+                                    class="w-20 bg-transparent text-white text-xs font-bold text-center focus:outline-none">
                                 <button onclick="let v = document.getElementById('qty-r-{{ $recurso->id }}').value; @this.toggleItemRecurso({{ $recurso->id }}, v)"
                                     class="w-8 h-8 rounded-lg flex items-center justify-center transition-all {{ $yaAgregado ? 'bg-red-500/20 text-red-400 hover:bg-red-500/40' : 'bg-white/5 text-gray-400 hover:bg-white hover:text-black' }}">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1119,7 +1119,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
     </div>
     @endif
 @if($mostrarModalEditar)
-<div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4"
+<div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md px-4"
     x-data="{ nombreLocal: @entangle('editNombre') }">
     <div class="w-full max-w-md border border-white/10 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl">
 
@@ -1173,7 +1173,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 @endif
 
 @if($mostrarModalEliminar)
-<div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+<div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
 
     <div class="w-full max-w-md border border-red-500/20 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl text-center">
 
@@ -1201,7 +1201,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 @endif
 
 @if($mostrarModalInvitar)
-<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-[300]">
     <div class="bg-[#1a1a1a] p-4 rounded-xl w-96">
 
         <h2 class="text-white font-bold mb-3">Invitar usuarios</h2>
@@ -1247,7 +1247,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 @endif
 
 @if($mostrarModalCompartir)
-<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" x-data="{ copiado: @js($linkCopiado) }">
+<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-[300] px-4" x-data="{ copiado: @js($linkCopiado) }">
     <div class="bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
 
         {{-- Header --}}
@@ -1358,7 +1358,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
 {{-- MODAL EXPORTACIÓN PDF --}}
 @if($mostrarModalPDF)
-<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-[300] px-4">
     <div class="bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
 
         {{-- HEADER --}}
@@ -1502,7 +1502,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
 {{-- MODAL EXPORTACIÓN EXCEL --}}
 @if($mostrarModalExcel)
-<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-[300] px-4">
     <div class="bg-[#1a1a1a] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
 
         {{-- HEADER --}}
@@ -1624,7 +1624,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
      MODAL: EDITAR ITEM APU
 ══════════════════════════════════════════════════════ --}}
 @if($modalEditarItemApu)
-<div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+<div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
     <div class="bg-[#141414] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
         <h2 class="text-white font-black text-sm uppercase tracking-widest mb-5">Editar recurso APU</h2>
 
@@ -1695,7 +1695,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
      MODAL: AGREGAR ITEM APU
 ══════════════════════════════════════════════════════ --}}
 @if($modalAgregarItemApu)
-<div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+<div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
     <div class="bg-[#141414] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
         <h2 class="text-white font-black text-sm uppercase tracking-widest mb-5">Agregar recurso al APU</h2>
 
@@ -1755,7 +1755,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
      MODAL: ELIMINAR ITEM APU
 ══════════════════════════════════════════════════════ --}}
 @if($modalEliminarItemApu)
-<div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+<div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
     <div class="bg-[#141414] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
         <h2 class="text-white font-black text-sm uppercase tracking-widest mb-2">¿Eliminar recurso del APU?</h2>
         <p class="text-gray-400 text-sm mb-5">El precio total del APU se recalculará automáticamente.</p>
@@ -1915,7 +1915,7 @@ document.addEventListener('click', function(event) {
      MODAL: IMPORTAR PRESUPUESTO
 ════════════════════════════════════════════════════════ --}}
 @if($modalImportarPresupuesto)
-<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+<div class="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
     <div class="w-full max-w-lg bg-[#111] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
 
         {{-- Header --}}
@@ -2011,7 +2011,7 @@ document.addEventListener('click', function(event) {
      MODAL: ELIMINAR TODO EL PRESUPUESTO
 ════════════════════════════════════════════════════════ --}}
 @if($modalEliminarTodo)
-<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+<div class="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
     <div class="w-full max-w-sm bg-[#111] border border-red-500/30 rounded-2xl shadow-2xl overflow-hidden">
         <div class="flex items-center gap-3 px-6 py-4 border-b border-white/5">
             <div class="w-8 h-8 rounded-full bg-red-500/15 flex items-center justify-center shrink-0">

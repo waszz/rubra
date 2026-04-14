@@ -39,13 +39,24 @@ class EstadisticasExportController extends Controller
 
     private function calcularStats($proyecto)
     {
-        $subtotal  = ProyectoRecurso::where('proyecto_id', $proyecto->id)
-            ->whereNotNull('parent_id')
-            ->sum(DB::raw('cantidad * precio_usd'));
+        $pctBen = (float)($proyecto->beneficio  ?? 0);
+        $pctIva = (float)($proyecto->impuestos  ?? 22);
 
-        $beneficio   = $subtotal * (($proyecto->beneficio ?? 0) / 100);
-        $iva         = ($subtotal + $beneficio) * (($proyecto->impuestos ?? 22) / 100);
-        $presupuesto = $subtotal + $beneficio + $iva;
+        // Usar presupuesto_total guardado (calculado con traversal correcto del árbol).
+        $presupuesto = (float)($proyecto->presupuesto_total ?? 0);
+
+        if ($presupuesto <= 0) {
+            // Fallback: sumar solo hojas reales (evita doble conteo con subrubros)
+            $hojas = ProyectoRecurso::where('proyecto_id', $proyecto->id)
+                ->whereNotNull('parent_id')
+                ->whereNotNull('recurso_id')
+                ->sum(DB::raw('cantidad * precio_usd'));
+            $ben = $hojas * ($pctBen / 100);
+            $presupuesto = ($hojas + $ben) * (1 + $pctIva / 100);
+        }
+
+        $subtotal  = $presupuesto / ((1 + $pctBen / 100) * (1 + $pctIva / 100));
+        $beneficio = $subtotal * ($pctBen / 100);
 
         $costoRealSubtotal = ProyectoRecurso::where('proyecto_id', $proyecto->id)
             ->whereNotNull('parent_id')

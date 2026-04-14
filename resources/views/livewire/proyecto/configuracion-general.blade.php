@@ -173,18 +173,6 @@
                     Ubicación de la Sede (Seleccionar en el Mapa)
                 </label>
 
-          {{-- Selector de Proyecto --}}
-<select
-    wire:model="proyecto_activo"
-    onchange="filtrarProyecto(this.value)"
-    class="bg-[#1a1a1a] border border-[#2e2e2e] hover:border-[#e85d27] focus:border-[#e85d27] focus:outline-none transition-colors rounded-lg px-3.5 py-2 text-sm text-neutral-300 cursor-pointer"
->
-    <option value="">TODOS LOS PROYECTOS</option>
-    @foreach($proyectos as $p)
-        <option value="{{ $p['id'] }}">{{ $p['nombre_proyecto'] }}</option>
-    @endforeach
-</select>
-
                 {{-- Contenedor del mapa — wire:ignore evita que Livewire lo re-renderice --}}
                 <div
                     id="rubra-map"
@@ -298,6 +286,90 @@
     </div>
 
 </div>
+
+    {{-- ── CARD PLAN Y SUSCRIPCIÓN ────────────────────────────────────────── --}}
+    @php
+        $u = auth()->user();
+        $planColors = [
+            'gratis'      => 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+            'basico'      => 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
+            'profesional' => 'bg-purple-500/20 text-purple-400 border border-purple-500/30',
+            'enterprise'  => 'bg-orange-500/20 text-orange-300 border border-orange-500/30',
+        ];
+        $planBadge = $planColors[$u->plan] ?? $planColors['gratis'];
+    @endphp
+    <div class="mx-10 mb-7 bg-[#141414] border border-[#222] rounded-xl p-8 max-w-4xl">
+
+        <p class="text-[11px] text-neutral-600 font-medium tracking-[0.12em] uppercase mb-5">
+            Plan y Suscripción
+        </p>
+
+        <div class="flex items-center justify-between gap-6 flex-wrap">
+
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <span class="{{ $planBadge }} text-xs font-semibold px-3 py-1 rounded-full">
+                        {{ $u->planLabel() }}
+                    </span>
+
+                    @if($u->isOnTrial())
+                        <span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-semibold px-3 py-1 rounded-full">
+                            {{ $u->trialDaysLeft() }} días restantes
+                        </span>
+                    @elseif($u->trialExpired())
+                        <span class="bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-semibold px-3 py-1 rounded-full">
+                            Trial vencido
+                        </span>
+                    @elseif($u->plan !== 'gratis' && $u->plan_expires_at)
+                        @if($u->plan_expires_at->isFuture())
+                            <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold px-3 py-1 rounded-full">
+                                Activo · vence {{ $u->plan_expires_at->format('d/m/Y') }}
+                            </span>
+                            @php
+                                $diasHastaVenc = (int) now()->diffInDays($u->plan_expires_at, false);
+                            @endphp
+                            @if($diasHastaVenc <= 30)
+                                <span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-semibold px-3 py-1 rounded-full">
+                                    {{ $diasHastaVenc }} días restantes
+                                </span>
+                            @endif
+                        @else
+                            <span class="bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-semibold px-3 py-1 rounded-full">
+                                Vencido
+                            </span>
+                        @endif
+                    @else
+                        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold px-3 py-1 rounded-full">
+                            Activo
+                        </span>
+                    @endif
+                </div>
+
+                <div class="flex items-center gap-5 text-xs text-neutral-500">
+                    <span>Proyectos disponibles:
+                        <span class="text-neutral-300 font-medium">
+                            {{ $u->proyectosLimite() >= 999999 ? 'Ilimitados' : $u->proyectosLimite() }}
+                        </span>
+                    </span>
+                    @if($u->plan !== 'gratis')
+                        <span>Período:
+                            <span class="text-neutral-300 font-medium">{{ ucfirst($u->plan_periodo ?? 'mensual') }}</span>
+                        </span>
+                    @endif
+                </div>
+            </div>
+
+            @if(!$u->isGod() && $u->plan !== 'enterprise')
+                <a href="{{ url('/#precios') }}"
+                   class="shrink-0 bg-[#e85d27] hover:bg-[#d04e1f] active:scale-95 transition-all duration-150
+                          text-white text-xs font-medium rounded-lg px-5 py-2.5">
+                    {{ $u->plan === 'gratis' ? 'Contratar plan' : 'Mejorar plan' }}
+                </a>
+            @endif
+
+        </div>
+
+    </div>{{-- /card plan --}}
 
 {{-- ── MODAL ELIMINAR CUENTA ───────────────────────────────────────────── --}}
 @if($modalEliminarCuenta)

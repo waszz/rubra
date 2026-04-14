@@ -95,7 +95,7 @@
     @else
 
     {{-- CARDS SUPERIORES --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
 
         {{-- Presupuesto --}}
         <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-5">
@@ -104,6 +104,59 @@
                 <p class="text-xs text-gray-500 font-black uppercase tracking-[0.15em]">Presupuesto Total</p>
             </div>
             <p class="text-2xl font-black text-black dark:text-white tracking-tighter">{{ number_format($stats['presupuesto'], 0, ',', '.') }}</p>
+            <p class="text-xs text-gray-400 dark:text-gray-600 mt-1">Subtotal + {{ number_format($proyecto->beneficio ?? 0, 0) }}% benef. + {{ number_format($proyecto->impuestos ?? 22, 0) }}% IVA</p>
+        </div>
+
+        {{-- Subtotal base --}}
+        <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-purple-500 dark:text-purple-400 text-lg">Σ</span>
+                    <p class="text-xs text-gray-500 font-black uppercase tracking-[0.15em]">Subtotal Obra</p>
+                </div>
+                @if(($proyecto->beneficio ?? 0) > 0)
+                    <button wire:click="toggleSubtotal"
+                        class="text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors
+                            {{ $subtotalConBeneficio
+                                ? 'bg-purple-500/20 text-purple-500 dark:text-purple-400 border-purple-500/30'
+                                : 'bg-gray-200 dark:bg-white/5 text-gray-400 border-gray-300 dark:border-white/10 hover:border-purple-500/30' }}">
+                        {{ $subtotalConBeneficio ? 'c/ ganancia' : 's/ ganancia' }}
+                    </button>
+                @endif
+            </div>
+            @php
+                $subtotalMostrar = $subtotalConBeneficio
+                    ? ($stats['subtotal'] + $stats['beneficio'])
+                    : $stats['subtotal'];
+            @endphp
+            <p class="text-2xl font-black text-black dark:text-white tracking-tighter">USD {{ number_format($subtotalMostrar, 0, ',', '.') }}</p>
+            <div class="text-xs text-gray-400 dark:text-gray-600 mt-1 space-y-0.5">
+                @if(($proyecto->beneficio ?? 0) > 0)
+                    @if($subtotalConBeneficio)
+                        <p>Incl. {{ number_format($proyecto->beneficio, 1) }}% benef. (USD {{ number_format($stats['beneficio'], 0, ',', '.') }})</p>
+                    @else
+                        <p>Sin {{ number_format($proyecto->beneficio, 1) }}% de beneficio</p>
+                    @endif
+                @endif
+            </div>
+        </div>
+
+        {{-- Costo por m² --}}
+        <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <svg class="w-4 h-4 text-amber-500 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+                <p class="text-xs text-gray-500 font-black uppercase tracking-[0.15em]">Costo / m²</p>
+            </div>
+            @php $m2 = (float)($proyecto->metros_cuadrados ?? 0); @endphp
+            @if($m2 > 0)
+                <p class="text-2xl font-black text-amber-500 dark:text-amber-400 tracking-tighter">
+                    USD {{ number_format($stats['subtotal'] / $m2, 2, ',', '.') }}
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-600 mt-1">{{ number_format($m2, 0, ',', '.') }} m² totales</p>
+            @else
+                <p class="text-2xl font-black text-gray-400 dark:text-gray-600 tracking-tighter">—</p>
+                <p class="text-xs text-gray-400 dark:text-gray-600 mt-1">Sin m² definidos</p>
+            @endif
         </div>
 
         {{-- Avance financiero --}}
@@ -152,16 +205,24 @@
                     </div>
                     <div class="w-full space-y-2">
                         @php
-                            $colDist   = ['material'=>'#3b82f6','labor'=>'#22c55e','equipment'=>'#f97316','composition'=>'#a855f7'];
-                            $labelDist = ['material'=>'Materiales','labor'=>'Mano de Obra','equipment'=>'Equipos','composition'=>'Composiciones'];
+                            $colDist   = ['material'=>'#3b82f6','labor'=>'#22c55e','equipment'=>'#f97316','composition'=>'#a855f7','sin_clasificar'=>'#6b7280'];
+                            $labelDist = ['material'=>'Materiales','labor'=>'Mano de Obra','equipment'=>'Equipos','composition'=>'Composiciones','sin_clasificar'=>'Sin clasificar'];
+                            $totalDist = $stats['distribucion']->sum('total');
                         @endphp
                         @foreach($stats['distribucion'] as $dist)
-                        <div class="flex justify-between items-center text-base">
+                        @php $pctDist = $totalDist > 0 ? ($dist->total / $totalDist) * 100 : 0; @endphp
+                        <div class="flex justify-between items-center py-1.5 border-b border-gray-200 dark:border-gray-800">
                             <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 rounded-full" style="background:{{ $colDist[$dist->tipo] ?? '#6b7280' }}"></div>
-                                <span class="text-gray-500 dark:text-gray-400 font-bold uppercase">{{ $labelDist[$dist->tipo] ?? $dist->tipo }}</span>
+                                <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background:{{ $colDist[$dist->tipo] ?? '#6b7280' }}"></div>
+                                <span class="text-gray-600 dark:text-gray-400 font-bold uppercase text-sm">{{ $labelDist[$dist->tipo] ?? $dist->tipo }}</span>
                             </div>
-                            <span class="text-black dark:text-white font-black">USD {{ number_format($dist->total, 0, ',', '.') }}</span>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                                    style="background:{{ $colDist[$dist->tipo] ?? '#6b7280' }}22; color:{{ $colDist[$dist->tipo] ?? '#6b7280' }}">
+                                    {{ number_format($pctDist, 1) }}%
+                                </span>
+                                <span class="text-black dark:text-white font-black text-sm tabular-nums">USD {{ number_format($dist->total, 0, ',', '.') }}</span>
+                            </div>
                         </div>
                         @endforeach
                     </div>
@@ -230,6 +291,64 @@
         @endif
     </div>
 
+    {{-- MANO DE OBRA POR CARGO/ESPECIALIDAD --}}
+    <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h2 class="text-sm font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">Mano de Obra por Cargo / Especialidad</h2>
+            @if($stats['pctCS'] > 0)
+                <span class="text-xs font-bold text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full">
+                    CS {{ number_format($stats['pctCS'], 1) }}%
+                </span>
+            @endif
+        </div>
+        @if($stats['manoDeObra']->count())
+            @php $totalMO = $stats['manoDeObra']->sum('totalConCS'); @endphp
+            <div class="overflow-x-auto">
+                <table class="w-full text-base">
+                    <thead>
+                        <tr class="border-b border-gray-200 dark:border-gray-700/50">
+                            <th class="text-left px-4 py-3 text-gray-500 font-black uppercase tracking-widest">#</th>
+                            <th class="text-left px-4 py-3 text-gray-500 font-black uppercase tracking-widest">Cargo / Especialidad</th>
+                            <th class="text-right px-4 py-3 text-gray-500 font-black uppercase tracking-widest">Costo MO</th>
+                            <th class="text-right px-4 py-3 text-gray-500 font-black uppercase tracking-widest">Carga Social</th>
+                            <th class="text-right px-4 py-3 text-gray-500 font-black uppercase tracking-widest">Total c/CS</th>
+                            <th class="text-right px-4 py-3 text-gray-500 font-black uppercase tracking-widest">%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($stats['manoDeObra'] as $index => $cargo)
+                            @php
+                                $pct = $totalMO > 0 ? ($cargo['totalConCS'] / $totalMO) * 100 : 0;
+                            @endphp
+                            <tr class="border-b border-gray-200 dark:border-gray-700/20 hover:bg-gray-200/50 dark:hover:bg-white/5 transition-colors">
+                                <td class="px-4 py-2 text-gray-400 dark:text-gray-600 font-bold">{{ $index + 1 }}</td>
+                                <td class="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium capitalize">{{ $cargo['nombre'] }}</td>
+                                <td class="px-4 py-2 text-right font-mono text-gray-600 dark:text-gray-400">USD {{ number_format($cargo['totalCosto'], 0, ',', '.') }}</td>
+                                <td class="px-4 py-2 text-right font-mono">
+                                    @if($cargo['cargaSocial'] > 0)
+                                        <span class="text-green-600 dark:text-green-400 font-bold">+ USD {{ number_format($cargo['cargaSocial'], 0, ',', '.') }}</span>
+                                    @else
+                                        <span class="text-gray-400 dark:text-gray-600">—</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-2 text-right font-black font-mono text-black dark:text-white">USD {{ number_format($cargo['totalConCS'], 0, ',', '.') }}</td>
+                                <td class="px-4 py-2 text-right">
+                                    <span class="inline-block bg-green-500/20 text-green-600 dark:text-green-400 px-2 py-1 rounded font-bold">{{ number_format($pct, 1) }}%</span>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700/50 flex justify-between items-center flex-wrap gap-3">
+                <span class="text-sm text-gray-500 font-black uppercase">Total Mano de Obra (con carga social)</span>
+                <span class="text-lg font-black text-green-600 dark:text-green-400">USD {{ number_format($totalMO, 0, ',', '.') }}</span>
+            </div>
+        @else
+            <div class="flex items-center justify-center h-40 text-gray-400 dark:text-gray-700 text-base font-bold uppercase">Sin mano de obra cargada</div>
+        @endif
+    </div>
+
     {{-- EVOLUCIÓN TEMPORAL --}}
     @if($stats['evolucion']->count())
     <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-6">
@@ -248,7 +367,7 @@
     <script>
     (function () {
         function initCharts() {
-            const colDist = {material:'#3b82f6',labor:'#22c55e',equipment:'#f97316',composition:'#a855f7'};
+            const colDist = {material:'#3b82f6',labor:'#22c55e',equipment:'#f97316',composition:'#a855f7',sin_clasificar:'#6b7280'};
 
             // ── DONA ────────────────────────────────────────────
             const donaEl = document.getElementById('dona-distribucion');
