@@ -163,14 +163,11 @@ class EstadisticasExportController extends Controller
 
     private function calcularStats($proyecto)
     {
-        $pctBen = (float)($proyecto->beneficio  ?? 0);
-        $pctIva = (float)($proyecto->impuestos  ?? 22);
+        $pctBen = (float)($proyecto->beneficio ?? 0);
+        $pctIva = (float)($proyecto->impuestos ?? 22);
 
-        // Usar presupuesto_total guardado (calculado con traversal correcto del árbol).
         $presupuesto = (float)($proyecto->presupuesto_total ?? 0);
-
         if ($presupuesto <= 0) {
-            // Fallback: sumar solo hojas reales (evita doble conteo con subrubros)
             $hojas = ProyectoRecurso::where('proyecto_id', $proyecto->id)
                 ->whereNotNull('parent_id')
                 ->whereNotNull('recurso_id')
@@ -186,60 +183,123 @@ class EstadisticasExportController extends Controller
             ->whereNotNull('parent_id')
             ->sum('costo_real');
 
-        $pctImpuestos = (float) ($proyecto->impuestos ?? 22);
-        $ivaEjecutado = $costoRealSubtotal * ($pctImpuestos / 100);
+        $ivaEjecutado = $costoRealSubtotal * ($pctIva / 100);
         $costoReal    = $costoRealSubtotal + $ivaEjecutado;
 
         $avanceFinanciero = $presupuesto > 0 ? ($costoReal / $presupuesto) * 100 : 0;
         $desviacion       = $costoReal - $presupuesto;
 
+        // Top 5 rubros principales con mayor desviación
         $topPartidas = ProyectoRecurso::where('proyecto_id', $proyecto->id)
             ->whereNull('parent_id')
             ->with('hijos')
             ->get()
             ->map(function ($rubro) {
-                $presupuesto = $rubro->hijos->sum(fn($h) => ($h->cantidad ?? 0) * ($h->precio_usd ?? 0));
-                $costoReal   = $rubro->hijos->sum(fn($h) => $h->costo_real ?? 0);
+                $pres = $rubro->hijos->sum(fn($h) => ($h->cantidad ?? 0) * ($h->precio_usd ?? 0));
+                $real = $rubro->hijos->sum(fn($h) => $h->costo_real ?? 0);
                 return [
                     'nombre'      => $rubro->nombre ?? 'Sin nombre',
-                    'presupuesto' => round($presupuesto, 2),
-                    'costo_real'  => round($costoReal, 2),
-                    'desviacion'  => round($costoReal - $presupuesto, 2),
+                    'presupuesto' => round($pres, 2),
+                    'costo_real'  => round($real, 2),
+                    'desviacion'  => round($real - $pres, 2),
                 ];
             })
             ->sortByDesc('desviacion')
             ->take(5)
             ->values();
 
-        $distribucion = ProyectoRecurso::where('proyecto_id', $proyecto->id)
-            ->whereNotNull('parent_id')
-            ->join('recursos', 'proyecto_recursos.recurso_id', '=', 'recursos.id')
-            ->select('recursos.tipo', DB::raw('SUM(proyecto_recursos.cantidad * proyecto_recursos.precio_usd) as total'))
-            ->groupBy('recursos.tipo')
+        // Distribución con tree traversal correcto
+        $rootNodes = ProyectoRecurso::where('proyecto_id', $proyecto->id)
+            ->whereNull('parent_id')
+            ->with(['hijos.recurso', 'hijos.hijos.recurso', 'hijos.hijos.hijos.recurso', 'recurso'])
             ->get();
 
-        $mayoresMateriales = ProyectoRecurso::where('proyecto_id', $proyecto->id)
-            ->whereNotNull('parent_id')
-            ->with('recurso')
-            ->get()
-            ->filter(fn($pr) => $pr->recurso && $pr->recurso->tipo === 'material')
-            ->map(fn($pr) => [
-                'nombre'         => $pr->nombre ?? $pr->recurso->nombre ?? 'Sin nombre',
-                'cantidad'       => $pr->cantidad ?? 0,
-                'unidad'         => $pr->unidad ?? $pr->recurso->unidad ?? '',
-                'precioUnitario' => $pr->precio_usd ?? 0,
-                'costoReal'      => $pr->costo_real ?? 0,
-            ])
-            ->sortByDesc('costoReal')
-            ->take(10)
+        $distribucionMap = [];
+        $this->sumarDistribucionRecursiva($rootNodes, $distribucionMap, 1);
+        $distribucion = collect($distribucionMap)
+            ->map(fn($total, $tipo) => (object)['tipo' => $tipo, 'total' => $total])
+            ->values();
+
+        // Materiales con tree traversal correcto
+        $materialesMap = [];
+        $this->sumarMaterialesRecursiva($rootNodes, $materialesMap, 1);
+        $materialesCollection = collect($materialesMap)->sortByDesc('costoReal')->values();
+        $mayoresMateriales  = $materialesCollection->take(10);
+        $todosLosMateriales = $materialesCollection;
+
+        // Mano de obra con tree traversal correcto
+        $pctCS = (float)($proyecto->carga_social ?? 0);
+        $manoDeObraMap = [];
+        $this->sumarManoDeObraRecursiva($rootNodes, $manoDeObraMap, 1, $pctCS);
+        $manoDeObra = collect($manoDeObraMap)
+            ->map(fn($r) => array_merge($r, ['totalConCS' => round($r['totalCosto'] + $r['cargaSocial'], 2)]))
+            ->sortByDesc('totalCosto')
             ->values();
 
         $evolucion = collect([]);
 
         return compact(
-            'presupuesto', 'costoReal', 'costoRealSubtotal', 'ivaEjecutado',
-            'avanceFinanciero', 'desviacion', 'topPartidas', 'distribucion',
-            'mayoresMateriales', 'evolucion', 'subtotal', 'beneficio'
+            'presupuesto', 'subtotal', 'beneficio',
+            'costoReal', 'costoRealSubtotal', 'ivaEjecutado',
+            'avanceFinanciero', 'desviacion',
+            'topPartidas', 'distribucion',
+            'mayoresMateriales', 'todosLosMateriales',
+            'manoDeObra', 'pctCS',
+            'evolucion'
         );
+    }
+
+    private function sumarDistribucionRecursiva($nodos, array &$map, float $multiplier): void
+    {
+        foreach ($nodos as $nodo) {
+            $tieneHijos = $nodo->hijos && $nodo->hijos->count() > 0;
+            if (is_null($nodo->recurso_id)) {
+                $precioPropio = (float)($nodo->precio_usd ?? $nodo->precio_unitario ?? 0);
+                $cantNodo = ($nodo->cantidad ?? 1) * $multiplier;
+                if ($precioPropio > 0 && $tieneHijos) {
+                    $map['sin_clasificar'] = ($map['sin_clasificar'] ?? 0) + ($precioPropio * $cantNodo);
+                }
+                if ($tieneHijos) {
+                    $this->sumarDistribucionRecursiva($nodo->hijos, $map, $cantNodo);
+                } elseif ($precioPropio > 0) {
+                    $map['sin_clasificar'] = ($map['sin_clasificar'] ?? 0) + ($precioPropio * $cantNodo);
+                }
+            } else {
+                $tipo     = $nodo->recurso->tipo ?? 'sin_clasificar';
+                $subtotal = ($nodo->precio_usd ?? 0) * ($nodo->cantidad ?? 1) * $multiplier;
+                $map[$tipo] = ($map[$tipo] ?? 0) + $subtotal;
+            }
+        }
+    }
+
+    private function sumarManoDeObraRecursiva($nodos, array &$map, float $multiplier, float $pctCS): void
+    {
+        foreach ($nodos as $nodo) {
+            $tieneHijos = $nodo->hijos && $nodo->hijos->count() > 0;
+            if (is_null($nodo->recurso_id)) {
+                $cantNodo = ($nodo->cantidad ?? 1) * $multiplier;
+                if ($tieneHijos) {
+                    $this->sumarManoDeObraRecursiva($nodo->hijos, $map, $cantNodo, $pctCS);
+                }
+            } elseif ($nodo->recurso && in_array($nodo->recurso->tipo, ['labor', 'mano_obra'])) {
+                $nombre   = trim($nodo->nombre ?? $nodo->recurso->nombre ?? 'Sin nombre');
+                $key      = mb_strtolower($nombre);
+                $cantEfec = ($nodo->cantidad ?? 0) * $multiplier;
+                $precio   = $nodo->precio_usd ?? 0;
+                $subtotal = $precio * $cantEfec;
+                $pct      = $pctCS > 0 ? $pctCS : (float)($nodo->recurso->social_charges_percentage ?? 0);
+                $cs       = $precio * ($pct / 100) * $cantEfec;
+                if (!isset($map[$key])) {
+                    $map[$key] = [
+                        'nombre'      => $nombre,
+                        'unidad'      => $nodo->unidad ?? $nodo->recurso->unidad ?? 'h',
+                        'totalCosto'  => 0,
+                        'cargaSocial' => 0,
+                    ];
+                }
+                $map[$key]['totalCosto']  += $subtotal;
+                $map[$key]['cargaSocial'] += $cs;
+            }
+        }
     }
 }

@@ -1,236 +1,336 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Estadísticas - {{ $proyecto->nombre_proyecto }}</title>
+    <title>EstadÃ­sticas - {{ $proyecto->nombre_proyecto }}</title>
     <style>
-        * { margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; color: #1a1a1a; line-height: 1.4; }
-        .page { page-break-after: always; padding: 20px; }
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid #D1D5DB; padding-bottom: 15px; }
-        .header h1 { font-size: 24px; color: #111827; margin-bottom: 5px; }
-        .header p { color: #9CA3AF; font-size: 12px; }
-        .section { margin-bottom: 25px; }
-        .section-title { 
-            font-size: 14px; 
-            font-weight: bold; 
-            color: #111827; 
-            background-color: #F3F4F6; 
-            padding: 10px; 
-            margin-bottom: 10px; 
-            border-left: 3px solid #374151;
-            border-radius: 0;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; color: #1a1a1a; font-size: 11px; line-height: 1.45; }
+
+        /* â”€â”€ Layout â”€â”€ */
+        .page { padding: 22px 26px; }
+
+        /* â”€â”€ Header â”€â”€ */
+        .header { text-align: center; border-bottom: 2px solid #111827; padding-bottom: 12px; margin-bottom: 20px; }
+        .header h1 { font-size: 18px; color: #111827; letter-spacing: 0.04em; }
+        .header h2 { font-size: 13px; font-weight: normal; color: #374151; margin-top: 3px; }
+        .header p  { font-size: 9px; color: #9CA3AF; margin-top: 4px; }
+
+        /* â”€â”€ Section â”€â”€ */
+        .section { margin-bottom: 18px; }
+        .section-title {
+            font-size: 10px; font-weight: bold; text-transform: uppercase;
+            letter-spacing: 0.08em; color: #fff;
+            background-color: #1f2937; padding: 5px 9px; margin-bottom: 8px;
         }
-        .info-grid { display: grid; grid-template-columns: 50% 50%; gap: 10px; margin-bottom: 10px; }
-        .info-row { padding: 8px; border-bottom: 1px solid #E5E7EB; }
-        .info-label { font-weight: bold; color: #6B7280; font-size: 11px; text-transform: uppercase; }
-        .info-value { font-size: 13px; color: #1F2937; margin-top: 3px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        th { 
-            background-color: #F3F4F6; 
-            color: #374151; 
-            padding: 8px; 
-            text-align: left; 
-            font-size: 11px; 
-            font-weight: bold;
-            border: 1px solid #E5E7EB;
-            text-transform: uppercase;
+
+        /* â”€â”€ Cards row (table-based for DomPDF) â”€â”€ */
+        .cards-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .card-cell {
+            width: 20%; padding: 8px 10px; vertical-align: top;
+            border: 1px solid #E5E7EB; border-left: 3px solid #374151;
+            background: #F9FAFB;
         }
-        td { 
-            padding: 8px; 
-            border: 1px solid #E5E7EB; 
-            font-size: 11px; 
+        .card-cell.accent-blue  { border-left-color: #3b82f6; }
+        .card-cell.accent-green { border-left-color: #22c55e; }
+        .card-cell.accent-red   { border-left-color: #ef4444; }
+        .card-cell.accent-ora   { border-left-color: #f97316; }
+        .card-cell.accent-vio   { border-left-color: #a855f7; }
+        .card-label { font-size: 8px; font-weight: bold; text-transform: uppercase; color: #9CA3AF; letter-spacing: 0.06em; }
+        .card-value { font-size: 13px; font-weight: bold; color: #111827; margin-top: 3px; }
+        .card-sub   { font-size: 8px; color: #9CA3AF; margin-top: 2px; }
+
+        /* â”€â”€ Tables â”€â”€ */
+        table.data { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+        table.data th {
+            background: #F3F4F6; color: #374151; padding: 6px 8px;
+            font-size: 9px; font-weight: bold; text-transform: uppercase;
+            letter-spacing: 0.05em; border: 1px solid #E5E7EB; text-align: left;
         }
-        tr:nth-child(even) { background-color: #FAFBFC; }
-        .total-row { background-color: #F3F4F6 !important; color: #111827; font-weight: bold; }
-        .total-row td { border-color: #D1D5DB; }
-        .footer { 
-            margin-top: 30px; 
-            padding-top: 15px; 
-            border-top: 1px solid #E5E7EB; 
-            font-size: 10px; 
-            color: #9CA3AF; 
-            text-align: center;
+        table.data th.r { text-align: right; }
+        table.data th.c { text-align: center; }
+        table.data td {
+            padding: 5px 8px; border: 1px solid #E5E7EB;
+            font-size: 10px; vertical-align: middle;
         }
-        .card {
-            background-color: #FFFFFF;
-            padding: 12px;
-            border: 1px solid #E5E7EB;
-            border-left: 3px solid #374151;
-            margin-bottom: 10px;
-            border-radius: 0;
-        }
-        .card-label { font-size: 10px; color: #9CA3AF; font-weight: bold; text-transform: uppercase; }
-        .card-value { font-size: 16px; color: #111827; font-weight: bold; margin-top: 3px; }
-        .text-green { color: #6B7280; }
-        .text-red { color: #6B7280; }
+        table.data td.r  { text-align: right; }
+        table.data td.c  { text-align: center; }
+        table.data td.num { font-family: 'Courier New', monospace; }
+        table.data tr:nth-child(even) { background: #FAFBFC; }
+        .tr-total td { background: #F3F4F6 !important; font-weight: bold; border-top: 2px solid #D1D5DB; }
+
+        /* â”€â”€ Distribution bar â”€â”€ */
+        .bar-bg  { background: #E5E7EB; border-radius: 3px; height: 7px; }
+        .bar-fill { height: 7px; border-radius: 3px; }
+
+        /* â”€â”€ Deviation colors â”€â”€ */
+        .pos { color: #dc2626; }
+        .neg { color: #16a34a; }
+
+        /* â”€â”€ Footer â”€â”€ */
+        .footer { margin-top: 22px; padding-top: 10px; border-top: 1px solid #E5E7EB; font-size: 9px; color: #9CA3AF; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="page">
-        {{-- HEADER --}}
-        <div class="header">
-            <h1>REPORTE DE ESTADÍSTICAS</h1>
-            <p>{{ $proyecto->nombre_proyecto }}</p>
-            <p>Generado: {{ now()->format('d/m/Y H:i') }}</p>
-        </div>
+<div class="page">
 
-        {{-- INFORMACIÓN DEL PROYECTO --}}
-        <div class="section">
-            <div class="section-title">INFORMACIÓN DEL PROYECTO</div>
-            <div class="info-grid">
-                <div class="info-row">
-                    <div class="info-label">Proyecto</div>
-                    <div class="info-value">{{ $proyecto->nombre_proyecto }}</div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label">Estado</div>
-                    <div class="info-value">{{ ucfirst($proyecto->estado_obra) }}</div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label">Metros Cuadrados</div>
-                    <div class="info-value">{{ number_format($proyecto->metros_cuadrados, 2, ',', '.') }} m²</div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label">Beneficio</div>
-                    <div class="info-value">{{ $proyecto->beneficio ?? 0 }}%</div>
-                </div>
-            </div>
-        </div>
-
-        {{-- RESUMEN FINANCIERO --}}
-        <div class="section">
-            <div class="section-title">RESUMEN FINANCIERO</div>
-            <div class="card">
-                <div class="card-label">Presupuesto Total</div>
-                <div class="card-value">USD {{ number_format($stats['presupuesto'], 2, ',', '.') }}</div>
-            </div>
-            <div class="card">
-                <div class="card-label">Costo Real (Subtotal)</div>
-                <div class="card-value">USD {{ number_format($stats['costoRealSubtotal'], 2, ',', '.') }}</div>
-            </div>
-            <div class="card">
-                <div class="card-label">IVA Ejecutado ({{ $proyecto->impuestos ?? 22 }}%)</div>
-                <div class="card-value">USD {{ number_format($stats['ivaEjecutado'], 2, ',', '.') }}</div>
-            </div>
-            <div class="card">
-                <div class="card-label">Precio Final (Real)</div>
-                <div class="card-value">USD {{ number_format($stats['costoReal'], 2, ',', '.') }}</div>
-            </div>
-            <div class="card">
-                <div class="card-label">Desviación
-                @php
-                    $desv = $stats['desviacion'];
-                    $clase = $desv > 0 ? 'text-red' : 'text-green';
-                @endphp
-                </div>
-                <div class="card-value {{ $clase }}">
-                    USD {{ number_format($stats['desviacion'], 2, ',', '.') }}
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-label">Avance Financiero</div>
-                <div class="card-value">{{ number_format($stats['avanceFinanciero'], 1) }}%</div>
-            </div>
-        </div>
-
-        {{-- DISTRIBUCIÓN DE COSTOS --}}
-        @if($stats['distribucion']->count())
-        <div class="section">
-            <div class="section-title">DISTRIBUCIÓN DE COSTOS</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tipo</th>
-                        <th style="text-align: right;">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php
-                        $tiposNombres = [
-                            'material' => 'Materiales',
-                            'labor' => 'Mano de Obra',
-                            'equipment' => 'Equipos',
-                            'composition' => 'Composiciones'
-                        ];
-                    @endphp
-                    @foreach($stats['distribucion'] as $dist)
-                    <tr>
-                        <td>{{ $tiposNombres[$dist->tipo] ?? $dist->tipo }}</td>
-                        <td style="text-align: right;">USD {{ number_format($dist->total, 2, ',', '.') }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-        @endif
-
-        {{-- TOP PARTIDAS --}}
-        @if($stats['topPartidas']->count())
-        <div class="section">
-            <div class="section-title">TOP 5 PARTIDAS CON MAYOR DESVIACIÓN</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Partida</th>
-                        <th style="text-align: right;">Presupuesto</th>
-                        <th style="text-align: right;">Costo Real</th>
-                        <th style="text-align: right;">Desviación</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($stats['topPartidas'] as $partida)
-                    <tr>
-                        <td>{{ $partida['nombre'] }}</td>
-                        <td style="text-align: right;">USD {{ number_format($partida['presupuesto'], 2, ',', '.') }}</td>
-                        <td style="text-align: right;">USD {{ number_format($partida['costo_real'], 2, ',', '.') }}</td>
-                        <td style="text-align: right;" class="{{ ($partida['desviacion'] ?? 0) > 0 ? 'text-red' : 'text-green' }}">
-                            USD {{ number_format($partida['desviacion'] ?? 0, 2, ',', '.') }}
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-        @endif
-
-        {{-- MAYORES MATERIALES CONSUMIDOS --}}
-        @if($stats['mayoresMateriales']->count())
-        <div class="section">
-            <div class="section-title">MAYORES MATERIALES CONSUMIDOS (TOP 10)</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 40%;">Material</th>
-                        <th style="text-align: center;">Cantidad</th>
-                        <th style="text-align: center;">Unidad</th>
-                        <th style="text-align: right;">Precio Unit.</th>
-                        <th style="text-align: right;">Costo Real</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php $totalMateriales = $stats['mayoresMateriales']->sum('costoReal'); @endphp
-                    @foreach($stats['mayoresMateriales'] as $material)
-                    <tr>
-                        <td>{{ $material['nombre'] }}</td>
-                        <td style="text-align: center;">{{ number_format($material['cantidad'], 2, ',', '.') }}</td>
-                        <td style="text-align: center;">{{ $material['unidad'] }}</td>
-                        <td style="text-align: right;">USD {{ number_format($material['precioUnitario'], 2, ',', '.') }}</td>
-                        <td style="text-align: right;">USD {{ number_format($material['costoReal'], 2, ',', '.') }}</td>
-                    </tr>
-                    @endforeach
-                    <tr class="total-row">
-                        <td colspan="4">TOTAL MATERIALES</td>
-                        <td style="text-align: right;">USD {{ number_format($totalMateriales, 2, ',', '.') }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        @endif
-
-        <div class="footer">
-            <p>Este reporte fue generado automáticamente por RUBRA - Sistema de Gestión de Proyectos</p>
-        </div>
+    {{-- â•â• HEADER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• --}}
+    <div class="header">
+        <h1>REPORTE DE ESTADÃSTICAS</h1>
+        <h2>{{ $proyecto->nombre_proyecto }}</h2>
+        <p>
+            Generado: {{ now()->format('d/m/Y H:i') }}
+            @if($proyecto->metros_cuadrados) &nbsp;|&nbsp; {{ number_format($proyecto->metros_cuadrados, 2, ',', '.') }} mÂ² @endif
+            &nbsp;|&nbsp; Estado: {{ ucfirst($proyecto->estado_obra ?? 'â€”') }}
+            &nbsp;|&nbsp; Beneficio: {{ $proyecto->beneficio ?? 0 }}%
+            &nbsp;|&nbsp; IVA: {{ $proyecto->impuestos ?? 22 }}%
+        </p>
     </div>
+
+    {{-- â•â• RESUMEN FINANCIERO â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• --}}
+    <div class="section">
+        <div class="section-title">Resumen Financiero</div>
+        <table class="cards-table">
+            <tr>
+                <td class="card-cell accent-blue">
+                    <div class="card-label">Presupuesto Total</div>
+                    <div class="card-value">USD {{ number_format($stats['presupuesto'], 0, ',', '.') }}</div>
+                    <div class="card-sub">Precio final con IVA</div>
+                </td>
+                <td class="card-cell">
+                    <div class="card-label">Subtotal Base</div>
+                    <div class="card-value">USD {{ number_format($stats['subtotal'], 0, ',', '.') }}</div>
+                    <div class="card-sub">Sin beneficio ni IVA</div>
+                </td>
+                <td class="card-cell">
+                    <div class="card-label">Beneficio ({{ $proyecto->beneficio ?? 0 }}%)</div>
+                    <div class="card-value">USD {{ number_format($stats['beneficio'], 0, ',', '.') }}</div>
+                </td>
+                <td class="card-cell accent-ora">
+                    <div class="card-label">Costo Real Ejecutado</div>
+                    <div class="card-value">USD {{ number_format($stats['costoReal'], 0, ',', '.') }}</div>
+                    <div class="card-sub">Incl. IVA {{ $proyecto->impuestos ?? 22 }}%</div>
+                </td>
+                <td class="card-cell {{ $stats['desviacion'] > 0 ? 'accent-red' : 'accent-green' }}">
+                    <div class="card-label">DesviaciÃ³n</div>
+                    <div class="card-value {{ $stats['desviacion'] > 0 ? 'pos' : 'neg' }}">
+                        {{ $stats['desviacion'] > 0 ? '+' : '' }}USD {{ number_format($stats['desviacion'], 0, ',', '.') }}
+                    </div>
+                    <div class="card-sub">Avance: {{ number_format($stats['avanceFinanciero'], 1) }}%</div>
+                </td>
+            </tr>
+        </table>
+        @if($proyecto->metros_cuadrados && $stats['subtotal'] > 0)
+        @php $costoM2 = $stats['subtotal'] / $proyecto->metros_cuadrados; @endphp
+        <table class="cards-table">
+            <tr>
+                <td class="card-cell" style="width:25%">
+                    <div class="card-label">Costo / mÂ²</div>
+                    <div class="card-value">USD {{ number_format($costoM2, 0, ',', '.') }}</div>
+                    <div class="card-sub">{{ number_format($proyecto->metros_cuadrados, 0) }} mÂ² totales</div>
+                </td>
+                <td class="card-cell" style="width:25%">
+                    <div class="card-label">Costo Real (sin IVA)</div>
+                    <div class="card-value">USD {{ number_format($stats['costoRealSubtotal'], 0, ',', '.') }}</div>
+                </td>
+                <td class="card-cell" style="width:25%">
+                    <div class="card-label">IVA Ejecutado ({{ $proyecto->impuestos ?? 22 }}%)</div>
+                    <div class="card-value">USD {{ number_format($stats['ivaEjecutado'], 0, ',', '.') }}</div>
+                </td>
+                <td style="width:25%"></td>
+            </tr>
+        </table>
+        @endif
+    </div>
+
+    {{-- â•â• DISTRIBUCIÃ“N DE COSTOS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• --}}
+    @if($stats['distribucion']->count())
+    @php
+        $tiposNombres = [
+            'material'      => 'Materiales',
+            'labor'         => 'Mano de Obra',
+            'equipment'     => 'Equipos',
+            'composition'   => 'Composiciones',
+            'sin_clasificar'=> 'Sin Clasificar',
+        ];
+        $tiposColores = [
+            'material'      => '#3b82f6',
+            'labor'         => '#22c55e',
+            'equipment'     => '#f97316',
+            'composition'   => '#a855f7',
+            'sin_clasificar'=> '#6b7280',
+        ];
+        $totalDist = $stats['distribucion']->sum('total');
+    @endphp
+    <div class="section">
+        <div class="section-title">DistribuciÃ³n de Costos</div>
+        <table class="data">
+            <thead>
+                <tr>
+                    <th style="width:30%">Tipo de Recurso</th>
+                    <th class="r" style="width:22%">Total (USD)</th>
+                    <th class="r" style="width:10%">%</th>
+                    <th style="width:38%">Barra</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($stats['distribucion']->sortByDesc('total') as $dist)
+                @php
+                    $pctDist = $totalDist > 0 ? ($dist->total / $totalDist) * 100 : 0;
+                    $color   = $tiposColores[$dist->tipo] ?? '#6b7280';
+                @endphp
+                <tr>
+                    <td>{{ $tiposNombres[$dist->tipo] ?? $dist->tipo }}</td>
+                    <td class="r num">{{ number_format($dist->total, 0, ',', '.') }}</td>
+                    <td class="r"><b>{{ number_format($pctDist, 1) }}%</b></td>
+                    <td>
+                        <div class="bar-bg">
+                            <div class="bar-fill" style="width:{{ min($pctDist,100) }}%; background:{{ $color }};"></div>
+                        </div>
+                    </td>
+                </tr>
+                @endforeach
+                <tr class="tr-total">
+                    <td>TOTAL</td>
+                    <td class="r num">{{ number_format($totalDist, 0, ',', '.') }}</td>
+                    <td class="r">100%</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    @endif
+
+    {{-- â•â• TOP 5 PARTIDAS CON MAYOR DESVIACIÃ“N â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• --}}
+    @if($stats['topPartidas']->count())
+    <div class="section">
+        <div class="section-title">Top 5 Rubros con Mayor DesviaciÃ³n</div>
+        <table class="data">
+            <thead>
+                <tr>
+                    <th style="width:34%">Rubro</th>
+                    <th class="r">Presupuesto</th>
+                    <th class="r">Costo Real</th>
+                    <th class="r">DesviaciÃ³n</th>
+                    <th class="r" style="width:10%">Var %</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($stats['topPartidas'] as $partida)
+                @php $varPct = $partida['presupuesto'] > 0 ? (($partida['desviacion'] ?? 0) / $partida['presupuesto']) * 100 : 0; @endphp
+                <tr>
+                    <td>{{ $partida['nombre'] }}</td>
+                    <td class="r num">{{ number_format($partida['presupuesto'], 0, ',', '.') }}</td>
+                    <td class="r num">{{ number_format($partida['costo_real'], 0, ',', '.') }}</td>
+                    <td class="r num {{ ($partida['desviacion'] ?? 0) > 0 ? 'pos' : 'neg' }}">
+                        {{ ($partida['desviacion'] ?? 0) > 0 ? '+' : '' }}{{ number_format($partida['desviacion'] ?? 0, 0, ',', '.') }}
+                    </td>
+                    <td class="r {{ $varPct > 0 ? 'pos' : 'neg' }}">{{ number_format($varPct, 1) }}%</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+    @endif
+
+    {{-- â•â• MANO DE OBRA â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• --}}
+    @if(isset($stats['manoDeObra']) && $stats['manoDeObra']->count())
+    @php
+        $totalMO   = $stats['manoDeObra']->sum('totalCosto');
+        $totalCS   = $stats['manoDeObra']->sum('cargaSocial');
+        $totalMOCS = $stats['manoDeObra']->sum('totalConCS');
+    @endphp
+    <div class="section">
+        <div class="section-title">Mano de Obra por Cargo / Especialidad{{ isset($stats['pctCS']) && $stats['pctCS'] > 0 ? ' (CS: '.$stats['pctCS'].'%)' : '' }}</div>
+        <table class="data">
+            <thead>
+                <tr>
+                    <th style="width:38%">Cargo / Especialidad</th>
+                    <th class="r">Costo Base</th>
+                    <th class="r">Carga Social</th>
+                    <th class="r">Total c/CS</th>
+                    <th class="r" style="width:9%">%</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($stats['manoDeObra'] as $mo)
+                @php $pctMO = $totalMOCS > 0 ? ($mo['totalConCS'] / $totalMOCS) * 100 : 0; @endphp
+                <tr>
+                    <td>{{ Str::ucfirst($mo['nombre']) }}</td>
+                    <td class="r num">{{ number_format($mo['totalCosto'], 0, ',', '.') }}</td>
+                    <td class="r num">{{ number_format($mo['cargaSocial'], 0, ',', '.') }}</td>
+                    <td class="r num"><b>{{ number_format($mo['totalConCS'], 0, ',', '.') }}</b></td>
+                    <td class="r">{{ number_format($pctMO, 1) }}%</td>
+                </tr>
+                @endforeach
+                <tr class="tr-total">
+                    <td>TOTAL MANO DE OBRA</td>
+                    <td class="r num">{{ number_format($totalMO, 0, ',', '.') }}</td>
+                    <td class="r num">{{ number_format($totalCS, 0, ',', '.') }}</td>
+                    <td class="r num">{{ number_format($totalMOCS, 0, ',', '.') }}</td>
+                    <td class="r">100%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    @endif
+
+    {{-- â•â• MAYORES MATERIALES (TOP 10) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• --}}
+    @if($stats['mayoresMateriales']->count())
+    @php $totalMat10 = $stats['mayoresMateriales']->sum('costoReal'); @endphp
+    <div class="section">
+        <div class="section-title">Mayores Materiales Consumidos (Top 10)</div>
+        <table class="data">
+            <thead>
+                <tr>
+                    <th style="width:3%">#</th>
+                    <th style="width:35%">Material</th>
+                    <th class="c" style="width:11%">Cantidad</th>
+                    <th class="c" style="width:7%">Ud.</th>
+                    <th class="r" style="width:15%">P. Unitario</th>
+                    <th class="r" style="width:15%">Total</th>
+                    <th class="r" style="width:9%">%</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($stats['mayoresMateriales'] as $idx => $mat)
+                @php
+                    $allTotal = isset($stats['todosLosMateriales']) ? $stats['todosLosMateriales']->sum('costoReal') : $totalMat10;
+                    $pctMat = $allTotal > 0 ? ($mat['costoReal'] / $allTotal) * 100 : 0;
+                @endphp
+                <tr>
+                    <td class="c">{{ $idx + 1 }}</td>
+                    <td>{{ Str::ucfirst($mat['nombre']) }}</td>
+                    <td class="c num">{{ number_format($mat['cantidad'], 2, ',', '.') }}</td>
+                    <td class="c">{{ $mat['unidad'] ?? '' }}</td>
+                    <td class="r num">{{ number_format($mat['precioUnitario'], 2, ',', '.') }}</td>
+                    <td class="r num"><b>{{ number_format($mat['costoReal'], 0, ',', '.') }}</b></td>
+                    <td class="r">{{ number_format($pctMat, 1) }}%</td>
+                </tr>
+                @endforeach
+                <tr class="tr-total">
+                    <td colspan="5">TOTAL TOP 10</td>
+                    <td class="r num">{{ number_format($totalMat10, 0, ',', '.') }}</td>
+                    <td class="r">
+                        @php $allTotal2 = isset($stats['todosLosMateriales']) ? $stats['todosLosMateriales']->sum('costoReal') : $totalMat10; @endphp
+                        {{ $allTotal2 > 0 ? number_format(($totalMat10/$allTotal2)*100, 1).'%' : '100%' }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        @if(isset($stats['todosLosMateriales']) && $stats['todosLosMateriales']->count() > 10)
+        <p style="font-size:9px; color:#9CA3AF; margin-top:4px;">
+            * Mostrando los 10 materiales de mayor costo. Total de materiales en el proyecto: {{ $stats['todosLosMateriales']->count() }}.
+            Descargue el reporte de materiales completo para ver el listado Ã­ntegro.
+        </p>
+        @endif
+    </div>
+    @endif
+
+    <div class="footer">
+        {{ config('app.name') }} â€” {{ $proyecto->nombre_proyecto }} â€” Reporte de EstadÃ­sticas â€” {{ now()->format('d/m/Y') }}
+    </div>
+
+</div>
 </body>
 </html>

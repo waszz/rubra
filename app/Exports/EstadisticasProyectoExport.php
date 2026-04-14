@@ -9,7 +9,6 @@ use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Font;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 class EstadisticasProyectoExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
 {
@@ -27,75 +26,124 @@ class EstadisticasProyectoExport implements FromArray, WithHeadings, WithStyles,
 
     private function buildData()
     {
-        // Sección 1: INFORMACIÓN DEL PROYECTO
+        $tiposNombres = [
+            'material'       => 'Materiales',
+            'labor'          => 'Mano de Obra',
+            'equipment'      => 'Equipos',
+            'composition'    => 'Composiciones',
+            'sin_clasificar' => 'Sin Clasificar',
+        ];
+
+        // ── 1. INFORMACIÓN DEL PROYECTO ──────────────────────────────
         $this->rows[] = ['INFORMACIÓN DEL PROYECTO'];
-        $this->rows[] = ['Proyecto', $this->proyecto->nombre_proyecto];
-        $this->rows[] = ['Estado', ucfirst($this->proyecto->estado_obra)];
-        $this->rows[] = ['Metros Cuadrados', number_format($this->proyecto->metros_cuadrados, 2, ',', '.')];
+        $this->rows[] = ['Proyecto',         $this->proyecto->nombre_proyecto];
+        $this->rows[] = ['Estado',            ucfirst($this->proyecto->estado_obra ?? '—')];
+        $this->rows[] = ['Metros cuadrados',  number_format($this->proyecto->metros_cuadrados ?? 0, 2, ',', '.') . ' m²'];
+        $this->rows[] = ['Beneficio',         ($this->proyecto->beneficio ?? 0) . '%'];
+        $this->rows[] = ['IVA',               ($this->proyecto->impuestos ?? 22) . '%'];
+        if ($this->proyecto->carga_social) {
+            $this->rows[] = ['Carga Social', $this->proyecto->carga_social . '%'];
+        }
         $this->rows[] = [];
 
-        // Sección 2: RESUMEN FINANCIERO
+        // ── 2. RESUMEN FINANCIERO ────────────────────────────────────
         $this->rows[] = ['RESUMEN FINANCIERO'];
-        $this->rows[] = ['Presupuesto Total', 'USD ' . number_format($this->stats['presupuesto'], 2, ',', '.')];
-        $this->rows[] = ['Costo Real (Subtotal)', 'USD ' . number_format($this->stats['costoRealSubtotal'], 2, ',', '.')];
-        $this->rows[] = ['IVA Ejecutado (' . ($this->proyecto->impuestos ?? 22) . '%)', 'USD ' . number_format($this->stats['ivaEjecutado'], 2, ',', '.')];
-        $this->rows[] = ['Precio Final (Real)', 'USD ' . number_format($this->stats['costoReal'], 2, ',', '.')];
-        $this->rows[] = ['Desviación', 'USD ' . number_format($this->stats['desviacion'], 2, ',', '.')];
-        $this->rows[] = ['Avance Financiero', number_format($this->stats['avanceFinanciero'], 1) . '%'];
+        $this->rows[] = ['Presupuesto Total',           'USD ' . number_format($this->stats['presupuesto'],        0, ',', '.')];
+        $this->rows[] = ['Subtotal Base (sin ben./IVA)', 'USD ' . number_format($this->stats['subtotal'],           0, ',', '.')];
+        $this->rows[] = ['Beneficio (' . ($this->proyecto->beneficio ?? 0) . '%)', 'USD ' . number_format($this->stats['beneficio'], 0, ',', '.')];
+        $this->rows[] = ['Costo Real Ejecutado',        'USD ' . number_format($this->stats['costoReal'],          0, ',', '.')];
+        $this->rows[] = ['Costo Real (sin IVA)',        'USD ' . number_format($this->stats['costoRealSubtotal'],  0, ',', '.')];
+        $this->rows[] = ['IVA Ejecutado (' . ($this->proyecto->impuestos ?? 22) . '%)', 'USD ' . number_format($this->stats['ivaEjecutado'], 0, ',', '.')];
+        $this->rows[] = ['Desviación',                 'USD ' . number_format($this->stats['desviacion'],         0, ',', '.')];
+        $this->rows[] = ['Avance Financiero',           number_format($this->stats['avanceFinanciero'], 1) . '%'];
+        if (($this->proyecto->metros_cuadrados ?? 0) > 0 && ($this->stats['subtotal'] ?? 0) > 0) {
+            $this->rows[] = ['Costo / m²', 'USD ' . number_format($this->stats['subtotal'] / $this->proyecto->metros_cuadrados, 0, ',', '.')];
+        }
         $this->rows[] = [];
 
-        // Sección 3: DISTRIBUCIÓN DE COSTOS
+        // ── 3. DISTRIBUCIÓN DE COSTOS ────────────────────────────────
         if ($this->stats['distribucion']->count()) {
+            $totalDist = $this->stats['distribucion']->sum('total');
             $this->rows[] = ['DISTRIBUCIÓN DE COSTOS'];
-            $tiposNombres = [
-                'material' => 'Materiales',
-                'labor' => 'Mano de Obra',
-                'equipment' => 'Equipos',
-                'composition' => 'Composiciones'
-            ];
-            foreach ($this->stats['distribucion'] as $dist) {
-                $label = $tiposNombres[$dist->tipo] ?? $dist->tipo;
-                $this->rows[] = [$label, 'USD ' . number_format($dist->total, 2, ',', '.')];
+            $this->rows[] = ['Tipo de Recurso', 'Total (USD)', '%'];
+            foreach ($this->stats['distribucion']->sortByDesc('total') as $dist) {
+                $label  = $tiposNombres[$dist->tipo] ?? $dist->tipo;
+                $pctD   = $totalDist > 0 ? round(($dist->total / $totalDist) * 100, 1) : 0;
+                $this->rows[] = [$label, number_format($dist->total, 0, ',', '.'), $pctD . '%'];
             }
+            $this->rows[] = ['TOTAL', number_format($totalDist, 0, ',', '.'), '100%'];
             $this->rows[] = [];
         }
 
-        // Sección 4: TOP 5 PARTIDAS CON MAYOR DESVIACIÓN
+        // ── 4. TOP 5 RUBROS CON MAYOR DESVIACIÓN ─────────────────────
         if ($this->stats['topPartidas']->count()) {
-            $this->rows[] = ['TOP 5 PARTIDAS CON MAYOR DESVIACIÓN'];
-            $this->rows[] = ['Partida', 'Presupuesto', 'Costo Real', 'Desviación'];
-            foreach ($this->stats['topPartidas'] as $partida) {
+            $this->rows[] = ['TOP 5 RUBROS CON MAYOR DESVIACIÓN'];
+            $this->rows[] = ['Rubro', 'Presupuesto (USD)', 'Costo Real (USD)', 'Desviación (USD)', 'Var %'];
+            foreach ($this->stats['topPartidas'] as $p) {
+                $varPct = $p['presupuesto'] > 0
+                    ? round((($p['desviacion'] ?? 0) / $p['presupuesto']) * 100, 1) : 0;
                 $this->rows[] = [
-                    $partida['nombre'],
-                    'USD ' . number_format($partida['presupuesto'], 2, ',', '.'),
-                    'USD ' . number_format($partida['costo_real'], 2, ',', '.'),
-                    'USD ' . number_format($partida['desviacion'] ?? 0, 2, ',', '.')
+                    $p['nombre'],
+                    number_format($p['presupuesto'], 0, ',', '.'),
+                    number_format($p['costo_real'],  0, ',', '.'),
+                    number_format($p['desviacion'] ?? 0, 0, ',', '.'),
+                    $varPct . '%',
                 ];
             }
             $this->rows[] = [];
         }
 
-        // Sección 5: MAYORES MATERIALES CONSUMIDOS
-        if ($this->stats['mayoresMateriales']->count()) {
-            $this->rows[] = ['MAYORES MATERIALES CONSUMIDOS (TOP 10)'];
-            $this->rows[] = ['Material', 'Cantidad', 'Unidad', 'Precio Unit.', 'Costo Real'];
-            $totalMateriales = 0;
-            foreach ($this->stats['mayoresMateriales'] as $material) {
-                $costoReal = $material['costoReal'] ?? 0;
-                $totalMateriales += $costoReal;
+        // ── 5. MANO DE OBRA ──────────────────────────────────────────
+        if (isset($this->stats['manoDeObra']) && $this->stats['manoDeObra']->count()) {
+            $pctCS     = $this->stats['pctCS'] ?? 0;
+            $totalMOCS = $this->stats['manoDeObra']->sum('totalConCS');
+            $this->rows[] = ['MANO DE OBRA POR CARGO / ESPECIALIDAD' . ($pctCS > 0 ? ' — CS: ' . $pctCS . '%' : '')];
+            $this->rows[] = ['Cargo / Especialidad', 'Costo Base (USD)', 'Carga Social (USD)', 'Total c/CS (USD)', '%'];
+            foreach ($this->stats['manoDeObra'] as $mo) {
+                $pctMO = $totalMOCS > 0 ? round(($mo['totalConCS'] / $totalMOCS) * 100, 1) : 0;
                 $this->rows[] = [
-                    $material['nombre'],
-                    number_format($material['cantidad'], 2, ',', '.'),
-                    $material['unidad'],
-                    'USD ' . number_format($material['precioUnitario'], 2, ',', '.'),
-                    'USD ' . number_format($costoReal, 2, ',', '.')
+                    $mo['nombre'],
+                    number_format($mo['totalCosto'],  0, ',', '.'),
+                    number_format($mo['cargaSocial'], 0, ',', '.'),
+                    number_format($mo['totalConCS'],  0, ',', '.'),
+                    $pctMO . '%',
                 ];
             }
-            $this->rows[] = ['TOTAL MATERIALES', '', '', '', 'USD ' . number_format($totalMateriales, 2, ',', '.')];
+            $this->rows[] = [
+                'TOTAL MANO DE OBRA',
+                number_format($this->stats['manoDeObra']->sum('totalCosto'),  0, ',', '.'),
+                number_format($this->stats['manoDeObra']->sum('cargaSocial'), 0, ',', '.'),
+                number_format($totalMOCS, 0, ',', '.'),
+                '100%',
+            ];
             $this->rows[] = [];
         }
 
-        $this->headings = ['ESTADÍSTICAS DEL PROYECTO'];
+        // ── 6. TODOS LOS MATERIALES ───────────────────────────────────
+        $materiales = isset($this->stats['todosLosMateriales'])
+            ? $this->stats['todosLosMateriales']
+            : $this->stats['mayoresMateriales'];
+
+        if ($materiales->count()) {
+            $isTodos    = isset($this->stats['todosLosMateriales']);
+            $totalMat   = $materiales->sum('costoReal');
+            $this->rows[] = [$isTodos ? 'TODOS LOS MATERIALES' : 'MAYORES MATERIALES CONSUMIDOS (TOP 10)'];
+            $this->rows[] = ['#', 'Material', 'Cantidad', 'Unidad', 'P. Unitario (USD)', 'Total (USD)', '%'];
+            foreach ($materiales as $i => $mat) {
+                $pctMat = $totalMat > 0 ? round(($mat['costoReal'] / $totalMat) * 100, 2) : 0;
+                $this->rows[] = [
+                    $i + 1,
+                    $mat['nombre'],
+                    number_format($mat['cantidad'],       2, ',', '.'),
+                    $mat['unidad'] ?? '',
+                    number_format($mat['precioUnitario'], 2, ',', '.'),
+                    number_format($mat['costoReal'],      0, ',', '.'),
+                    $pctMat . '%',
+                ];
+            }
+            $this->rows[] = ['', 'TOTAL MATERIALES', '', '', '', number_format($totalMat, 0, ',', '.'), '100%'];
+            $this->rows[] = [];
+        }
     }
 
     public function array(): array
@@ -111,55 +159,73 @@ class EstadisticasProyectoExport implements FromArray, WithHeadings, WithStyles,
     public function columnWidths(): array
     {
         return [
-            'A' => 35,
+            'A' => 40,
             'B' => 22,
-            'C' => 22,
-            'D' => 22,
-            'E' => 22,
+            'C' => 18,
+            'D' => 15,
+            'E' => 20,
+            'F' => 18,
+            'G' => 10,
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        $styles = [];
-        $rowIndex = 1;
+        $sectionHeaders = [
+            'INFORMACIÓN DEL PROYECTO',
+            'RESUMEN FINANCIERO',
+            'DISTRIBUCIÓN DE COSTOS',
+            'TOP 5 RUBROS CON MAYOR DESVIACIÓN',
+            'MANO DE OBRA POR CARGO / ESPECIALIDAD',
+            'TODOS LOS MATERIALES',
+            'MAYORES MATERIALES CONSUMIDOS (TOP 10)',
+        ];
 
-        // Recorrer todas las filas y aplicar estilos
+        $tableHeaders = ['Tipo de Recurso', 'Rubro', 'Material', 'Cargo / Especialidad', '#'];
+        $totalRows    = ['TOTAL', 'TOTAL MATERIALES', 'TOTAL MANO DE OBRA', 'TOTAL TOP 10'];
+
+        $styles = [];
         foreach ($this->rows as $index => $row) {
             $excelRow = $index + 1;
-            
-            // Título general en primer fila
-            if ($index === 0) {
-                $styles['A' . $excelRow . ':E' . $excelRow] = [
-                    'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => '111827']],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F3F4F6']],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER]
-                ];
+
+            if (empty($row) || !isset($row[0])) continue;
+
+            // Section headers
+            $isSectionHeader = false;
+            foreach ($sectionHeaders as $sh) {
+                if (str_starts_with($row[0], $sh)) { $isSectionHeader = true; break; }
             }
-            // Encabezados de sección (gris claro)
-            elseif (isset($row[0]) && in_array($row[0], ['INFORMACIÓN DEL PROYECTO', 'RESUMEN FINANCIERO', 'DISTRIBUCIÓN DE COSTOS', 
-                'TOP 5 PARTIDAS CON MAYOR DESVIACIÓN', 'MAYORES MATERIALES CONSUMIDOS (TOP 10)'])) {
-                $styles['A' . $excelRow . ':E' . $excelRow] = [
-                    'font' => ['bold' => true, 'size' => 11, 'color' => ['rgb' => '111827']],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F3F4F6']],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT]
+            if ($isSectionHeader) {
+                $styles["A{$excelRow}:G{$excelRow}"] = [
+                    'font' => ['bold' => true, 'size' => 11, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F2937']],
                 ];
+                continue;
             }
-            // Encabezado tabla (gris claro)
-            elseif (isset($row[0]) && ($row[0] === 'Partida' || $row[0] === 'Material')) {
-                for ($col = 65; $col <= 69; $col++) { // A-E
-                    $colLetter = chr($col);
-                    $styles[$colLetter . $excelRow] = [
-                        'font' => ['bold' => true, 'color' => ['rgb' => '374151']],
-                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F3F4F6']],
-                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT]
-                    ];
+
+            // Table header rows
+            $isTableHeader = false;
+            foreach ($tableHeaders as $th) {
+                if ($row[0] === $th) { $isTableHeader = true; break; }
+            }
+            if ($isTableHeader) {
+                $styles["A{$excelRow}:G{$excelRow}"] = [
+                    'font' => ['bold' => true, 'color' => ['rgb' => '374151']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F3F4F6']],
+                ];
+                continue;
+            }
+
+            // Total rows
+            $isTotalRow = false;
+            foreach ($totalRows as $tr) {
+                if (str_starts_with($row[0], $tr) || str_ends_with($row[0] ?? '', $tr)) {
+                    $isTotalRow = true; break;
                 }
             }
-            // Total row (gris claro)
-            elseif (isset($row[0]) && $row[0] === 'TOTAL MATERIALES') {
-                $styles['A' . $excelRow . ':E' . $excelRow] = [
-                    'font' => ['bold' => true, 'color' => ['rgb' => '111827']],
+            if ($isTotalRow || (isset($row[1]) && str_starts_with($row[1] ?? '', 'TOTAL'))) {
+                $styles["A{$excelRow}:G{$excelRow}"] = [
+                    'font' => ['bold' => true],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F3F4F6']],
                 ];
             }
