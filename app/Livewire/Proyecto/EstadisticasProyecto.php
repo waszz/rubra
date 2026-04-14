@@ -110,7 +110,16 @@ public function mount($proyectoId = null): void
         // ── TODOS LOS RUBROS (listado con %) ─────────────────────────────────────────
         $rubrosRoot = ProyectoRecurso::where('proyecto_id', $proyecto->id)
             ->whereNull('parent_id')
-            ->with(['hijos.recurso', 'hijos.hijos.recurso', 'hijos.hijos.hijos.recurso', 'recurso'])
+            ->with([
+                'hijos',
+                'hijos.recurso',
+                'hijos.hijos',
+                'hijos.hijos.recurso',
+                'hijos.hijos.hijos',
+                'hijos.hijos.hijos.recurso',
+                'hijos.hijos.hijos.hijos',
+                'hijos.hijos.hijos.hijos.recurso',
+            ])
             ->get();
 
         $rubrosRaw = $rubrosRoot->map(function ($rubro) {
@@ -138,26 +147,12 @@ public function mount($proyectoId = null): void
         // Recorremos el árbol correctamente para sumar por tipo,
         // multiplicando las cantidades de los ancestros (igual que obtenerDatosPresupuesto).
         $distribucionMap = [];
-        $this->sumarDistribucionRecursiva(
-            ProyectoRecurso::where('proyecto_id', $proyecto->id)
-                ->whereNull('parent_id')
-                ->with(['hijos.recurso', 'hijos.hijos.recurso', 'hijos.hijos.hijos.recurso', 'recurso'])
-                ->get(),
-            $distribucionMap,
-            1
-        );
+        $this->sumarDistribucionRecursiva($rubrosRoot, $distribucionMap, 1);
         $distribucion = collect($distribucionMap)->map(fn($total, $tipo) => (object)['tipo' => $tipo, 'total' => $total])->values();
 
         // ── MAYORES MATERIALES CONSUMIDOS ─────────────────────────────
         $materialesMap = [];
-        $this->sumarMaterialesRecursiva(
-            ProyectoRecurso::where('proyecto_id', $proyecto->id)
-                ->whereNull('parent_id')
-                ->with(['hijos.recurso', 'hijos.hijos.recurso', 'hijos.hijos.hijos.recurso', 'recurso'])
-                ->get(),
-            $materialesMap,
-            1
-        );
+        $this->sumarMaterialesRecursiva($rubrosRoot, $materialesMap, 1);
         $materialesCollection = collect($materialesMap)->sortByDesc('costoReal')->values();
         $mayoresMateriales    = $materialesCollection->take(10);
         $todosLosMateriales   = $materialesCollection; // sin límite
@@ -165,15 +160,7 @@ public function mount($proyectoId = null): void
         // ── MANO DE OBRA POR CARGO/ESPECIALIDAD ─────────────────────────────
         $pctCS = (float)($proyecto->carga_social ?? 0);
         $manoDeObraMap = [];
-        $this->sumarManoDeObraRecursiva(
-            ProyectoRecurso::where('proyecto_id', $proyecto->id)
-                ->whereNull('parent_id')
-                ->with(['hijos.recurso', 'hijos.hijos.recurso', 'hijos.hijos.hijos.recurso', 'recurso'])
-                ->get(),
-            $manoDeObraMap,
-            1,
-            $pctCS
-        );
+        $this->sumarManoDeObraRecursiva($rubrosRoot, $manoDeObraMap, 1, $pctCS);
         $manoDeObra = collect($manoDeObraMap)
             ->map(fn($r) => array_merge($r, ['totalConCS' => round($r['totalCosto'] + $r['cargaSocial'], 2)]))
             ->sortByDesc('totalCosto')

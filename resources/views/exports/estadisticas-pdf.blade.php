@@ -201,7 +201,47 @@
     </div>
     @endif
 
-    {{-- â•â• TOP 5 PARTIDAS CON MAYOR DESVIACIÃ“N â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• --}}
+    {{-- ══ PRESUPUESTO POR RUBRO ═════════════════════════════════════════════════ --}}
+    @if(isset($stats['rubros']) && $stats['rubros']->count())
+    @php $totalRubros = $stats['rubros']->sum('presupuesto'); @endphp
+    <div class="section">
+        <div class="section-title">Presupuesto por Rubro</div>
+        <table class="data">
+            <thead>
+                <tr>
+                    <th style="width:4%">#</th>
+                    <th>Rubro</th>
+                    <th class="r" style="width:20%">Total (USD)</th>
+                    <th class="r" style="width:8%">%</th>
+                    <th style="width:30%">Participación</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($stats['rubros'] as $idx => $rubro)
+                <tr>
+                    <td class="c">{{ $idx + 1 }}</td>
+                    <td>{{ $rubro['nombre'] }}</td>
+                    <td class="r num"><b>{{ number_format($rubro['presupuesto'], 0, ',', '.') }}</b></td>
+                    <td class="r"><b>{{ $rubro['pct'] }}%</b></td>
+                    <td>
+                        <div class="bar-bg">
+                            <div class="bar-fill" style="width:{{ min($rubro['pct'],100) }}%; background:#3b82f6;"></div>
+                        </div>
+                    </td>
+                </tr>
+                @endforeach
+                <tr class="tr-total">
+                    <td colspan="2">TOTAL</td>
+                    <td class="r num">{{ number_format($totalRubros, 0, ',', '.') }}</td>
+                    <td class="r">100%</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    @endif
+
+    {{-- ══ TOP 5 PARTIDAS CON MAYOR DESVIACIÓN ═══════════════════════════════════ --}}
     @if($stats['topPartidas']->count())
     <div class="section">
         <div class="section-title">Top 5 Rubros con Mayor DesviaciÃ³n</div>

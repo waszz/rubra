@@ -75,7 +75,24 @@ class EstadisticasProyectoExport implements FromArray, WithHeadings, WithStyles,
             $this->rows[] = [];
         }
 
-        // ── 4. TOP 5 RUBROS CON MAYOR DESVIACIÓN ─────────────────────
+        // ── 4. PRESUPUESTO POR RUBRO ────────────────────────────────────
+        if (isset($this->stats['rubros']) && $this->stats['rubros']->count()) {
+            $totalRubros = $this->stats['rubros']->sum('presupuesto');
+            $this->rows[] = ['PRESUPUESTO POR RUBRO'];
+            $this->rows[] = ['#', 'Rubro', 'Total (USD)', '%'];
+            foreach ($this->stats['rubros'] as $i => $r) {
+                $this->rows[] = [
+                    $i + 1,
+                    $r['nombre'],
+                    number_format($r['presupuesto'], 0, ',', '.'),
+                    $r['pct'] . '%',
+                ];
+            }
+            $this->rows[] = ['', 'TOTAL', number_format($totalRubros, 0, ',', '.'), '100%'];
+            $this->rows[] = [];
+        }
+
+        // ── 5. TOP 5 RUBROS CON MAYOR DESVIACIÓN ─────────────────────────────────
         if ($this->stats['topPartidas']->count()) {
             $this->rows[] = ['TOP 5 RUBROS CON MAYOR DESVIACIÓN'];
             $this->rows[] = ['Rubro', 'Presupuesto (USD)', 'Costo Real (USD)', 'Desviación (USD)', 'Var %'];
@@ -175,6 +192,7 @@ class EstadisticasProyectoExport implements FromArray, WithHeadings, WithStyles,
             'INFORMACIÓN DEL PROYECTO',
             'RESUMEN FINANCIERO',
             'DISTRIBUCIÓN DE COSTOS',
+            'PRESUPUESTO POR RUBRO',
             'TOP 5 RUBROS CON MAYOR DESVIACIÓN',
             'MANO DE OBRA POR CARGO / ESPECIALIDAD',
             'TODOS LOS MATERIALES',

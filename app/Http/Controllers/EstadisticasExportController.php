@@ -189,31 +189,42 @@ class EstadisticasExportController extends Controller
         $avanceFinanciero = $presupuesto > 0 ? ($costoReal / $presupuesto) * 100 : 0;
         $desviacion       = $costoReal - $presupuesto;
 
-        // Top 5 rubros principales con mayor desviación
-        $topPartidas = ProyectoRecurso::where('proyecto_id', $proyecto->id)
-            ->whereNull('parent_id')
-            ->with('hijos')
-            ->get()
-            ->map(function ($rubro) {
-                $pres = $rubro->hijos->sum(fn($h) => ($h->cantidad ?? 0) * ($h->precio_usd ?? 0));
-                $real = $rubro->hijos->sum(fn($h) => $h->costo_real ?? 0);
-                return [
-                    'nombre'      => $rubro->nombre ?? 'Sin nombre',
-                    'presupuesto' => round($pres, 2),
-                    'costo_real'  => round($real, 2),
-                    'desviacion'  => round($real - $pres, 2),
-                ];
-            })
-            ->sortByDesc('desviacion')
-            ->take(5)
-            ->values();
-
-        // Distribución con tree traversal correcto
+        // Rubros con deep traversal
         $rootNodes = ProyectoRecurso::where('proyecto_id', $proyecto->id)
             ->whereNull('parent_id')
-            ->with(['hijos.recurso', 'hijos.hijos.recurso', 'hijos.hijos.hijos.recurso', 'recurso'])
+            ->with([
+                'hijos',
+                'hijos.recurso',
+                'hijos.hijos',
+                'hijos.hijos.recurso',
+                'hijos.hijos.hijos',
+                'hijos.hijos.hijos.recurso',
+                'hijos.hijos.hijos.hijos',
+                'hijos.hijos.hijos.hijos.recurso',
+            ])
             ->get();
 
+        $rubrosRaw = $rootNodes->map(function ($rubro) {
+            $presMap = [];
+            $this->sumarSubtotalNodos($rubro->hijos ?? collect(), $presMap, 1);
+            $pres = array_sum($presMap);
+            $real = $this->sumarCostoRealNodos($rubro->hijos ?? collect());
+            return [
+                'nombre'      => $rubro->nombre ?? 'Sin nombre',
+                'presupuesto' => round($pres, 2),
+                'costo_real'  => round($real, 2),
+                'desviacion'  => round($real - $pres, 2),
+            ];
+        })->sortByDesc('presupuesto')->values();
+
+        $totalRubros = $rubrosRaw->sum('presupuesto');
+        $rubros = $rubrosRaw->map(fn($r) => array_merge($r, [
+            'pct' => $totalRubros > 0 ? round(($r['presupuesto'] / $totalRubros) * 100, 1) : 0,
+        ]))->values();
+
+        $topPartidas = $rubrosRaw->sortByDesc('desviacion')->take(5)->values();
+
+        // Reuse rootNodes (already deep-loaded) for all traversals
         $distribucionMap = [];
         $this->sumarDistribucionRecursiva($rootNodes, $distribucionMap, 1);
         $distribucion = collect($distribucionMap)
@@ -242,11 +253,43 @@ class EstadisticasExportController extends Controller
             'presupuesto', 'subtotal', 'beneficio',
             'costoReal', 'costoRealSubtotal', 'ivaEjecutado',
             'avanceFinanciero', 'desviacion',
-            'topPartidas', 'distribucion',
+            'rubros', 'topPartidas', 'distribucion',
             'mayoresMateriales', 'todosLosMateriales',
             'manoDeObra', 'pctCS',
             'evolucion'
         );
+    }
+
+    private function sumarSubtotalNodos($nodos, array &$map, float $multiplier): void
+    {
+        foreach ($nodos as $nodo) {
+            $tieneHijos = $nodo->hijos && $nodo->hijos->count() > 0;
+            $cantNodo   = ($nodo->cantidad ?? 1) * $multiplier;
+            if (is_null($nodo->recurso_id)) {
+                $precioPropio = (float)($nodo->precio_usd ?? 0);
+                if ($precioPropio > 0 && !$tieneHijos) {
+                    $map[] = $precioPropio * $cantNodo;
+                }
+                if ($tieneHijos) {
+                    $this->sumarSubtotalNodos($nodo->hijos, $map, $cantNodo);
+                }
+            } else {
+                $map[] = ($nodo->precio_usd ?? 0) * ($nodo->cantidad ?? 0) * $multiplier;
+            }
+        }
+    }
+
+    private function sumarCostoRealNodos($nodos): float
+    {
+        $total = 0.0;
+        foreach ($nodos as $nodo) {
+            if ($nodo->hijos && $nodo->hijos->count() > 0) {
+                $total += $this->sumarCostoRealNodos($nodo->hijos);
+            } else {
+                $total += (float)($nodo->costo_real ?? 0);
+            }
+        }
+        return $total;
     }
 
     private function sumarDistribucionRecursiva($nodos, array &$map, float $multiplier): void
