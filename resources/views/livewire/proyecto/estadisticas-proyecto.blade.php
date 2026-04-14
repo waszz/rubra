@@ -354,9 +354,23 @@
     <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-6">
         <div class="flex items-center justify-between mb-5">
             <h2 class="text-sm font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">Todos los Materiales</h2>
-            <span class="text-xs font-bold text-gray-400 dark:text-gray-600 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/10 px-2.5 py-1 rounded-full">
-                {{ $stats['todosLosMateriales']->count() }} ítems
-            </span>
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-gray-400 dark:text-gray-600 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/10 px-2.5 py-1 rounded-full">
+                    {{ $stats['todosLosMateriales']->count() }} ítems
+                </span>
+                <a href="{{ route('estadisticas.materiales.excel', $proyecto->id) }}"
+                   class="inline-flex items-center gap-1.5 text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 hover:bg-green-100 dark:hover:bg-green-500/20 px-2.5 py-1 rounded-full transition-colors"
+                   title="Exportar Excel">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Excel
+                </a>
+                <a href="{{ route('estadisticas.materiales.pdf', $proyecto->id) }}"
+                   class="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 hover:bg-orange-100 dark:hover:bg-orange-500/20 px-2.5 py-1 rounded-full transition-colors"
+                   title="Exportar PDF">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                    PDF
+                </a>
+            </div>
         </div>
         @php $totalTodosMat = $stats['todosLosMateriales']->sum('costoReal'); @endphp
         <div class="overflow-x-auto">

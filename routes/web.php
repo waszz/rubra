@@ -102,6 +102,14 @@ Route::middleware(['auth', 'trial.expirado'])->group(function () {
         ->name('estadisticas.export.pdf')
         ->middleware('role:estadisticas');
 
+    Route::get('/estadisticas/{proyectoId}/materiales/excel', [EstadisticasExportController::class, 'materialesExcel'])
+        ->name('estadisticas.materiales.excel')
+        ->middleware('role:estadisticas');
+
+    Route::get('/estadisticas/{proyectoId}/materiales/pdf', [EstadisticasExportController::class, 'materialesPdf'])
+        ->name('estadisticas.materiales.pdf')
+        ->middleware('role:estadisticas');
+
     Route::get('/mapa-proyectos', \App\Livewire\Proyecto\MapaProyectos::class)
         ->name('mapa.proyectos')
         ->middleware('role:proyectos');
