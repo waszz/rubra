@@ -290,25 +290,23 @@
             $cantNodo       = $nodo->cantidad ?? 1;
             $precioUnitario = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
 
-            if (($nodo->recurso && $nodo->recurso->tipo === 'labor') || $nodo->tipo === 'labor') {
+            if (($nodo->recurso && in_array($nodo->recurso->tipo, ['labor', 'mano_obra'])) || in_array($nodo->tipo ?? '', ['labor', 'mano_obra'])) {
                 $porcentajeCS = !is_null($pctGlobal)
                     ? (float)$pctGlobal
                     : ($nodo->recurso->social_charges_percentage ?? $nodo->social_charges_percentage ?? 0);
                 $totalCS += $multiplier * $cantNodo * $precioUnitario * ($porcentajeCS / 100);
             }
 
+            // Composición (APU): CS = precio_unit_labor × cs% × horas × cantidad_APU
             if ($nodo->recurso && $nodo->recurso->tipo === 'composition') {
                 $itemsInternos = \App\Models\ComposicionItem::where('composicion_id', $nodo->recurso_id)->get();
                 foreach ($itemsInternos as $interno) {
                     $resBase = $interno->recursoBase;
-                    if (!$resBase) continue;
-                    if (in_array($resBase->tipo, ['labor', 'mano_obra'])) {
-                        $pBase        = $resBase->precio_usd ?? 0;
-                        $porcentajeCS = !is_null($pctGlobal)
-                            ? (float)$pctGlobal
-                            : ($resBase->social_charges_percentage ?? 0);
-                        $totalCS += $multiplier * $cantNodo * $interno->cantidad * $pBase * ($porcentajeCS / 100);
-                    }
+                    if (!$resBase || !in_array($resBase->tipo, ['labor', 'mano_obra'])) continue;
+                    $porcentajeCS = !is_null($pctGlobal)
+                        ? (float)$pctGlobal
+                        : ($resBase->social_charges_percentage ?? 0);
+                    $totalCS += $multiplier * $cantNodo * $interno->cantidad * ($resBase->precio_usd ?? 0) * ($porcentajeCS / 100);
                 }
             }
 
@@ -440,13 +438,27 @@ $totalFinal = $subtotalConBeneficio + $iva;
                 // Carga social total de todos los recursos labor dentro de esta categoría
                 $calcularCSRecursivo = function($nodos, float $mult = 1) use (&$calcularCSRecursivo, $proyecto) {
                     $total = 0;
-                    $pctGlobal = (float)($proyecto->carga_social ?? 0);
+                    $pctGlobal = $proyecto->carga_social; // null = usar el del recurso; 0 o >0 = forzar
                     foreach ($nodos as $n) {
                         $esLaborN = !is_null($n->recurso_id) && in_array($n->recurso?->tipo, ['labor', 'mano_obra']);
                         if ($esLaborN) {
-                            $pct    = $pctGlobal > 0 ? $pctGlobal : (float)($n->recurso?->social_charges_percentage ?? 0);
+                            $pct    = !is_null($pctGlobal)
+                                ? (float)$pctGlobal
+                                : (float)($n->recurso?->social_charges_percentage ?? 0);
                             $precio = $n->precio_unitario ?? $n->precio_usd ?? 0;
                             $total += $precio * ($pct / 100) * ($n->cantidad ?? 1) * $mult;
+                        }
+                        // Composición (APU): CS = precio_unit_labor × cs% × horas × cantidad_APU
+                        if (!is_null($n->recurso_id) && $n->recurso?->tipo === 'composition') {
+                            $itemsComp = \App\Models\ComposicionItem::where('composicion_id', $n->recurso_id)->get();
+                            foreach ($itemsComp as $ci) {
+                                $resBase = $ci->recursoBase;
+                                if (!$resBase || !in_array($resBase->tipo, ['labor', 'mano_obra'])) continue;
+                                $pct = !is_null($pctGlobal)
+                                    ? (float)$pctGlobal
+                                    : (float)($resBase->social_charges_percentage ?? 0);
+                                $total += ($resBase->precio_usd ?? 0) * ($pct / 100) * $ci->cantidad * ($n->cantidad ?? 1) * $mult;
+                            }
                         }
                         if ($n->hijos && $n->hijos->count() > 0) {
                             $total += $calcularCSRecursivo($n->hijos, $mult * ($n->cantidad ?? 1));

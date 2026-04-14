@@ -82,6 +82,18 @@
                 $precio = $n->precio_unitario ?? $n->precio_usd ?? 0;
                 $total += $precio * ($pct / 100) * ($n->cantidad ?? 1) * $mult;
             }
+            // Composición (APU): CS = precio_unit_labor × cs% × horas × cantidad_APU
+            if (!is_null($n->recurso_id) && $n->recurso?->tipo === 'composition') {
+                $itemsComp = \App\Models\ComposicionItem::where('composicion_id', $n->recurso_id)->get();
+                foreach ($itemsComp as $ci) {
+                    $resBase = $ci->recursoBase;
+                    if (!$resBase || !in_array($resBase->tipo, ['labor', 'mano_obra'])) continue;
+                    $pct = !is_null($pctGlobal)
+                        ? (float)$pctGlobal
+                        : (float)($resBase->social_charges_percentage ?? 0);
+                    $total += ($resBase->precio_usd ?? 0) * ($pct / 100) * $ci->cantidad * ($n->cantidad ?? 1) * $mult;
+                }
+            }
             if ($n->hijos && $n->hijos->count() > 0) {
                 $total += $calcCSHijos($n->hijos, $mult * ($n->cantidad ?? 1));
             }
@@ -89,21 +101,24 @@
         return $total;
     };
 
-    // Si es composición, sumar CS de items labor internos
+    // CS del nodo: labor directo, composición (APU) o subrubro
     if ($esLabor) {
         $csNodo = $montoCS;
     } elseif ($esComposicion) {
-        $csNodo = 0;
+        // CS por unidad = precio_unit_labor × cs% × horas (sin × cantidad)
+        // CS total      = CS por unidad × cantidad del nodo en el presupuesto
+        $pctComp          = isset($proyecto) ? $proyecto->carga_social : null;
+        $csNodoPorUnidad  = 0;
         foreach ($itemsComposicionLocal as $item) {
             $base = $item->recursoBase;
-            if ($base && in_array($base->tipo, ['labor', 'mano_obra'])) {
-                $pct = !is_null($proyecto->carga_social)
-                    ? (float)$proyecto->carga_social
-                    : (float)($base->social_charges_percentage ?? 0);
-                $pUnit = $base->precio_usd ?? 0;
-                $csNodo += $pUnit * ($pct / 100) * $item->cantidad * ($nodo->cantidad ?? 1);
-            }
+            if (!$base || !in_array($base->tipo, ['labor', 'mano_obra'])) continue;
+            $pct             = !is_null($pctComp)
+                                ? (float)$pctComp
+                                : (float)($base->social_charges_percentage ?? 0);
+            $csNodoPorUnidad += ($base->precio_usd ?? 0) * ($pct / 100) * $item->cantidad;
         }
+        // Multiplicar por la cantidad real del nodo (0.21 M3, etc.)
+        $csNodo = $csNodoPorUnidad * (float)($nodo->cantidad ?? 1);
     } elseif (!$esRecurso) {
         $csNodo = $calcCSHijos($hijos);
     } else {
@@ -340,9 +355,15 @@
                                     $base         = $item->recursoBase;
                                     $pUnit        = $base->precio_usd ?? 0;
                                     $esLabor      = in_array($base->tipo, ['labor', 'mano_obra']);
-                                    $cargaSocial  = $esLabor ? ($pUnit * (($base->social_charges_percentage ?? 0) / 100)) : 0;
-                                    $subtotalItem = ($nodo->cantidad ?? 1) * $item->cantidad * $pUnit;
-                                    $cantidadMostrada = $item->cantidad * ($nodo->cantidad ?? 1);
+                                    $pctCSItem    = isset($proyecto) && !is_null($proyecto->carga_social)
+                                        ? (float)$proyecto->carga_social
+                                        : (float)($base->social_charges_percentage ?? 0);
+                                    // APU muestra valores por unidad (rendimiento, no × cantidad del nodo)
+                                    $cantidadMostrada = $item->cantidad;
+                                    $subtotalItem = $cantidadMostrada * $pUnit;
+                                    // CS por unidad APU = precio × CS% × rendimiento (paso 2 de 3)
+                                    // El total × nodo.cantidad se muestra en el header ($csNodo, línea ~121)
+                                    $cargaSocial  = $esLabor ? ($pUnit * ($pctCSItem / 100) * $item->cantidad) : 0;
                                 @endphp
                                 <div class="grid grid-cols-12 px-4 py-2 items-center hover:bg-white/[0.02] transition group/apuitem">
                                     <div class="col-span-5 pl-4 text-sm text-gray-400 italic">

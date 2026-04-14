@@ -276,7 +276,13 @@ public function exportarPDF()
         $config = ConfiguracionGeneral::instancia();
 
         $subtotalBase         = $datos['total'];
-        $cargaSocial          = $this->calcularCargaSocialPDF();
+        // Sumar carga social solo de los ítems que se muestran en la tabla (item, apu_header, subrubro)
+        $cargaSocial = 0;
+        foreach ($datos['items'] as $it) {
+            if (in_array($it['tipo'], ['item', 'apu_header', 'subrubro'])) {
+                $cargaSocial += (float)($it['carga_social_total'] ?? 0);
+            }
+        }
         $pctBeneficio         = (float) ($this->proyecto->beneficio ?? 0);
         $beneficioMonto       = $subtotalBase * ($pctBeneficio / 100);
         $subtotalConBeneficio = $subtotalBase + $beneficioMonto;
@@ -894,7 +900,7 @@ private function calcularCSNodo($nodo, float $multiplier = 1): float
         $precio = $nodo->precio_usd ?? $nodo->precio_unitario ?? 0;
         $total  = $precio * ($pct / 100) * $cantNodo;
 
-    // Composición APU: sumar CS de los items labor internos
+    // Composición APU: CS = precio_unit_labor × cs% × horas × cantidad_APU
     } elseif (!is_null($nodo->recurso_id) && $nodo->recurso?->tipo === 'composition') {
         $itemsInternos = \App\Models\ComposicionItem::where('composicion_id', $nodo->recurso_id)->get();
         foreach ($itemsInternos as $interno) {
@@ -903,8 +909,7 @@ private function calcularCSNodo($nodo, float $multiplier = 1): float
             $pct = !is_null($this->proyecto->carga_social)
                 ? (float)$this->proyecto->carga_social
                 : (float)($resBase->social_charges_percentage ?? 0);
-            $precio = $resBase->precio_usd ?? 0;
-            $total += $precio * ($pct / 100) * $interno->cantidad * $cantNodo;
+            $total += ($resBase->precio_usd ?? 0) * ($pct / 100) * $interno->cantidad * $cantNodo;
         }
 
     // Subrubro: recorrer hijos
@@ -955,19 +960,16 @@ private function recorrerCargaSocial($nodos, float &$totalCS, float $multiplier 
             $totalCS += $multiplier * $cantNodo * $precioUnitario * ($porcentajeCS / 100);
         }
 
-        // Composición (APU): sumar CS de sus items de mano de obra internos
+        // Composición (APU): CS = precio_unit_labor × cs% × horas × cantidad_APU
         if ($nodo->recurso && $nodo->recurso->tipo === 'composition') {
             $itemsInternos = \App\Models\ComposicionItem::where('composicion_id', $nodo->recurso_id)->get();
             foreach ($itemsInternos as $interno) {
                 $resBase = $interno->recursoBase;
-                if (!$resBase) continue;
-                if (in_array($resBase->tipo, ['labor', 'mano_obra'])) {
-                    $pBase        = $resBase->precio_usd ?? 0;
-                    $porcentajeCS = !is_null($pctGlobal)
-                        ? (float)$pctGlobal
-                        : ($resBase->social_charges_percentage ?? 0);
-                    $totalCS += $multiplier * $cantNodo * $interno->cantidad * $pBase * ($porcentajeCS / 100);
-                }
+                if (!$resBase || !in_array($resBase->tipo, ['labor', 'mano_obra'])) continue;
+                $porcentajeCS = !is_null($pctGlobal)
+                    ? (float)$pctGlobal
+                    : ($resBase->social_charges_percentage ?? 0);
+                $totalCS += $multiplier * $cantNodo * $interno->cantidad * ($resBase->precio_usd ?? 0) * ($porcentajeCS / 100);
             }
         }
 
