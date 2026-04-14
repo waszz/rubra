@@ -107,24 +107,32 @@ public function mount($proyectoId = null): void
 
         $desviacion = $costoReal - $presupuesto;
 
-        // ── TOP 5 RUBROS PRINCIPALES CON MAYOR DESVIACIÓN ──────────────────────────
-        $topPartidas = ProyectoRecurso::where('proyecto_id', $proyecto->id)
+        // ── TODOS LOS RUBROS (listado con %) ─────────────────────────────────────────
+        $rubrosRoot = ProyectoRecurso::where('proyecto_id', $proyecto->id)
             ->whereNull('parent_id')
-            ->with('hijos')
-            ->get()
-            ->map(function ($rubro) {
-                $presupuesto = $rubro->hijos->sum(fn($h) => ($h->cantidad ?? 0) * ($h->precio_usd ?? 0));
-                $costoReal   = $rubro->hijos->sum(fn($h) => $h->costo_real ?? 0);
-                return [
-                    'nombre'      => $rubro->nombre ?? 'Sin nombre',
-                    'presupuesto' => round($presupuesto, 2),
-                    'costo_real'  => round($costoReal, 2),
-                    'desviacion'  => round($costoReal - $presupuesto, 2),
-                ];
-            })
-            ->sortByDesc('desviacion')
-            ->take(5)
-            ->values();
+            ->with(['hijos.recurso', 'hijos.hijos.recurso', 'hijos.hijos.hijos.recurso', 'recurso'])
+            ->get();
+
+        $rubrosRaw = $rubrosRoot->map(function ($rubro) {
+            $presMap = [];
+            $this->sumarSubtotalNodos($rubro->hijos ?? collect(), $presMap, 1);
+            $pres = array_sum($presMap);
+            $real = $this->sumarCostoRealNodos($rubro->hijos ?? collect());
+            return [
+                'nombre'      => $rubro->nombre ?? 'Sin nombre',
+                'presupuesto' => round($pres, 2),
+                'costo_real'  => round($real, 2),
+                'desviacion'  => round($real - $pres, 2),
+            ];
+        })->sortByDesc('presupuesto')->values();
+
+        $totalRubros = $rubrosRaw->sum('presupuesto');
+        $rubros = $rubrosRaw->map(fn($r) => array_merge($r, [
+            'pct' => $totalRubros > 0 ? round(($r['presupuesto'] / $totalRubros) * 100, 1) : 0,
+        ]))->values();
+
+        // ── TOP 5 RUBROS PRINCIPALES CON MAYOR DESVIACIÓN ──────────────────────────
+        $topPartidas = $rubrosRaw->sortByDesc('desviacion')->take(5)->values();
 
         // ── DISTRIBUCIÓN ─────────────────────────────
         // Recorremos el árbol correctamente para sumar por tipo,
@@ -184,6 +192,7 @@ public function mount($proyectoId = null): void
             'avanceFinanciero',
             'desviacion',
             'topPartidas',
+            'rubros',
             'distribucion',
             'mayoresMateriales',
             'todosLosMateriales',
@@ -201,6 +210,46 @@ public function mount($proyectoId = null): void
             $todos = array_merge($todos, $this->obtenerIdsDescendientes($hijoId));
         }
         return $todos;
+    }
+
+    /**
+     * Suma el subtotal presupuestado (cantidad * precio_usd) de un árbol con multiplicadores.
+     * Acumula en $map como un array plano; el total es array_sum($map).
+     */
+    private function sumarSubtotalNodos($nodos, array &$map, float $multiplier): void
+    {
+        foreach ($nodos as $nodo) {
+            $tieneHijos = $nodo->hijos && $nodo->hijos->count() > 0;
+            $cantNodo   = ($nodo->cantidad ?? 1) * $multiplier;
+
+            if (is_null($nodo->recurso_id)) {
+                $precioPropio = (float)($nodo->precio_usd ?? 0);
+                if ($precioPropio > 0 && !$tieneHijos) {
+                    $map[] = $precioPropio * $cantNodo;
+                }
+                if ($tieneHijos) {
+                    $this->sumarSubtotalNodos($nodo->hijos, $map, $cantNodo);
+                }
+            } else {
+                $map[] = ($nodo->precio_usd ?? 0) * ($nodo->cantidad ?? 0) * $multiplier;
+            }
+        }
+    }
+
+    /**
+     * Suma el costo_real de todas las hojas de un árbol (sin multiplicadores, costo_real ya es el final).
+     */
+    private function sumarCostoRealNodos($nodos): float
+    {
+        $total = 0.0;
+        foreach ($nodos as $nodo) {
+            if ($nodo->hijos && $nodo->hijos->count() > 0) {
+                $total += $this->sumarCostoRealNodos($nodo->hijos);
+            } else {
+                $total += (float)($nodo->costo_real ?? 0);
+            }
+        }
+        return $total;
     }
 
     /**

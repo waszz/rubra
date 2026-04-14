@@ -246,6 +246,35 @@
         </div>
     </div>
 
+    {{-- LISTADO POR RUBROS --}}
+    @if($stats['rubros']->count())
+    <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h2 class="text-sm font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">Presupuesto por Rubro</h2>
+            <span class="text-xs font-bold text-gray-400 dark:text-gray-600 bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/10 px-2.5 py-1 rounded-full">
+                {{ $stats['rubros']->count() }} rubros
+            </span>
+        </div>
+        @php $totalRubros = $stats['rubros']->sum('presupuesto'); @endphp
+        <div class="space-y-2">
+            @foreach($stats['rubros'] as $rubro)
+                <div class="flex items-center gap-3">
+                    <span class="flex-1 text-sm text-gray-700 dark:text-gray-300 font-medium truncate">{{ $rubro['nombre'] }}</span>
+                    <span class="text-sm font-mono font-bold text-black dark:text-white tabular-nums shrink-0">USD {{ number_format($rubro['presupuesto'], 0, ',', '.') }}</span>
+                    <span class="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded shrink-0 w-14 text-center">{{ $rubro['pct'] }}%</span>
+                    <div class="w-24 bg-gray-200 dark:bg-white/10 rounded-full h-1.5 shrink-0">
+                        <div class="h-1.5 rounded-full bg-blue-500" style="width: {{ min($rubro['pct'], 100) }}%"></div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700/50 flex justify-between items-center">
+            <span class="text-sm text-gray-500 font-black uppercase">Total Presupuestado</span>
+            <span class="text-lg font-black text-blue-600 dark:text-blue-400">USD {{ number_format($totalRubros, 0, ',', '.') }}</span>
+        </div>
+    </div>
+    @endif
+
     {{-- MAYORES MATERIALES CONSUMIDOS --}}
     <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-6">
         <h2 class="text-sm font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mb-5">Mayores Materiales Consumidos (Top 10)</h2>
