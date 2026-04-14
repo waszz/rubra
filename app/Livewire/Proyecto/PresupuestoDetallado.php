@@ -1021,7 +1021,7 @@ public function actualizarCargaSocial(mixed $valor): void
     if ($valor === '' || is_null($valor) || !is_numeric($valor)) {
         $this->proyecto->carga_social = null;
     } else {
-        $this->proyecto->carga_social = $pct;
+        $this->proyecto->carga_social = (float) $valor;
     }
     $this->proyecto->save();
     $this->cargarProyecto(); // Recarga nodos y totales tras guardar
