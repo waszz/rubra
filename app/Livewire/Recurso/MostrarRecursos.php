@@ -362,6 +362,12 @@ public function eliminarItem()
                 'precio_nuevo' => $precioNuevo,
                 'razon' => null,
             ]);
+
+            // Propagar el nuevo precio a todos los proyectos que usan este recurso,
+            // excepto las filas marcadas como imported (son copias congeladas).
+            \App\Models\ProyectoRecurso::where('recurso_id', $this->editandoId)
+                ->where(fn($q) => $q->where('imported', false)->orWhereNull('imported'))
+                ->update(['precio_usd' => $precioNuevo]);
         }
 
         $this->cerrarModalEditar();

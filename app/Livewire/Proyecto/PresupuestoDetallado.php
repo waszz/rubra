@@ -40,6 +40,7 @@ class PresupuestoDetallado extends Component
 
     // UI
     public $nodosAbiertos     = [];
+    public $rubrosExpandidos  = false; // estado del toggle global de rubros padre
     public $filtroTipo        = 'Todos';
     public $buscarSelector    = '';
 
@@ -1560,6 +1561,7 @@ public function invitarUsuariosSeleccionados()
     {
         if ($this->modoLectura) return;
         $this->validate([
+            'archivoImportPresupuesto' => 'required|file|max:10240|mimes:pdf',
         ]);
 
         $this->importandoPresupuesto = true;
@@ -1764,6 +1766,7 @@ public function invitarUsuariosSeleccionados()
         $items             = [];
         $state             = 'pre'; // pre → header → data
         $pendingName       = '';    // multi-line name accumulation
+        $pendingDataLine   = '';    // partial data row waiting for its continuation
         $detectedBeneficio = 0.0;
         $lastSubrubroQty   = 1.0;  // cantidad efectiva del último subrubro visto (para dividir recursos)
         $detectedPrecioFinalPdf = null;
@@ -1787,36 +1790,16 @@ public function invitarUsuariosSeleccionados()
         $parseNum = static fn(string $s): float =>
             (float)str_replace(',', '.', preg_replace('/\.(?=\d{3}[,\.]|\d{3}$)/', '', trim($s)));
 
-        // Emit one item, stripping code prefix and detecting subrubro vs resource
-        $emit = function (string $rawName, string $unit, float $qty, float $precio)
-            use (&$items, $codeRx, &$lastSubrubroQty): void
-        {
-            $rawName = trim($rawName);
-            if ($rawName === '') return;
-            if (preg_match($codeRx, $rawName)) {
-                $nombre = trim(preg_replace($codeRx, '', $rawName));
-                $tipo   = 'subrubro';
-            } else {
-                $nombre = $rawName;
-                $tipo   = 'recurso';
+        // Helper: strip all trailing "$ amount" tokens rightward and return [head, amounts[]]
+        // where amounts[0] is the leftmost $ (unit price), amounts[1] = subtotal, amounts[2] = CS.
+        $stripAmounts = static function (string $line) use ($parseNum): array {
+            $amounts = [];
+            $working = trim(preg_replace('/\s*[—–-]+\s*$/', '', $line)); // remove trailing em-dash
+            while (preg_match('/\$\s*([\d.,]+)\s*$/', $working, $m)) {
+                array_unshift($amounts, $parseNum($m[1]));
+                $working = trim(preg_replace('/\s*\$\s*[\d.,]+\s*$/', '', $working));
             }
-
-            if ($nombre === '') return;
-
-            // Si es subrubro, guardar su cantidad para referencia futura
-            if ($tipo === 'subrubro') {
-                $lastSubrubroQty = $qty > 0 ? $qty : 1.0;
-            }
-
-            // Para PDF no dividimos automáticamente la cantidad de recursos;
-            // los PDFs que exporta Rubra ya traen la cantidad por unidad.
-            $items[] = [
-                'tipo'     => $tipo,
-                'nombre'   => $nombre,
-                'unidad'   => $unit,
-                'cantidad' => $qty > 0 ? $qty : 1,
-                'precio'   => $precio,
-            ];
+            return [trim($working), $amounts];
         };
 
         foreach ($lines as $line) {
@@ -1876,13 +1859,21 @@ public function invitarUsuariosSeleccionados()
             // Hard stop at table totals row
             if (str_contains($upper, 'TOTAL PRESUPUESTO')) break;
 
+            // If we have a buffered partial row (line ended with "$"), prepend it now
+            if ($pendingDataLine !== '') {
+                $line          = trim($pendingDataLine) . ' ' . $line;
+                $upper         = mb_strtoupper($line, 'UTF-8');
+                $pendingDataLine = '';
+            }
+
             // Skip section headers, page-repeat headers and other noise
             $isNoise = false;
             foreach ($skipKeywords as $kw) {
                 if (str_contains($upper, $kw)) { $isNoise = true; break; }
             }
             if ($isNoise) {
-                $pendingName = ''; // reset accumulation at section boundaries
+                $pendingName     = ''; // reset accumulation at section boundaries
+                $pendingDataLine = '';
                 $lastSubrubroQty = 1.0;
                 continue;
             }
@@ -1890,66 +1881,111 @@ public function invitarUsuariosSeleccionados()
             // Skip lines that are purely numeric (stray page numbers, etc.)
             if (preg_match('/^[\d\s.,]+$/', $line)) continue;
 
-            $dollarCount = substr_count($line, '$');
-
-            // ── Category row: one $ sign at end ─────────────────────────────
-            if ($dollarCount === 1) {
-                $nombre = trim(preg_replace('/\s*\$[\s\d.,]+$/', '', $line));
-                $nombre = trim(preg_replace($codeRx, '', $nombre));
-                if ($nombre !== '') {
-                    $pendingName = '';
-                    $lastSubrubroQty = 1.0;
-                    $items[]     = ['tipo' => 'categoria', 'nombre' => $nombre,
-                                    'unidad' => '', 'cantidad' => 1, 'precio' => 0];
-                }
+            // ── Partial row: line ends with "$" (PDF split the row mid-price) ──
+            // Buffer it and join with the next line before classifying.
+            if (preg_match('/\$\s*$/', $line)) {
+                $pendingDataLine = $line;
                 continue;
             }
 
-            // ── Data row: two $ signs = subrubro or resource ──────────────────
-            if ($dollarCount >= 2) {
-                // Extract the last two $ amounts
-                if (preg_match('/\$\s*([\d.,]+)\s*$/', $line, $mLast)) {
-                    $afterLast = preg_replace('/\s*\$\s*[\d.,]+\s*$/', '', $line);
-                    if (preg_match('/\$\s*([\d.,]+)\s*$/', $afterLast, $mPrev)) {
-                        $precioStr = $mPrev[1];
-                        $head      = trim(preg_replace('/\s*\$\s*[\d.,]+\s*$/', '', $afterLast));
+            // Strip all trailing "$ amount" tokens to isolate the head (name + unit + qty)
+            // and collect the amounts left-to-right: [unit_price, subtotal, cs?]
+            [$head, $amounts] = $stripAmounts($line);
 
-                        // Parse unit + qty from the tail of $head
-                        $parts     = preg_split('/\s+/', $head);
-                        $qty       = 1.0;
-                        $unit      = '';
-                        $nameParts = $parts;
+            // No dollar signs at all → pure text, accumulate as multi-line name continuation
+            if (count($amounts) === 0) {
+                $pendingName = $pendingName !== '' ? $pendingName . ' ' . $line : $line;
+                continue;
+            }
 
-                        // Last token: numeric → quantity
-                        $tok = end($parts);
-                        if ($tok !== false && is_numeric(str_replace(',', '.', $tok))) {
-                            $qty       = $parseNum($tok);
-                            $nameParts = array_slice($parts, 0, -1);
-                            // New last token: short letter-starting word → unit
-                            $tok2 = end($nameParts);
-                            if ($tok2 !== false
-                                && strlen($tok2) <= 6
-                                && preg_match('/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]/', $tok2)) {
-                                $unit      = $tok2;
-                                $nameParts = array_slice($nameParts, 0, -1);
-                            }
-                        }
+            // Merge any pending multi-line name prefix
+            if ($pendingName !== '') {
+                $head        = trim($pendingName . ' ' . $head);
+                $pendingName = '';
+            }
 
-                        // Combine pending multi-line name with whatever's left in head
-                        $nameFromLine = implode(' ', $nameParts);
-                        $fullName     = $pendingName !== ''
-                            ? trim($pendingName . ' ' . $nameFromLine)
-                            : trim($nameFromLine);
+            if ($head === '') continue;
 
-                        $emit($fullName, $unit, $qty, $parseNum($precioStr));
-                        $pendingName = '';
+            $hasCode = (bool)preg_match($codeRx, $head);
+
+            if ($hasCode) {
+                // ── Code prefix row: category or subrubro ────────────────────
+                $afterCode = trim(preg_replace($codeRx, '', $head));
+                $parts     = preg_split('/\s+/', $afterCode);
+                $lastTok   = end($parts);
+
+                if ($lastTok !== false && $lastTok !== ''
+                    && is_numeric(str_replace(',', '.', (string)$lastTok)))
+                {
+                    // Last token is numeric → SUBRUBRO (has unit + qty before the prices)
+                    $qty       = $parseNum($lastTok);
+                    $nameParts = array_slice($parts, 0, -1);
+                    $unit      = '';
+                    $tok2      = end($nameParts);
+                    if ($tok2 !== false && strlen($tok2) <= 6
+                        && preg_match('/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]/u', $tok2))
+                    {
+                        $unit      = $tok2;
+                        $nameParts = array_slice($nameParts, 0, -1);
+                    }
+                    $nombre = trim(implode(' ', $nameParts));
+                    if ($nombre !== '') {
+                        $lastSubrubroQty = $qty > 0 ? $qty : 1.0;
+                        $items[] = [
+                            'tipo'     => 'subrubro',
+                            'nombre'   => $nombre,
+                            'unidad'   => $unit ?: 'gl',
+                            'cantidad' => $qty > 0 ? $qty : 1,
+                            'precio'   => $amounts[0] ?? 0, // leftmost $ = unit price
+                        ];
+                    }
+                } else {
+                    // Last token is NOT numeric → CATEGORY (name only, no unit/qty)
+                    $nombre = trim($afterCode);
+                    if ($nombre !== '') {
+                        $lastSubrubroQty = 1.0;
+                        $items[] = [
+                            'tipo'     => 'categoria',
+                            'nombre'   => $nombre,
+                            'unidad'   => '',
+                            'cantidad' => 1,
+                            'precio'   => 0,
+                        ];
                     }
                 }
-                continue;
+
+            } else {
+                // ── No code prefix → RESOURCE ─────────────────────────────────
+                $parts     = preg_split('/\s+/', $head);
+                $qty       = 1.0;
+                $unit      = '';
+                $nameParts = $parts;
+
+                $tok = end($parts);
+                if ($tok !== false && is_numeric(str_replace(',', '.', (string)$tok))) {
+                    $qty       = $parseNum($tok);
+                    $nameParts = array_slice($parts, 0, -1);
+                    $tok2      = end($nameParts);
+                    if ($tok2 !== false && strlen($tok2) <= 6
+                        && preg_match('/^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]/u', $tok2))
+                    {
+                        $unit      = $tok2;
+                        $nameParts = array_slice($nameParts, 0, -1);
+                    }
+                }
+
+                $nombre = trim(implode(' ', $nameParts));
+                if ($nombre !== '') {
+                    $items[] = [
+                        'tipo'     => 'recurso',
+                        'nombre'   => $nombre,
+                        'unidad'   => $unit,
+                        'cantidad' => $qty > 0 ? $qty : 1,
+                        'precio'   => $amounts[0] ?? 0, // leftmost $ = unit price
+                    ];
+                }
             }
 
-            // ── 0 $ signs: accumulate as part of a multi-line name ────────────
-            $pendingName = $pendingName !== '' ? $pendingName . ' ' . $line : $line;
         }
 
         $detectedTotal = $detectedAnyTotalPdf ?? $detectedPrecioFinalPdf ?? 0;
@@ -1983,6 +2019,7 @@ public function invitarUsuariosSeleccionados()
                     'cantidad'    => 1,
                     'precio_usd'  => 0,
                     'categoria'   => $nombre,
+                    'imported'    => true,
                     'orden'       => $maxOrden + 1,
                 ]);
                 $catNodeId      = $node->id;
@@ -2002,6 +2039,7 @@ public function invitarUsuariosSeleccionados()
                     'cantidad'    => $item['cantidad'] ?: 1,
                     'precio_usd'  => 0,
                     'categoria'   => null,
+                    'imported'    => true,
                     'orden'       => $maxOrden + 1,
                 ]);
                 $subrubroNodeId = $node->id;
@@ -2045,6 +2083,7 @@ public function invitarUsuariosSeleccionados()
                     'cantidad'    => $item['cantidad'] ?: 1,
                     'precio_usd'  => $precioImportado ?: ($recurso?->precio_usd ?? 0),
                     'categoria'   => null,
+                    'imported'    => true,
                     'orden'       => $maxOrden + 1,
                 ]);
                 $creados++;
@@ -2085,6 +2124,48 @@ public function actualizarCostoReal($id, $valor)
     $recurso->update(['costo_real' => $costo]);
     $this->proyecto->refresh();
     $this->cargarProyecto();
+}
+
+/**
+ * Sincroniza el precio_usd de un nodo importado con el precio actual del catálogo.
+ * Solo aplica a nodos con imported=true y recurso_id vinculado.
+ */
+public function sincronizarPrecioRecurso(int $id): void
+{
+    $nodo = ProyectoRecurso::find($id);
+    if (!$nodo || $nodo->proyecto_id !== $this->proyecto->id) return;
+    if (!$nodo->imported || !$nodo->recurso_id) return;
+
+    $precio = $nodo->recurso?->precio_usd ?? 0;
+    $nodo->update(['precio_usd' => $precio]);
+    $this->cargarProyecto();
+    $this->guardarEstado();
+    $this->actualizarPresupuestoTotalGuardado();
+}
+
+/**
+ * Sincroniza todos los recursos importados del proyecto con el precio actual del catálogo.
+ */
+public function sincronizarTodosLosPrecios(): void
+{
+    $nodos = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+        ->where('imported', true)
+        ->whereNotNull('recurso_id')
+        ->with('recurso')
+        ->get();
+
+    foreach ($nodos as $nodo) {
+        $recurso = $nodo->recurso;
+        if (!$recurso) continue;
+        $precio = $recurso->precio_usd ?? 0;
+        if ($precio > 0 && abs(($nodo->precio_usd ?? 0) - $precio) > 0.001) {
+            $nodo->update(['precio_usd' => $precio]);
+        }
+    }
+
+    $this->cargarProyecto();
+    $this->guardarEstado();
+    $this->actualizarPresupuestoTotalGuardado();
 }
 
 /**
@@ -2207,6 +2288,50 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
             $this->nodosAbiertos = array_values(array_diff($this->nodosAbiertos, [$key]));
         } else {
             $this->nodosAbiertos[] = $key;
+        }
+    }
+
+    public function expandirTodos(): void
+    {
+        // Abre solo los rubros padre (categorías), no los subrubros
+        $catNames = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->whereNull('parent_id')
+            ->pluck('categoria')
+            ->filter()
+            ->unique();
+        $catKeys = $catNames->map(fn($n) => 'cat_' . $n)->toArray();
+        $this->nodosAbiertos  = array_values(array_unique(array_merge($this->nodosAbiertos, $catKeys)));
+        $this->rubrosExpandidos = true;
+    }
+
+    public function colapsarTodos(): void
+    {
+        $this->nodosAbiertos    = [];
+        $this->rubrosExpandidos = false;
+    }
+
+    /**
+     * Abre o cierra todos los subrubros (hijos directos sin recurso) de una categoría.
+     */
+    public function toggleSubrubrosDeCategoria(int $catNodeId): void
+    {
+        $keys = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->where('parent_id', $catNodeId)
+            ->whereNull('recurso_id')
+            ->pluck('id')
+            ->map(fn($id) => 'node_' . $id)
+            ->toArray();
+
+        if (empty($keys)) return;
+
+        $abiertos = array_filter($keys, fn($k) => in_array($k, $this->nodosAbiertos));
+
+        if (count($abiertos) === count($keys)) {
+            // Todos abiertos → cerrar todos
+            $this->nodosAbiertos = array_values(array_diff($this->nodosAbiertos, $keys));
+        } else {
+            // Alguno/ninguno cerrado → abrir todos
+            $this->nodosAbiertos = array_values(array_unique(array_merge($this->nodosAbiertos, $keys)));
         }
     }
 

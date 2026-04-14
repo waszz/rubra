@@ -221,6 +221,18 @@
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                 </button>
                 @endif
+                @if(!$modoLectura && $esRecurso && ($nodo->imported ?? false) && $nodo->recurso_id && $nodo->recurso)
+                @php $precioCatalogo = $nodo->recurso->precio_usd ?? 0; @endphp
+                @if(abs(($nodo->precio_usd ?? 0) - $precioCatalogo) > 0.001)
+                <button wire:click.stop="sincronizarPrecioRecurso({{ $nodo->id }})"
+                    title="Precio en catálogo: ${{ number_format($precioCatalogo, 2, ',', '.') }} — Clic para actualizar"
+                    class="w-5 h-5 flex items-center justify-center bg-orange-500/20 text-orange-400 rounded hover:bg-orange-500/40 transition shrink-0">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </button>
+                @endif
+                @endif
                 <button wire:click.stop="abrirModalEditar({{ $nodo->id }})"
                     title="Editar"
                     class="w-5 h-5 flex items-center justify-center bg-yellow-500/20 text-yellow-400 rounded hover:bg-yellow-500/40 transition">

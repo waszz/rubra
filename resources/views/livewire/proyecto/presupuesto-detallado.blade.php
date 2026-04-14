@@ -150,6 +150,22 @@
                      class="pl-7 pr-3 py-1 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-lg text-xs text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:border-gray-300 dark:focus:border-white/20 w-full sm:w-40 transition-all">
         </div>
 
+        {{-- Expand / Collapse all (sólo categorías padre) --}}
+        @if($vistaActiva === 'presupuesto')
+        <button id="btn-toggle-rubros"
+            wire:click="{{ $rubrosExpandidos ? 'colapsarTodos' : 'expandirTodos' }}"
+            onclick="_handleToggleRubros()"
+            data-abierto="{{ $rubrosExpandidos ? '1' : '0' }}"
+            title="{{ $rubrosExpandidos ? 'Cerrar todos los rubros' : 'Abrir todos los rubros' }}"
+            class="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 text-[11px] font-black uppercase tracking-wider transition-all">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path id="btn-toggle-rubros-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="{{ $rubrosExpandidos ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7' }}"/>
+            </svg>
+            <span id="btn-toggle-rubros-txt">{{ $rubrosExpandidos ? 'Cerrar rubros' : 'Abrir rubros' }}</span>
+        </button>
+        @endif
+
         {{-- Botón Agregar Rubro --}}
         @if(!$modoLectura && $vistaActiva === 'presupuesto' && !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
         <button wire:click="abrirModalRubro"
@@ -248,6 +264,29 @@
             <p class="text-gray-500 text-sm">El presupuesto es solo lectura. Usá la vista de <strong class="text-orange-400">Ejecución</strong> para registrar costos reales.</p>
         @endif
     </div>
+</div>
+@endif
+
+{{-- BOTÓN SINCRONIZAR TODOS LOS PRECIOS (solo proyectos importados con al menos un precio desactualizado) --}}
+@php
+    $hayPreciosDesactualizados = !$modoLectura && \App\Models\ProyectoRecurso::where('proyecto_id', $proyecto->id)
+        ->where('imported', true)
+        ->whereNotNull('recurso_id')
+        ->whereExists(function($q) {
+            $q->from('recursos')
+              ->whereColumn('recursos.id', 'proyecto_recursos.recurso_id')
+              ->whereRaw('ABS(recursos.precio_usd - proyecto_recursos.precio_usd) > 0.001');
+        })->exists();
+@endphp
+@if($hayPreciosDesactualizados)
+<div class="mx-6 mb-2">
+    <button wire:click="sincronizarTodosLosPrecios"
+        class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 transition text-sm font-bold uppercase tracking-wider">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        Actualizar todos los precios del catálogo
+    </button>
 </div>
 @endif
 
@@ -493,19 +532,40 @@ $totalFinal = $subtotalConBeneficio + $iva;
                     <div class="flex items-center justify-between pr-2 min-w-0 overflow-hidden">
 
                         {{-- IZQUIERDA --}}
-                        <div onclick="_lwToggle('{{ $catKey }}')" class="flex items-center gap-1.5 cursor-pointer min-w-0">
-                            <svg id="chv-{{ $catKey }}" class="w-2.5 h-2.5 text-gray-500 shrink-0" style="transition:transform .2s;{{ $catAbierta ? 'transform:rotate(90deg)' : '' }}"
-                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
-                            </svg>
-                            <div class="min-w-0">
-                                <p class="text-xs font-black uppercase tracking-widest truncate">
-                                    {{ $nombreCategoria }}
-                                </p>
-                                <p class="text-[10px] text-gray-700 dark:text-gray-600 font-bold uppercase">
-                                    {{ $nodosReales->count() }} rubros
-                                </p>
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            {{-- Toggle categoría --}}
+                            <div onclick="_lwToggle('{{ $catKey }}')" class="flex items-center gap-1.5 cursor-pointer min-w-0">
+                                <svg id="chv-{{ $catKey }}" class="w-2.5 h-2.5 text-gray-500 shrink-0" style="transition:transform .2s;{{ $catAbierta ? 'transform:rotate(90deg)' : '' }}"
+                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
+                                </svg>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-black uppercase tracking-widest truncate">
+                                        {{ $nombreCategoria }}
+                                    </p>
+                                    <p class="text-[10px] text-gray-700 dark:text-gray-600 font-bold uppercase">
+                                        {{ $nodosReales->count() }} rubros
+                                    </p>
+                                </div>
                             </div>
+                            {{-- Toggle subrubros de esta categoría --}}
+                            @php
+                                $subKeys = $nodosReales->whereNull('recurso_id')->map(fn($n) => 'node_' . $n->id)->toArray();
+                                $todosSubAbiertos = count($subKeys) > 0 && count(array_intersect($subKeys, $nodosAbiertos)) === count($subKeys);
+                            @endphp
+                            @if(count($subKeys) > 0)
+                            <button wire:click.stop="toggleSubrubrosDeCategoria({{ $nodosRaiz->first()->id }})"
+                                title="{{ $todosSubAbiertos ? 'Cerrar subrubros' : 'Abrir subrubros' }}"
+                                class="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider transition
+                                    {{ $todosSubAbiertos ? 'bg-white/10 text-gray-300 hover:bg-white/20' : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300' }}">
+                                @if($todosSubAbiertos)
+                                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"/></svg>
+                                @else
+                                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"/></svg>
+                                @endif
+                                Sub
+                            </button>
+                            @endif
                         </div>
 
                         {{-- BOTONES icono-only (ocultos en modo lectura) --}}
@@ -711,39 +771,39 @@ $totalFinal = $subtotalConBeneficio + $iva;
     @endphp
 
     {{-- Resumen ejecución (cards) --}}
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         {{-- Total Presupuestado --}}
-        <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center">
-            <p class="text-xs text-gray-500 font-black uppercase mb-1">Total Presupuestado</p>
-            <p class="text-base font-black text-white font-mono">USD {{ number_format($precioFinalPresupuestado, 0, ',', '.') }}</p>
+        <div class="bg-[#111] border border-white/5 rounded-2xl p-5 text-center">
+            <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-2">Total Presupuestado</p>
+            <p class="text-lg font-black text-white font-mono">USD {{ number_format($precioFinalPresupuestado, 0, ',', '.') }}</p>
         </div>
 
         {{-- IVA sobre Ejecutado --}}
-        <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center">
-            <p class="text-xs text-gray-500 font-black uppercase mb-1">IVA ({{ number_format($pctImpuestos, 0) }}%)</p>
-            <p class="text-base font-black text-white font-mono">USD {{ number_format($ivaEjecutado, 0, ',', '.') }}</p>
+        <div class="bg-[#111] border border-white/5 rounded-2xl p-5 text-center">
+            <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-2">IVA ({{ number_format($pctImpuestos, 0) }}%)</p>
+            <p class="text-lg font-black text-white font-mono">USD {{ number_format($ivaEjecutado, 0, ',', '.') }}</p>
         </div>
 
         {{-- Precio Final Ejecutado --}}
-        <div class="bg-white rounded-2xl p-4 text-center shadow-lg shadow-white/5 shrink-0">
-            <p class="text-xs text-gray-400 font-black uppercase mb-2">Precio Final</p>
-            <p class="text-xl font-black text-black leading-tight">
+        <div class="bg-white rounded-2xl p-5 text-center shadow-lg shadow-white/5">
+            <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-2">Precio Final</p>
+            <p class="text-2xl font-black text-black leading-tight">
                 USD {{ number_format($precioFinalEjecutado, 0, ',', '.') }}
             </p>
         </div>
 
         {{-- Total Ejecutado --}}
-        <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center">
-            <p class="text-xs text-gray-500 font-black uppercase mb-1">Total Ejecutado</p>
-            <p class="text-base font-black {{ $totalReal > $totalPresupuestado ? 'text-red-400' : 'text-green-400' }} font-mono">
+        <div class="bg-[#111] border border-white/5 rounded-2xl p-5 text-center">
+            <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-2">Total Ejecutado</p>
+            <p class="text-lg font-black {{ $totalReal > $totalPresupuestado ? 'text-red-400' : 'text-green-400' }} font-mono">
                 USD {{ number_format($totalReal, 0, ',', '.') }}
             </p>
         </div>
 
         {{-- Diferencia --}}
-        <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center">
-            <p class="text-xs text-gray-500 font-black uppercase mb-1">Diferencia</p>
-            <p class="text-base font-black {{ $diferencia > 0 ? 'text-green-400' : ($diferencia < 0 ? 'text-red-400' : 'text-gray-400') }} font-mono">
+        <div class="bg-[#111] border border-white/5 rounded-2xl p-5 text-center">
+            <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-2">Diferencia</p>
+            <p class="text-lg font-black {{ $diferencia > 0 ? 'text-green-400' : ($diferencia < 0 ? 'text-red-400' : 'text-gray-400') }} font-mono">
                 {{ $diferencia >= 0 ? '+' : '' }}USD {{ number_format($diferencia, 0, ',', '.') }}
             </p>
         </div>
@@ -755,14 +815,14 @@ $totalFinal = $subtotalConBeneficio + $iva;
         <div class="min-w-[900px]">
 
         {{-- Cabecera --}}
-        <div class="grid px-4 py-3 border-b border-white/5 bg-white/[0.01]" style="grid-template-columns: 2fr 60px 70px 120px 140px 110px 90px;">
-            <div class="text-sm text-gray-600 font-black uppercase tracking-widest">Descripción</div>
-            <div class="text-sm text-gray-600 font-black text-center">Ud.</div>
-            <div class="text-sm text-gray-600 font-black text-center">Cant.</div>
-            <div class="text-sm text-gray-600 font-black text-right">Presupuestado</div>
-            <div class="text-sm text-orange-500 font-black text-right pr-2">Costo Real</div>
-            <div class="text-sm text-gray-600 font-black text-right">Diferencia</div>
-            <div class="text-sm text-gray-600 font-black text-right">Desvío</div>
+        <div class="grid px-5 py-3.5 border-b border-white/5 bg-white/[0.01]" style="grid-template-columns: 2fr 60px 80px 130px 150px 120px 90px;">
+            <div class="text-xs text-gray-500 font-black uppercase tracking-widest">Descripción</div>
+            <div class="text-xs text-gray-500 font-black text-center uppercase tracking-widest">Ud.</div>
+            <div class="text-xs text-gray-500 font-black text-center uppercase tracking-widest">Cant.</div>
+            <div class="text-xs text-gray-500 font-black text-right uppercase tracking-widest">Presupuestado</div>
+            <div class="text-xs text-orange-500 font-black text-right pr-2 uppercase tracking-widest">Costo Real</div>
+            <div class="text-xs text-gray-500 font-black text-right uppercase tracking-widest">Diferencia</div>
+            <div class="text-xs text-gray-500 font-black text-right uppercase tracking-widest">Desvío</div>
         </div>
 
         @forelse($recursoAgrupado as $rec)
@@ -773,8 +833,8 @@ $totalFinal = $subtotalConBeneficio + $iva;
                 $hjPct  = ($hjReal !== null && $hjPres > 0) ? (($hjReal - $hjPres) / $hjPres) * 100 : null;
                 $idsJson = json_encode($rec['ids']);
             @endphp
-            <div class="grid px-4 py-2 border-b border-white/[0.025] hover:bg-white/[0.01] items-center"
-                 style="grid-template-columns: 2fr 60px 70px 120px 140px 110px 90px;"
+            <div class="grid px-5 py-3 border-b border-white/[0.025] hover:bg-white/[0.01] items-center"
+                 style="grid-template-columns: 2fr 60px 80px 130px 150px 120px 90px;"
                  wire:key="ej-grp-{{ implode('-', $rec['ids']) }}">
                 {{-- Nombre --}}
                 <div class="text-base text-gray-300 font-medium truncate">{{ $rec['nombre'] }}</div>
@@ -1736,6 +1796,36 @@ function _lwToggle(key) {
     if (apu) apu.style.display = open ? 'none' : '';
     if (chv) chv.style.transform = open ? '' : 'rotate(90deg)';
 }
+
+function _expandirTodosDOM() {
+    document.querySelectorAll('[id^="children-cat_"]').forEach(function(el) { el.style.display = ''; });
+    document.querySelectorAll('[id^="chv-cat_"]').forEach(function(chv) { chv.style.transform = 'rotate(90deg)'; });
+}
+function _colapsarTodosDOM() {
+    document.querySelectorAll('[id^="children-"]').forEach(function(el) { el.style.display = 'none'; });
+    document.querySelectorAll('[id^="chv-"]').forEach(function(chv) { chv.style.transform = ''; });
+}
+function _handleToggleRubros() {
+    var btn  = document.getElementById('btn-toggle-rubros');
+    var txt  = document.getElementById('btn-toggle-rubros-txt');
+    var path = document.getElementById('btn-toggle-rubros-path');
+    if (!btn) return;
+    var abierto = btn.dataset.abierto === '1';
+    if (abierto) {
+        _colapsarTodosDOM();
+        btn.dataset.abierto = '0';
+        if (txt)  txt.textContent = 'Abrir rubros';
+        if (path) path.setAttribute('d', 'M19 9l-7 7-7-7');
+        btn.title = 'Abrir todos los rubros';
+    } else {
+        _expandirTodosDOM();
+        btn.dataset.abierto = '1';
+        if (txt)  txt.textContent = 'Cerrar rubros';
+        if (path) path.setAttribute('d', 'M5 15l7-7 7 7');
+        btn.title = 'Cerrar todos los rubros';
+    }
+}
+
 
 /* ── Stats panel collapse ── */
 var _statsOpen = true;

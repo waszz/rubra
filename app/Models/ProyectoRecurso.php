@@ -17,6 +17,7 @@ class ProyectoRecurso extends Model
     'cantidad',
     'precio_usd',
     'costo_real',
+    'imported',
     'categoria',
     'orden',
     'fecha_inicio', 
