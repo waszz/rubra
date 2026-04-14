@@ -1015,7 +1015,7 @@ private function recorrerCargaSocial($nodos, float &$totalCS, float $multiplier 
 
 public function actualizarCargaSocial(mixed $valor): void
 {
-    $pct = max(0, min(100, (float) $valor));
+    if ($this->modoLectura) return;
     // Si el valor es '', null o no numérico, setea a null (sin override global)
     if ($valor === '' || is_null($valor) || !is_numeric($valor)) {
         $this->proyecto->carga_social = null;
@@ -1199,7 +1199,7 @@ public function invitarUsuariosSeleccionados()
 
     public function abrirModalEditarItemApu(int $itemId, float $nodoCantidad = 1): void
     {
-        $item = \App\Models\ComposicionItem::with('recursoBase')->findOrFail($itemId);
+        if ($this->modoLectura) return;
         $this->editItemApuId              = $itemId;
         $this->editItemApuRecursoId       = $item->recurso_id;
         $this->editItemApuNombre          = $item->recursoBase?->nombre ?? $item->nombre;
@@ -1229,6 +1229,7 @@ public function invitarUsuariosSeleccionados()
 
     public function guardarItemApu(): void
     {
+        if ($this->modoLectura) return;
         $this->editItemApuCantidad = str_replace(',', '.', $this->editItemApuCantidad);
         $this->validate([
             'editItemApuRecursoId' => 'required|exists:recursos,id',
@@ -1261,6 +1262,7 @@ public function invitarUsuariosSeleccionados()
 
     public function abrirModalAgregarItemApu(int $composicionId): void
     {
+        if ($this->modoLectura) return;
         $this->apuComposicionId       = $composicionId;
         $this->nuevoItemApuNombre     = '';
         $this->nuevoItemApuCantidad   = '';
@@ -1299,6 +1301,7 @@ public function invitarUsuariosSeleccionados()
 
     public function guardarNuevoItemApu(): void
     {
+        if ($this->modoLectura) return;
         $this->nuevoItemApuCantidad = str_replace(',', '.', $this->nuevoItemApuCantidad);
         $this->validate([
             'nuevoItemApuRecursoId' => 'required|exists:recursos,id',
@@ -1330,6 +1333,7 @@ public function invitarUsuariosSeleccionados()
 
     public function abrirModalEliminarItemApu(int $itemId): void
     {
+        if ($this->modoLectura) return;
         $this->eliminarItemApuId    = $itemId;
         $this->modalEliminarItemApu = true;
     }
@@ -1442,6 +1446,7 @@ public function invitarUsuariosSeleccionados()
 
     public function moverNodo(int $draggedId, int $targetId, string $posicion): void
     {
+        if ($this->modoLectura) return;
         $dragged = ProyectoRecurso::find($draggedId);
         $target  = ProyectoRecurso::find($targetId);
         if (!$dragged || !$target) return;
@@ -1479,6 +1484,7 @@ public function invitarUsuariosSeleccionados()
 
     public function pegarNodo(int $siblingId): void
     {
+        if ($this->modoLectura) return;
         if (!$this->nodoCopiadoId) return;
 
         $original = ProyectoRecurso::with('hijos.hijos.hijos')->find($this->nodoCopiadoId);
@@ -1510,6 +1516,7 @@ public function invitarUsuariosSeleccionados()
 
     public function abrirModalImportarPresupuesto(): void
     {
+        if ($this->modoLectura) return;
         $this->modalImportarPresupuesto  = true;
         $this->importPresupuestoResult   = [];
         $this->archivoImportPresupuesto  = null;
@@ -1526,11 +1533,13 @@ public function invitarUsuariosSeleccionados()
 
     public function abrirModalEliminarTodo(): void
     {
+        if ($this->modoLectura) return;
         $this->modalEliminarTodo = true;
     }
 
     public function confirmarEliminarTodo(): void
     {
+        if ($this->modoLectura) return;
         ProyectoRecurso::where('proyecto_id', $this->proyecto->id)->delete();
         $this->modalEliminarTodo = false;
 
@@ -1549,8 +1558,8 @@ public function invitarUsuariosSeleccionados()
 
     public function importarPresupuesto(): void
     {
+        if ($this->modoLectura) return;
         $this->validate([
-            'archivoImportPresupuesto' => 'required|file|max:10240|mimes:pdf',
         ]);
 
         $this->importandoPresupuesto = true;
@@ -2047,6 +2056,7 @@ public function invitarUsuariosSeleccionados()
 
     public function toggleBeneficio()
 {
+    if ($this->modoLectura) return;
     $this->mostrarBeneficio = !$this->mostrarBeneficio;
 }
 
@@ -2077,10 +2087,44 @@ public function actualizarCostoReal($id, $valor)
     $this->cargarProyecto();
 }
 
+/**
+ * Actualiza costo_real en múltiples nodos agrupados por recurso.
+ * $ids: array de ProyectoRecurso IDs que corresponden al mismo recurso agrupado.
+ * $valor: costo real TOTAL del grupo — se distribuye proporcionalmente por presupuestado.
+ */
+public function actualizarCostoRealGrupo(array $ids, $valor)
+{
+    $costo = filter_var($valor, FILTER_VALIDATE_FLOAT);
+    if ($costo === false || $costo < 0) $costo = null;
+
+    $nodos = ProyectoRecurso::whereIn('id', $ids)
+        ->where('proyecto_id', $this->proyecto->id)
+        ->get();
+    if ($nodos->isEmpty()) return;
+
+    if ($costo === null) {
+        foreach ($nodos as $n) $n->update(['costo_real' => null]);
+    } elseif ($nodos->count() === 1) {
+        $nodos->first()->update(['costo_real' => $costo]);
+    } else {
+        // Distribuir proporcionalmente según presupuestado
+        $totalPres = $nodos->sum(fn($n) => ($n->cantidad ?? 1) * ($n->precio_usd ?? 0));
+        foreach ($nodos as $n) {
+            $pres = ($n->cantidad ?? 1) * ($n->precio_usd ?? 0);
+            $parte = $totalPres > 0 ? round($costo * ($pres / $totalPres), 2) : 0;
+            $n->update(['costo_real' => $parte]);
+        }
+    }
+
+    $this->proyecto->refresh();
+    $this->cargarProyecto();
+}
+
     // ── MODAL EDITAR ─────────────────────────────────────────
 
     public function abrirModalEditar($id)
     {
+        if ($this->modoLectura) return;
         // Limpiar estado de edición anterior
         $this->reset(['mostrarModalEditar', 'editId', 'editNombre', 'editUnidad']);
         $this->resetErrorBag();
@@ -2096,6 +2140,7 @@ public function actualizarCostoReal($id, $valor)
 
  public function guardarEdicion()
 {
+    if ($this->modoLectura) return;
     $this->validate(['editNombre' => 'required|min:2']);
 
     $nodo = ProyectoRecurso::find($this->editId);
@@ -2126,12 +2171,14 @@ public function actualizarCostoReal($id, $valor)
 
     public function abrirModalEliminar($id)
     {
+        if ($this->modoLectura) return;
         $this->deleteId = $id;
         $this->mostrarModalEliminar = true;
     }
 
     public function confirmarEliminar()
     {
+        if ($this->modoLectura) return;
         $nodo = ProyectoRecurso::find($this->deleteId);
         if (!$nodo) return;
 
@@ -2168,6 +2215,7 @@ public function actualizarCostoReal($id, $valor)
 
     public function abrirModalRubro()
     {
+        if ($this->modoLectura) return;
         $this->resetErrorBag();
         $this->reset(['nombreRubro', 'unidadRubro']);
         $this->unidadRubro = 'gl';
@@ -2176,6 +2224,7 @@ public function actualizarCostoReal($id, $valor)
 
     public function guardarRubro()
     {
+        if ($this->modoLectura) return;
         $this->validate(['nombreRubro' => 'required|min:2']);
 
         $maxOrden = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
@@ -2204,6 +2253,7 @@ public function actualizarCostoReal($id, $valor)
 
     public function abrirModalSubrubro($parentId, $categoria, $nombrePadre)
     {
+        if ($this->modoLectura) return;
         // Limpiar estado anterior completamente
         $this->resetErrorBag();
         $this->reset(['nombreSubrubro', 'unidadSubrubro', 'parentId', 'categoriaCtx', 'nombreCtx']);
@@ -2219,6 +2269,7 @@ public function actualizarCostoReal($id, $valor)
 
     public function guardarSubrubro()
     {
+        if ($this->modoLectura) return;
         $this->validate(['nombreSubrubro' => 'required|min:2']);
 
         $maxOrden = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
@@ -2249,6 +2300,7 @@ public function actualizarCostoReal($id, $valor)
 
     public function abrirModalRecursos($parentId, $categoria, $nombrePadre)
     {
+        if ($this->modoLectura) return;
         $this->reset(['itemsRecursos', 'buscarSelector']);
         $this->parentId              = $parentId;
         $this->categoriaCtx          = $categoria;
@@ -2294,6 +2346,7 @@ public function actualizarCostoReal($id, $valor)
 
     public function guardarRecursos()
     {
+        if ($this->modoLectura) return;
         $this->validate(['itemsRecursos' => 'required|array|min:1']);
 
         // Modo APU: guardar como ComposicionItem en lugar de ProyectoRecurso
@@ -2400,6 +2453,7 @@ public function actualizarCostoReal($id, $valor)
 
     public function deshacer()
     {
+        if ($this->modoLectura) return;
         if ($this->indexHistorial > 0) {
             $this->indexHistorial--;
             $this->restaurarEstado($this->indexHistorial);
@@ -2408,6 +2462,7 @@ public function actualizarCostoReal($id, $valor)
 
     public function rehacer()
     {
+        if ($this->modoLectura) return;
         if ($this->indexHistorial < count($this->historialEstados) - 1) {
             $this->indexHistorial++;
             $this->restaurarEstado($this->indexHistorial);

@@ -28,6 +28,7 @@
         <div class="flex items-center gap-2 shrink-0">
 
             {{-- Undo / Redo --}}
+            @if(!$modoLectura)
             <div class="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/5">
                 <button
                     wire:click="deshacer"
@@ -48,6 +49,7 @@
                     </svg>
                 </button>
             </div>
+            @endif
 
             {{-- Avatares (ocultos en xs) --}}
                 <div class="hidden sm:flex items-center">
@@ -125,6 +127,7 @@
         </div>
 
         {{-- % Carga Social --}}
+        @if(!$modoLectura)
         <div class="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/30 rounded-lg px-2 py-1">
             <span class="text-[10px] text-blue-300 font-bold uppercase tracking-wider whitespace-nowrap">C. Social</span>
             <input type="number"
@@ -135,6 +138,7 @@
                    title="Porcentaje global de carga social">
             <span class="text-[10px] text-blue-300 font-bold">%</span>
         </div>
+        @endif
 
         {{-- Buscador --}}
         <div class="relative flex-1 sm:flex-none">
@@ -165,6 +169,7 @@
     <div class="flex items-center gap-2 sm:ml-auto flex-wrap">
 
         {{-- Toggle Beneficio --}}
+        @if(!$modoLectura)
         <button
             wire:click="toggleBeneficio"
             class="flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-black uppercase tracking-wider transition-all
@@ -176,6 +181,7 @@
             </svg>
             Beneficio ({{ number_format($proyecto->beneficio ?? 0, 0) }}%)
         </button>
+        @endif
 
         {{-- Dropdown Exportar / Importar --}}
         <div class="relative">
@@ -203,12 +209,14 @@
                     Excel
                 </button>
                 @endif
+                @if(!$modoLectura)
                 <button wire:click="abrirModalImportarPresupuesto" class="w-full flex items-center gap-2 px-4 py-2.5 text-orange-400 hover:bg-orange-500/10 transition-all text-left text-sm font-black uppercase tracking-wider">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
                     </svg>
                     Importar Presupuesto
                 </button>
+                @endif
             </div>
             @endif
         </div>
@@ -219,11 +227,12 @@
 <div id="budget-panel" class="flex-1 flex flex-col min-h-0 overflow-hidden">
 
 {{-- PANEL SUPERIOR: banner + stats (colapsable / arrastrable) --}}
-<div id="stats-panel" class="shrink-0 px-6 pt-3 overflow-hidden" style="height:160px">
+@php $panelH = ($modoLectura && $vistaActiva === 'presupuesto') ? 224 : 172; @endphp
+<div id="stats-panel" class="shrink-0 px-6 pt-4 overflow-hidden" style="height:{{ $panelH }}px">
 
 {{-- BANNER MODO LECTURA --}}
 @if(($modoLectura || in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion'])) && $vistaActiva === 'presupuesto')
-<div class="flex items-center gap-3 {{ $proyecto->estado_obra === 'finalizado' ? 'bg-gray-500/10 border border-gray-500/20' : 'bg-orange-500/10 border border-orange-500/20' }} rounded-xl px-4 py-3">
+<div class="flex items-center gap-3 {{ $proyecto->estado_obra === 'finalizado' ? 'bg-gray-500/10 border border-gray-500/20' : 'bg-orange-500/10 border border-orange-500/20' }} rounded-xl px-3 py-2 mb-3">
     <svg class="w-4 h-4 {{ $proyecto->estado_obra === 'finalizado' ? 'text-gray-400' : 'text-orange-400' }} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
     </svg>
@@ -662,13 +671,36 @@ $totalFinal = $subtotalConBeneficio + $iva;
         $hojasPorCategoria = collect($todasLasHojas)->groupBy('categoria');
         $totalPresupuestado = collect($todasLasHojas)->sum('presupuestado');
         $totalReal = collect($todasLasHojas)->sum(fn($h) => $h['costo_real'] ?? 0);
+
+        // Agrupar por nombre de recurso (independientemente de categoría)
+        // para mostrar cada recurso una sola vez con totales sumados
+        $recursoAgrupado = collect($todasLasHojas)
+            ->groupBy(fn($h) => strtolower(trim($h['nombre'])))
+            ->map(function($grupo) {
+                $cantidadTotal    = $grupo->sum('cantidad');
+                $presupuestadoTotal = $grupo->sum('presupuestado');
+                $costoRealTotal   = $grupo->sum(fn($h) => $h['costo_real'] ?? 0);
+                $tieneReal        = $grupo->contains(fn($h) => $h['costo_real'] !== null);
+                return [
+                    'ids'          => $grupo->pluck('id')->toArray(),
+                    'nombre'       => $grupo->first()['nombre'],
+                    'unidad'       => $grupo->first()['unidad'],
+                    'cantidad'     => $cantidadTotal,
+                    'presupuestado'=> $presupuestadoTotal,
+                    'costo_real'   => $tieneReal ? $costoRealTotal : null,
+                ];
+            })
+            ->sortBy('nombre')
+            ->values();
         
-        // Cálculos de IVA y Precio Final basados en ambos totales
-        $pctImpuestos = (float) ($proyecto->impuestos ?? 22);
-        
-        // Presupuesto: Total + IVA
-        $ivaPresupuestado = $totalPresupuestado * ($pctImpuestos / 100);
-        $precioFinalPresupuestado = $totalPresupuestado + $ivaPresupuestado;
+        // Usar el mismo total final que muestra el panel (subtotal + beneficio + IVA)
+        $pctImpuestos  = (float) ($proyecto->impuestos ?? 22);
+        $pctBeneficio  = (float) ($proyecto->beneficio ?? 0);
+        $subtotalEj    = $subtotalBase; // calculado en el bloque @php de arriba (cards)
+        $beneficioEj   = $subtotalEj * ($pctBeneficio / 100);
+        $subtotalConBeneficioEj = $subtotalEj + $beneficioEj;
+        $ivaPresupuestado       = $subtotalConBeneficioEj * ($pctImpuestos / 100);
+        $precioFinalPresupuestado = $subtotalConBeneficioEj + $ivaPresupuestado;
         
         // Ejecución: Total Real + IVA
         $ivaEjecutado = $totalReal * ($pctImpuestos / 100);
@@ -683,7 +715,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
         {{-- Total Presupuestado --}}
         <div class="bg-[#111] border border-white/5 rounded-2xl p-4 text-center">
             <p class="text-xs text-gray-500 font-black uppercase mb-1">Total Presupuestado</p>
-            <p class="text-base font-black text-white font-mono">USD {{ number_format($totalPresupuestado, 0, ',', '.') }}</p>
+            <p class="text-base font-black text-white font-mono">USD {{ number_format($precioFinalPresupuestado, 0, ',', '.') }}</p>
         </div>
 
         {{-- IVA sobre Ejecutado --}}
@@ -733,91 +765,64 @@ $totalFinal = $subtotalConBeneficio + $iva;
             <div class="text-sm text-gray-600 font-black text-right">Desvío</div>
         </div>
 
-        @forelse($hojasPorCategoria as $cat => $items)
+        @forelse($recursoAgrupado as $rec)
             @php
-                $catPresupuestado = collect($items)->sum('presupuestado');
-                $catReal = collect($items)->sum(fn($i) => $i['costo_real'] ?? 0);
-                $catDiff = $catReal - $catPresupuestado;
-                $catPct  = $catPresupuestado > 0 ? (($catReal - $catPresupuestado) / $catPresupuestado) * 100 : 0;
+                $hjPres = $rec['presupuestado'];
+                $hjReal = $rec['costo_real'];
+                $hjDiff = $hjReal !== null ? $hjReal - $hjPres : null;
+                $hjPct  = ($hjReal !== null && $hjPres > 0) ? (($hjReal - $hjPres) / $hjPres) * 100 : null;
+                $idsJson = json_encode($rec['ids']);
             @endphp
+            <div class="grid px-4 py-2 border-b border-white/[0.025] hover:bg-white/[0.01] items-center"
+                 style="grid-template-columns: 2fr 60px 70px 120px 140px 110px 90px;"
+                 wire:key="ej-grp-{{ implode('-', $rec['ids']) }}">
+                {{-- Nombre --}}
+                <div class="text-base text-gray-300 font-medium truncate">{{ $rec['nombre'] }}</div>
 
-            {{-- Fila categoría --}}
-            <div class="grid px-4 py-2.5 bg-white/[0.025] border-b border-white/5" style="grid-template-columns: 2fr 60px 70px 120px 140px 110px 90px;">
-                <div class="text-base text-white font-black uppercase tracking-widest">{{ $cat }}</div>
-                <div></div>
-                <div></div>
-                <div class="text-right text-base text-gray-300 font-black font-mono">{{ number_format($catPresupuestado, 0, ',', '.') }}</div>
-                <div class="text-right text-base {{ $catReal > $catPresupuestado ? 'text-red-400' : 'text-green-400' }} font-black font-mono pr-2">
-                    {{ $catReal > 0 ? number_format($catReal, 0, ',', '.') : '—' }}
+                {{-- Unidad --}}
+                <div class="text-sm text-gray-600 text-center uppercase">{{ $rec['unidad'] }}</div>
+
+                {{-- Cantidad total --}}
+                <div class="text-sm text-gray-500 text-center font-mono">{{ number_format($rec['cantidad'], 2) }}</div>
+
+                {{-- Presupuestado total --}}
+                <div class="text-right text-base text-gray-400 font-mono">{{ number_format($hjPres, 2, ',', '.') }}</div>
+
+                {{-- Costo Real (input editable) --}}
+                <div class="flex justify-end pr-2">
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0,00"
+                        value="{{ $hjReal !== null ? number_format($hjReal, 2, '.', '') : '' }}"
+                        wire:change="actualizarCostoRealGrupo({{ $idsJson }}, $event.target.value)"
+                        @disabled(!in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
+                        class="w-32 bg-[#0a0a0a] border {{ !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']) ? 'border-gray-600/30 text-gray-600 cursor-not-allowed opacity-50' : 'border-orange-500/30 text-orange-300' }} rounded-lg px-2 py-1 text-base font-mono text-right focus:border-orange-500 focus:outline-none placeholder-gray-700">
                 </div>
-                <div class="text-right text-base {{ $catDiff > 0 ? 'text-red-400' : ($catDiff < 0 ? 'text-green-400' : 'text-gray-500') }} font-black font-mono">
-                    {{ $catReal > 0 ? (($catDiff >= 0 ? '+' : '') . number_format($catDiff, 0, ',', '.')) : '—' }}
+
+                {{-- Diferencia --}}
+                <div class="text-right text-base font-mono
+                    {{ $hjDiff === null ? 'text-gray-700' :
+                       ($hjDiff > 0 ? 'text-red-400' : ($hjDiff < 0 ? 'text-green-400' : 'text-gray-500')) }}">
+                    @if($hjDiff !== null)
+                        {{ ($hjDiff >= 0 ? '+' : '') . number_format($hjDiff, 2, ',', '.') }}
+                    @else
+                        —
+                    @endif
                 </div>
-                <div class="text-right text-base {{ $catPct > 0 ? 'text-red-400' : ($catPct < 0 ? 'text-green-400' : 'text-gray-500') }} font-black">
-                    {{ $catReal > 0 ? (($catPct >= 0 ? '+' : '') . number_format($catPct, 1) . '%') : '—' }}
+
+                {{-- % Desvío --}}
+                <div class="text-right text-sm font-black
+                    {{ $hjPct === null ? 'text-gray-700' :
+                       ($hjPct > 5 ? 'text-red-400' : ($hjPct < -5 ? 'text-green-400' : 'text-yellow-400')) }}">
+                    @if($hjPct !== null)
+                        {{ ($hjPct >= 0 ? '+' : '') . number_format($hjPct, 1) }}%
+                    @else
+                        —
+                    @endif
                 </div>
             </div>
-
-            {{-- Filas de ítems --}}
-            @foreach($items as $hoja)
-                @php
-                    $hjPres = $hoja['presupuestado'];
-                    $hjReal = $hoja['costo_real'] ?? null;
-                    $hjDiff = $hjReal !== null ? $hjReal - $hjPres : null;
-                    $hjPct  = ($hjReal !== null && $hjPres > 0) ? (($hjReal - $hjPres) / $hjPres) * 100 : null;
-                @endphp
-                <div class="grid px-4 py-2 border-b border-white/[0.025] hover:bg-white/[0.01] items-center"
-                     style="grid-template-columns: 2fr 60px 70px 120px 140px 110px 90px;"
-                     wire:key="ej-{{ $hoja['id'] }}">
-                    {{-- Nombre --}}
-                    <div class="pl-4 text-base text-gray-300 font-medium truncate">{{ $hoja['nombre'] }}</div>
-
-                    {{-- Unidad --}}
-                    <div class="text-sm text-gray-600 text-center uppercase">{{ $hoja['unidad'] }}</div>
-
-                    {{-- Cantidad --}}
-                    <div class="text-sm text-gray-500 text-center font-mono">{{ number_format($hoja['cantidad'], 2) }}</div>
-
-                    {{-- Presupuestado --}}
-                    <div class="text-right text-base text-gray-400 font-mono">{{ number_format($hjPres, 2, ',', '.') }}</div>
-
-                    {{-- Costo Real (input editable) --}}
-                    <div class="flex justify-end pr-2">
-                        <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="0,00"
-                            value="{{ $hjReal !== null ? number_format($hjReal, 2, '.', '') : '' }}"
-                            wire:change="actualizarCostoReal({{ $hoja['id'] }}, $event.target.value)"
-                            @disabled(!in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
-                            class="w-32 bg-[#0a0a0a] border {{ !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']) ? 'border-gray-600/30 text-gray-600 cursor-not-allowed opacity-50' : 'border-orange-500/30 text-orange-300' }} rounded-lg px-2 py-1 text-base font-mono text-right focus:border-orange-500 focus:outline-none placeholder-gray-700">
-                    </div>
-
-                    {{-- Diferencia --}}
-                    <div class="text-right text-base font-mono
-                        {{ $hjDiff === null ? 'text-gray-700' :
-                           ($hjDiff > 0 ? 'text-red-400' : ($hjDiff < 0 ? 'text-green-400' : 'text-gray-500')) }}">
-                        @if($hjDiff !== null)
-                            {{ ($hjDiff >= 0 ? '+' : '') . number_format($hjDiff, 2, ',', '.') }}
-                        @else
-                            —
-                        @endif
-                    </div>
-
-                    {{-- % Desvío --}}
-                    <div class="text-right text-sm font-black
-                        {{ $hjPct === null ? 'text-gray-700' :
-                           ($hjPct > 5 ? 'text-red-400' : ($hjPct < -5 ? 'text-green-400' : 'text-yellow-400')) }}">
-                        @if($hjPct !== null)
-                            {{ ($hjPct >= 0 ? '+' : '') . number_format($hjPct, 1) }}%
-                        @else
-                            —
-                        @endif
-                    </div>
-                </div>
-            @endforeach
-
         @empty
             <div class="py-16 text-center text-gray-700 text-sm uppercase font-bold tracking-widest">
                 Sin recursos cargados
@@ -1734,7 +1739,7 @@ function _lwToggle(key) {
 
 /* ── Stats panel collapse ── */
 var _statsOpen = true;
-var _statsH    = 160;
+var _statsH    = {{ ($modoLectura && $vistaActiva === 'presupuesto') ? 224 : 172 }};
 var _statsMin  = 44;
 var _statsMax  = 320;
 function _statsApply() {

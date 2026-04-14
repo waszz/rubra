@@ -104,12 +104,19 @@ $proyectos = Proyecto::where(function ($q) use ($user) {
             ->leftJoin('recursos', 'proyecto_recursos.recurso_id', '=', 'recursos.id')
             ->sum(DB::raw('proyecto_recursos.cantidad * COALESCE(NULLIF(proyecto_recursos.precio_usd, 0), recursos.precio_usd, 0)'));
 
-        $beneficio = $subtotal * (($p->beneficio ?? 0) / 100);
-        $iva       = ($subtotal + $beneficio) * (($p->impuestos ?? 22) / 100);
-        $computedTotal = $subtotal + $beneficio + $iva;
+        $pctBeneficio = ($p->beneficio ?? 0) / 100;
+        $pctIva       = ($p->impuestos ?? 22) / 100;
 
-        // Si existe un `presupuesto_total` guardado (por ejemplo tras una importación), preferirlo
-        $total = ($p->presupuesto_total && $p->presupuesto_total > 0) ? (float)$p->presupuesto_total : $computedTotal;
+        if ($p->presupuesto_total && $p->presupuesto_total > 0) {
+            // Derivar subtotal y beneficio desde el total guardado
+            $total    = (float)$p->presupuesto_total;
+            $subtotalDerived = $total / ((1 + $pctBeneficio) * (1 + $pctIva));
+            $beneficio = $subtotalDerived * $pctBeneficio;
+        } else {
+            $beneficio     = $subtotal * $pctBeneficio;
+            $iva           = ($subtotal + $beneficio) * $pctIva;
+            $total         = $subtotal + $beneficio + $iva;
+        }
 
         $totalesPorProyecto[$p->id] = $total;
 
