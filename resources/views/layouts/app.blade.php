@@ -318,7 +318,7 @@
                 class="hidden lg:flex fixed top-1/2 -translate-y-1/2 z-[50] items-center justify-center w-5 h-12
                        bg-[#1a1a1a] border border-l-0 border-gray-800 hover:border-[#e85d27] rounded-r-xl
                        text-gray-500 hover:text-[#e85d27] transition-all duration-300 ease-in-out"
-                style="left:256px">
+                style="left:288px">
             <svg id="nav-toggle-icon-close" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
             </svg>
@@ -353,7 +353,7 @@
             var mainContent = document.getElementById('main-content');
             var visible = sw && sw.style.display !== 'none';
             if (sw)  sw.style.display  = visible ? 'none' : 'flex';
-            if (btn) btn.style.left    = visible ? '0' : '256px';
+            if (btn) btn.style.left    = visible ? '0' : '288px';
             if (ic)  ic.style.display  = visible ? 'none' : '';
             if (io)  io.style.display  = visible ? '' : 'none';
             if (mainContent) mainContent.style.paddingLeft = visible ? '20px' : '';

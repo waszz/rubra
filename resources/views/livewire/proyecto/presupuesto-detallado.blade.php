@@ -449,7 +449,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
 
 {{-- AREA SCROLLABLE: tabla / ejecución --}}
-<div class="flex-1 min-h-0 overflow-auto px-6 pb-6 pt-2">
+<div class="flex-1 min-h-0 overflow-auto px-2 pb-4 pt-1">
 
     {{-- TABLA PRESUPUESTO --}}
     @if($vistaActiva === 'presupuesto')

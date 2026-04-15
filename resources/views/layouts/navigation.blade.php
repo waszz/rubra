@@ -33,7 +33,7 @@
 
 <aside
     :class="sidebarOpen ? 'translate-x-0 visible' : '-translate-x-full lg:translate-x-0 invisible lg:visible'"
-    class="fixed lg:relative flex flex-col w-64 h-screen bg-[#0f0f0f] border-r border-gray-800
+    class="fixed lg:relative flex flex-col w-72 h-screen bg-[#0f0f0f] border-r border-gray-800
            text-gray-400 font-sans shrink-0 z-[200] transition-all duration-300 ease-in-out">
 
     {{-- ───────────── TOP ───────────── --}}

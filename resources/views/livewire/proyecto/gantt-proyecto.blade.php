@@ -4,7 +4,7 @@
     <nav class="border-b border-gray-200 dark:border-white/5 bg-white dark:bg-[#0d0d0d]">
 
         {{-- Fila superior: back + nombre --}}
-        <div class="flex items-center justify-between px-4 py-3 gap-3">
+        <div class="flex items-center justify-between px-3 py-1.5 gap-3">
             <div class="flex items-center gap-3 min-w-0">
                 <a wire:navigate href="{{ route('recursos.index') }}" class="text-gray-500 hover:text-black dark:hover:text-white transition-colors shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -13,18 +13,18 @@
                 </a>
                 <div class="min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <h1 class="text-gray-900 dark:text-white font-black text-sm uppercase tracking-widest truncate">{{ $proyecto->nombre_proyecto }}</h1>
-                        <span class="bg-green-500/10 text-green-700 dark:text-green-500 text-sm font-black px-2 py-0.5 rounded border border-green-500/20 flex items-center gap-1 shrink-0">
+                        <h1 class="text-gray-900 dark:text-white font-black text-xs uppercase tracking-widest truncate">{{ $proyecto->nombre_proyecto }}</h1>
+                        <span class="bg-green-500/10 text-green-700 dark:text-green-500 text-[10px] font-black px-1.5 py-0 rounded border border-green-500/20 flex items-center gap-1 shrink-0">
                             <span class="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span> ONLINE
                         </span>
                     </div>
-                    <p class="text-sm text-gray-600 uppercase tracking-widest font-bold">GANTT ▾</p>
+                    <p class="text-[10px] text-gray-600 uppercase tracking-widest font-bold">GANTT ▾</p>
                 </div>
             </div>
         </div>
 
         {{-- Fila inferior: tabs (scroll horizontal en mobile) --}}
-        <div class="flex items-center gap-1 px-4 pb-2 overflow-x-auto scrollbar-none">
+        <div class="flex items-center gap-0.5 px-3 pb-1 overflow-x-auto scrollbar-none">
 
             @foreach([
                 ['label' => 'Presupuesto', 'icon' => 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z', 'active' => false, 'route' => route('proyectos.presupuesto', $proyecto)],
@@ -34,7 +34,7 @@
                 ['label' => 'Estadísticas','icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', 'active' => false, 'route' => route('estadisticas', ['proyectoId' => $proyecto->id])],
             ] as $tab)
                 <a href="{{ $tab['route'] }}"
-                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-black uppercase tracking-wider transition-all whitespace-nowrap shrink-0
+                   class="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap shrink-0
                        {{ $tab['active'] ? 'bg-gray-100 dark:bg-white text-black' : 'text-gray-700 dark:text-gray-400 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5' }}">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $tab['icon'] }}"/>
