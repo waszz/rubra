@@ -17,6 +17,7 @@ class DiarioObra extends Component
     public Proyecto $proyecto;
 
     public $rubros = [];
+    public $rubroExpandidoId = null;
 
     // Modal principal
     public $mostrarModal = false;
@@ -35,6 +36,12 @@ class DiarioObra extends Component
     public $costoHoy = 0;
     public $notas = '';
     public $foto = null;
+
+    // Límites del rubro activo
+    public float $limiteM2 = 0;         // metros_cuadrados del proyecto
+    public float $limiteCosto = 0;      // presupuesto total del rubro
+    public float $acumuladoM2 = 0;      // cantidad_hoy ya registrada para este rubro
+    public float $acumuladoCosto = 0;   // costo_hoy ya registrado para este rubro
 
     // Historial
     public $historial = [];
@@ -60,7 +67,15 @@ class DiarioObra extends Component
     }
 
     /**
-     * 📌 CARGAR RUBROS
+     * 📌 EXPANDIR / COLAPSAR RUBRO
+     */
+    public function toggleRubro($id)
+    {
+        $this->rubroExpandidoId = $this->rubroExpandidoId === $id ? null : $id;
+    }
+
+    /**
+     * 📌 CARGAR RUBROS (con subrubros y sus avances)
      */
     private function cargarRubros()
     {
@@ -72,22 +87,47 @@ class DiarioObra extends Component
 
         $this->rubros = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
             ->whereNull('parent_id')
+            ->with(['hijos' => fn($q) => $q->whereNull('recurso_id')->orderBy('orden')])
+            ->orderBy('orden')
             ->get()
             ->map(function ($r) use ($lastAvances) {
+                $subrubros = $r->hijos->map(fn($sub) => [
+                    'id'     => $sub->id,
+                    'nombre' => $sub->nombre,
+                    'unidad' => $sub->unidad,
+                    'avance' => $lastAvances[$sub->id] ?? 0,
+                ])->toArray();
+
+                // Avance del rubro padre: promedio de subrubros si los tiene, sino su propio avance
+                $avancePadre = count($subrubros) > 0
+                    ? round(collect($subrubros)->avg('avance'), 1)
+                    : ($lastAvances[$r->id] ?? 0);
+
                 return [
-                    'id' => $r->id,
-                    'nombre' => $r->nombre,
-                    'unidad' => $r->unidad,
-                    'avance' => $lastAvances[$r->id] ?? 0,
+                    'id'        => $r->id,
+                    'nombre'    => $r->nombre,
+                    'unidad'    => $r->unidad,
+                    'avance'    => $avancePadre,
+                    'subrubros' => $subrubros,
                 ];
             })
             ->toArray();
     }
 
+    public function updatedCantidadHoy()
+    {
+        $cantidad = (float) $this->cantidadHoy;
+        if ($cantidad <= 0) {
+            $this->avanceFisico = 0;
+        } elseif ($this->limiteM2 > 0) {
+            $this->avanceFisico = min(100, round($cantidad / $this->limiteM2 * 100, 1));
+        }
+    }
+
     public function updatedAvanceFisico()
-{
-    $this->cargarHistorial();
-}
+    {
+        $this->cargarHistorial();
+    }
 private function cargarHistorial()
 {
     if ($this->rubroId) {
@@ -115,6 +155,21 @@ private function cargarHistorial()
         ->orderByDesc('id')
         ->value('avance_fisico') ?? 0;
 
+    // Límite de cantidad: campo cantidad del propio subrubro
+    $this->limiteM2 = (float) ($rubro->cantidad ?? $this->proyecto->metros_cuadrados ?? 0);
+
+    // Límite de costo: presupuesto total del rubro (suma recursiva de sus hijos)
+    $rubro->load(['hijos.hijos.hijos.hijos.hijos']);
+    $this->limiteCosto = $this->calcularPresupuestoRubro($rubro);
+
+    // Acumulado ya registrado para este rubro
+    $this->acumuladoM2    = (float) DiarioObraModel::where('proyecto_id', $this->proyecto->id)
+        ->where('proyecto_recurso_id', $rubroId)
+        ->sum('cantidad_hoy');
+    $this->acumuladoCosto = (float) DiarioObraModel::where('proyecto_id', $this->proyecto->id)
+        ->where('proyecto_recurso_id', $rubroId)
+        ->sum('costo_hoy');
+
     // reset form
     $this->cantidadHoy = 0;
     $this->costoHoy = 0;
@@ -128,17 +183,38 @@ private function cargarHistorial()
 }
 
     /**
+     * Calcula el presupuesto total de un rubro sumando recursivamente los precio_usd de sus hojas.
+     */
+    private function calcularPresupuestoRubro(ProyectoRecurso $nodo): float
+    {
+        if (!is_null($nodo->recurso_id)) {
+            return (float)($nodo->precio_usd ?? 0) * (float)($nodo->cantidad ?? 1);
+        }
+        $total = 0.0;
+        foreach ($nodo->hijos ?? [] as $hijo) {
+            $total += $this->calcularPresupuestoRubro($hijo) * (float)($nodo->cantidad ?? 1);
+        }
+        return $total;
+    }
+
+    /**
      * 💾 GUARDAR (UPSERT)
      */
    public function guardarReporte()
 {
+    $maxCantidad = $this->limiteM2 > 0 ? max(0, $this->limiteM2 - $this->acumuladoM2) : PHP_INT_MAX;
+    $maxCosto    = $this->limiteCosto > 0 ? max(0, $this->limiteCosto - $this->acumuladoCosto) : PHP_INT_MAX;
+
     $this->validate([
-        'fecha' => 'required|date',
-        'avanceFisico' => 'required|numeric|min:0|max:100',
-        'cantidadHoy' => 'required|numeric|min:0',
-        'costoHoy' => 'required|numeric|min:0',
-        'notas' => 'nullable|string|max:1000',
-        'foto' => 'nullable|image|max:4096',
+        'fecha'        => 'required|date',
+        'avanceFisico' => 'nullable|numeric|min:0|max:100',
+        'cantidadHoy'  => ['required', 'numeric', 'min:0', "max:{$maxCantidad}"],
+        'costoHoy'     => ['required', 'numeric', 'min:0', "max:{$maxCosto}"],
+        'notas'        => 'nullable|string|max:1000',
+        'foto'         => 'nullable|image|max:4096',
+    ], [
+        'cantidadHoy.max' => "La cantidad supera el límite del proyecto ({$this->limiteM2} m²). Disponible: " . number_format($maxCantidad, 2) . ' m².',
+        'costoHoy.max'    => 'El costo supera el presupuesto del rubro. Disponible: USD ' . number_format($maxCosto, 2) . '.',
     ]);
 
     $fotoPath = $this->foto
@@ -150,7 +226,7 @@ private function cargarHistorial()
         'proyecto_id'         => $this->proyecto->id,
         'proyecto_recurso_id' => $this->rubroId,
         'fecha'               => $this->fecha,
-        'avance_fisico'       => $this->avanceFisico,
+        'avance_fisico'       => (float) ($this->avanceFisico ?? 0),
         'cantidad_hoy'        => $this->cantidadHoy,
         'costo_hoy'           => $this->costoHoy,
         'notas'               => $this->notas,
@@ -167,7 +243,11 @@ private function cargarHistorial()
         'costoHoy',
         'notas',
         'foto',
-        'historial'
+        'historial',
+        'limiteM2',
+        'limiteCosto',
+        'acumuladoM2',
+        'acumuladoCosto',
     ]);
 
     // Mantenemos la fecha de hoy para el siguiente reporte

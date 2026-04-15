@@ -63,30 +63,83 @@
 
         {{-- Lista de rubros --}}
         @forelse($rubros as $rubro)
-              <div wire:key="diario-{{ $rubro['id'] }}"
-                  class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex items-center justify-between hover:border-gray-300 dark:hover:border-white/10 transition-all cursor-pointer group text-black dark:text-white"
-                  wire:click="abrirModal({{ $rubro['id'] }})">
+            <div wire:key="diario-{{ $rubro['id'] }}" class="text-black dark:text-white">
 
-                <div class="flex-1 min-w-0">
-                    <p class="font-black text-sm uppercase truncate text-black dark:text-white">{{ $rubro['nombre'] }}</p>
-                    <div class="flex items-center gap-3 mt-2">
-                        {{-- Barra de progreso --}}
-                        <div class="flex-1 bg-gray-200 dark:bg-white/5 rounded-full h-1.5">
-                            <div class="h-1.5 rounded-full transition-all duration-500
-                                {{ $rubro['avance'] >= 100 ? 'bg-green-500' : ($rubro['avance'] > 0 ? 'bg-blue-500' : 'bg-gray-300 dark:bg-white/10') }}"
-                                 style="width: {{ $rubro['avance'] }}%"></div>
+                {{-- Fila del rubro padre --}}
+                <div wire:click="toggleRubro({{ $rubro['id'] }})"
+                    class="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-4 flex items-center justify-between hover:border-gray-300 dark:hover:border-white/10 transition-all cursor-pointer group
+                        {{ $rubroExpandidoId === $rubro['id'] ? 'rounded-b-none border-b-0' : '' }}">
+
+                    <div class="flex-1 min-w-0">
+                        <p class="font-black text-sm uppercase truncate">{{ $rubro['nombre'] }}</p>
+                        <div class="flex items-center gap-3 mt-2">
+                            <div class="flex-1 bg-gray-200 dark:bg-white/5 rounded-full h-1.5">
+                                <div class="h-1.5 rounded-full transition-all duration-500
+                                    {{ $rubro['avance'] >= 100 ? 'bg-green-500' : ($rubro['avance'] > 0 ? 'bg-blue-500' : 'bg-gray-300 dark:bg-white/10') }}"
+                                     style="width: {{ min($rubro['avance'], 100) }}%"></div>
+                            </div>
+                            <span class="text-sm font-black shrink-0
+                                {{ $rubro['avance'] >= 100 ? 'text-green-700 dark:text-green-400' : ($rubro['avance'] > 0 ? 'text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-400') }}">
+                                {{ $rubro['avance'] }}%
+                            </span>
                         </div>
-                        <span class="text-sm font-black shrink-0
-                            {{ $rubro['avance'] >= 100 ? 'text-green-700 dark:text-green-400' : ($rubro['avance'] > 0 ? 'text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-400') }}">
-                            {{ $rubro['avance'] }}%
-                        </span>
                     </div>
+
+                    <svg class="w-4 h-4 text-gray-400 dark:text-gray-600 group-hover:text-black dark:group-hover:text-white transition-all ml-4 shrink-0
+                        {{ $rubroExpandidoId === $rubro['id'] ? 'rotate-90' : '' }}"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
                 </div>
 
-                <svg class="w-4 h-4 text-gray-400 dark:text-gray-600 group-hover:text-black dark:group-hover:text-white transition-colors ml-4 shrink-0"
-                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
+                {{-- Subrubros expandidos --}}
+                @if($rubroExpandidoId === $rubro['id'])
+                    <div class="bg-gray-50 dark:bg-[#0d0d0d] border border-t-0 border-gray-200 dark:border-white/5 rounded-b-2xl overflow-hidden divide-y divide-gray-100 dark:divide-white/[0.03]">
+
+                        @forelse($rubro['subrubros'] as $sub)
+                            <div wire:key="sub-{{ $sub['id'] }}"
+                                wire:click="abrirModal({{ $sub['id'] }})"
+                                class="flex items-center gap-3 px-5 py-3 hover:bg-gray-100 dark:hover:bg-white/[0.03] cursor-pointer transition group/sub">
+
+                                {{-- Dot --}}
+                                <div class="w-1.5 h-1.5 rounded-full shrink-0
+                                    {{ $sub['avance'] >= 100 ? 'bg-green-500' : ($sub['avance'] > 0 ? 'bg-blue-500' : 'bg-gray-300 dark:bg-white/20') }}"></div>
+
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-bold uppercase truncate text-gray-700 dark:text-gray-300 group-hover/sub:text-black dark:group-hover/sub:text-white transition">
+                                        {{ $sub['nombre'] }}
+                                    </p>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <div class="flex-1 bg-gray-200 dark:bg-white/5 rounded-full h-1">
+                                            <div class="h-1 rounded-full transition-all duration-500
+                                                {{ $sub['avance'] >= 100 ? 'bg-green-500' : ($sub['avance'] > 0 ? 'bg-blue-400' : 'bg-gray-300 dark:bg-white/10') }}"
+                                                 style="width: {{ min($sub['avance'], 100) }}%"></div>
+                                        </div>
+                                        <span class="text-xs font-black shrink-0 w-10 text-right
+                                            {{ $sub['avance'] >= 100 ? 'text-green-600 dark:text-green-400' : ($sub['avance'] > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500') }}">
+                                            {{ $sub['avance'] }}%
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <svg class="w-3 h-3 text-gray-300 dark:text-gray-700 group-hover/sub:text-gray-600 dark:group-hover/sub:text-gray-400 transition shrink-0"
+                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </div>
+                        @empty
+                            {{-- Si no tiene subrubros, abrir modal del rubro padre directamente --}}
+                            <div wire:click="abrirModal({{ $rubro['id'] }})"
+                                class="flex items-center justify-center gap-2 px-5 py-4 text-xs font-bold uppercase text-gray-500 hover:text-black dark:hover:text-white cursor-pointer transition">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Registrar avance directo
+                            </div>
+                        @endforelse
+                    </div>
+                @endif
+
             </div>
         @empty
             <div class="py-20 text-center text-gray-400 dark:text-gray-700 text-sm uppercase font-bold tracking-widest">
@@ -130,16 +183,38 @@
                     {{-- Cantidad y costo --}}
                     <div class="grid grid-cols-2 gap-3">
                         <div>
+                            @php
+                                $disponibleM2 = $limiteM2 > 0 ? max(0, $limiteM2 - $acumuladoM2) : null;
+                            @endphp
                             <label class="text-sm text-gray-700 dark:text-gray-400 uppercase font-black">
-                                Cantidad Hoy (M2)
+                                Cantidad Hoy ({{ $rubroUnidad ?: 'M2' }})
                             </label>
-                            <input type="number" step="0.01" wire:model="cantidadHoy"
+                            @if($disponibleM2 !== null)
+                                <p class="text-[11px] text-gray-500 mt-0.5">
+                                    Disponible: <span class="{{ $disponibleM2 <= 0 ? 'text-red-400 font-black' : 'text-green-400 font-bold' }}">{{ number_format($disponibleM2, 2) }}</span> / {{ number_format($limiteM2, 2) }} m²
+                                </p>
+                            @endif
+                            <input type="number" step="0.01" min="0"
+                                @if($disponibleM2 !== null) max="{{ $disponibleM2 }}" @endif
+                                wire:model.live="cantidadHoy"
                                 class="w-full mt-1 p-3 rounded-xl bg-gray-100 dark:bg-[#0f1115] text-black dark:text-white border border-gray-200 dark:border-white/10 text-sm outline-none focus:border-gray-300 dark:focus:border-white/30">
+                            @error('cantidadHoy') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
+                            @php
+                                $disponibleCosto = $limiteCosto > 0 ? max(0, $limiteCosto - $acumuladoCosto) : null;
+                            @endphp
                             <label class="text-sm text-gray-700 dark:text-gray-400 uppercase font-black">Costo Hoy (USD)</label>
-                            <input type="number" step="0.01" wire:model="costoHoy"
+                            @if($disponibleCosto !== null)
+                                <p class="text-[11px] text-gray-500 mt-0.5">
+                                    Disponible: <span class="{{ $disponibleCosto <= 0 ? 'text-red-400 font-black' : 'text-green-400 font-bold' }}">{{ number_format($disponibleCosto, 2) }}</span> / {{ number_format($limiteCosto, 2) }}
+                                </p>
+                            @endif
+                            <input type="number" step="0.01" min="0"
+                                @if($disponibleCosto !== null) max="{{ $disponibleCosto }}" @endif
+                                wire:model="costoHoy"
                                 class="w-full mt-1 p-3 rounded-xl bg-gray-100 dark:bg-[#0f1115] text-black dark:text-white border border-gray-200 dark:border-white/10 text-sm outline-none focus:border-gray-300 dark:focus:border-white/30">
+                            @error('costoHoy') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
 
