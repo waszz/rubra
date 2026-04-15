@@ -76,13 +76,14 @@
     };
     $pesoTexto = !$esRecurso ? 'font-bold' : 'font-medium';
     $colorTexto = !$esRecurso ? 'text-gray-200' : 'text-gray-400';
+    $precioUnitEj = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
 @endphp
 
 <div wire:key="ej-node-{{ $nodo->id }}">
 
     {{-- FILA --}}
     <div class="grid border-b border-white/[0.025] px-4 py-2 items-center hover:bg-white/[0.015] transition {{ $bgFila }}"
-         style="grid-template-columns: 2fr 60px 90px 140px 160px 130px 90px;">
+         style="grid-template-columns: 2fr 60px 90px 100px 160px 130px 90px;">
 
         {{-- Descripción --}}
         <div class="flex items-center gap-1.5 min-w-0" style="padding-left: {{ $padLeft }}">
@@ -138,9 +139,9 @@
             {{ $esRecurso ? number_format($nodo->cantidad ?? 1, 2) : '' }}
         </div>
 
-        {{-- Presupuestado --}}
-        <div class="text-right text-xs text-gray-400 font-mono font-semibold">
-            {{ number_format($presupuestadoNodo, 2, ',', '.') }}
+        {{-- Precio Unitario --}}
+        <div class="text-right text-xs font-mono {{ $esRecurso ? 'text-gray-500' : 'text-gray-700' }}">
+            {{ $esRecurso ? number_format($precioUnitEj, 2, ',', '.') : '' }}
         </div>
 
         {{-- Costo Real (input solo en hojas) --}}

@@ -933,7 +933,7 @@ private function calcularCSNodo($nodo, float $multiplier = 1): float
         $pct = !is_null($this->proyecto->carga_social)
             ? (float)$this->proyecto->carga_social
             : (float)($nodo->recurso?->social_charges_percentage ?? 0);
-        $precio = $nodo->precio_usd ?? $nodo->precio_unitario ?? 0;
+        $precio = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
         $total  = $precio * ($pct / 100) * $cantNodo;
 
     // Composición APU: CS = precio_unit_labor × cs% × horas × cantidad_APU
@@ -2190,9 +2190,9 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
         $nodos->first()->update(['costo_real' => $costo]);
     } else {
         // Distribuir proporcionalmente según presupuestado
-        $totalPres = $nodos->sum(fn($n) => ($n->cantidad ?? 1) * ($n->precio_usd ?? 0));
+        $totalPres = $nodos->sum(fn($n) => ($n->cantidad ?? 1) * ($n->precio_unitario ?? $n->precio_usd ?? 0));
         foreach ($nodos as $n) {
-            $pres = ($n->cantidad ?? 1) * ($n->precio_usd ?? 0);
+            $pres = ($n->cantidad ?? 1) * ($n->precio_unitario ?? $n->precio_usd ?? 0);
             $parte = $totalPres > 0 ? round($costo * ($pres / $totalPres), 2) : 0;
             $n->update(['costo_real' => $parte]);
         }

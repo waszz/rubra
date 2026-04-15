@@ -713,13 +713,14 @@ $totalFinal = $subtotalConBeneficio + $iva;
             foreach ($nodos as $nodo) {
                 $cat = $categoria ?: ($nodo->categoria ?? 'Sin categoría');
                 if (!is_null($nodo->recurso_id)) {
-                    $presupuestado = ($nodo->cantidad ?? 1) * ($nodo->precio_usd ?? 0);
+                    $precioUnitEj  = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
+                    $presupuestado = ($nodo->cantidad ?? 1) * $precioUnitEj;
                     $hojas[] = [
                         'id'            => $nodo->id,
                         'nombre'        => $nodo->nombre,
                         'unidad'        => $nodo->unidad ?? '',
                         'cantidad'      => $nodo->cantidad ?? 1,
-                        'precio_usd'    => $nodo->precio_usd ?? 0,
+                        'precio_usd'    => $precioUnitEj,
                         'presupuestado' => $presupuestado,
                         'costo_real'    => $nodo->costo_real,
                         'categoria'     => $cat,
@@ -873,11 +874,11 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
         {{-- Cabecera --}}
         <div class="grid px-4 py-3 border-b border-white/5 bg-white/[0.01]"
-             style="grid-template-columns: 2fr 60px 90px 140px 160px 130px 90px;">
+             style="grid-template-columns: 2fr 60px 90px 100px 160px 130px 90px;">
             <div class="text-xs text-gray-500 font-black uppercase tracking-widest">Descripción</div>
             <div class="text-xs text-gray-500 font-black text-center uppercase tracking-widest">Ud.</div>
             <div class="text-xs text-gray-500 font-black text-center uppercase tracking-widest">Cant.</div>
-            <div class="text-xs text-gray-500 font-black text-right uppercase tracking-widest">Presupuestado</div>
+            <div class="text-xs text-gray-500 font-black text-right uppercase tracking-widest">P. Unit.</div>
             <div class="text-xs text-orange-500 font-black text-right pr-2 uppercase tracking-widest">Costo Real</div>
             <div class="text-xs text-gray-500 font-black text-right uppercase tracking-widest">Diferencia</div>
             <div class="text-xs text-gray-500 font-black text-right uppercase tracking-widest">Desvío</div>
@@ -900,7 +901,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
             <div class="border-b border-white/5" wire:key="ej-cat-{{ Str::slug($nombreCat) }}">
 
                 <div class="grid px-4 py-2.5 bg-white/[0.03] items-center border-b border-white/[0.04]"
-                     style="grid-template-columns: 2fr 60px 90px 140px 160px 130px 90px;">
+                     style="grid-template-columns: 2fr 60px 90px 100px 160px 130px 90px;">
 
                     {{-- Nombre categoría --}}
                     <div class="flex items-center gap-2 min-w-0">
@@ -939,11 +940,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
                     <div></div>
                     <div></div>
-
-                    {{-- Presupuestado categoría --}}
-                    <div class="text-right text-xs font-black text-gray-300 font-mono">
-                        {{ number_format($catPres, 2, ',', '.') }}
-                    </div>
+                    <div></div>
 
                     {{-- Real categoría (suma) --}}
                     <div class="flex justify-end pr-1">

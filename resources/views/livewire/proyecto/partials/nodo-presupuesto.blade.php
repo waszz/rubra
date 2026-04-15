@@ -33,29 +33,18 @@
 
     // compute per unit recursively (sum of contents per single unidad)
     $computePerUnit = function ($node) use (&$computePerUnit) {
-        $precioPropio = $node->precio_usd ?? $node->precio_unitario ?? 0;
-
-        if (!empty($node->composicion_items) && count($node->composicion_items)) {
-            $apuTotal = 0;
-            foreach ($node->composicion_items as $ci) {
-                $apuTotal += ($ci->cantidad * ($ci->recurso->precio_unitario ?? 0));
-            }
-            $precioPropio += $apuTotal;
+        // Hoja con recurso (incluyendo labor/APU): precio almacenado o el del catálogo
+        if (!is_null($node->recurso_id)) {
+            return (float)($node->precio_usd ?? $node->recurso?->precio_usd ?? 0);
         }
 
-        if (!empty($node->hijos) && count($node->hijos)) {
-            foreach ($node->hijos as $h) {
-                if (($h->es_recurso ?? false)) {
-                    // child is a resource: its contribution to parent's per-unit is child.cantidad * child.unit_price
-                    $precioPropio += ($h->cantidad ?? 1) * ($h->precio_usd ?? $h->precio_unitario ?? 0);
-                } else {
-                    // child is subrubro: its per-unit value contributes multiplied by its own cantidad
-                    $precioPropio += $computePerUnit($h) * ($h->cantidad ?? 1);
-                }
-            }
+        // Subrubro: precio unitario = suma de (precio_unitario_hijo × cantidad_hijo) para todos los hijos
+        $total = 0.0;
+        $children = $node->hijos ?? collect([]);
+        foreach ($children as $h) {
+            $total += $computePerUnit($h) * (float)($h->cantidad ?? 1);
         }
-
-        return $precioPropio;
+        return $total;
     };
 
     // per-unit and subtotal displayed in row
@@ -250,7 +239,7 @@
         @php
             // determine display per-unit: for resource nodes use explicit price, otherwise use computed per-unit
             if ($esRecurso && !$esComposicion) {
-                $perUnitMostrar = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
+                $perUnitMostrar = $nodo->precio_usd ?? $nodo->recurso?->precio_usd ?? 0;
             } else {
                 $perUnitMostrar = $perUnitNodo ?? $computePerUnit($nodo);
             }
