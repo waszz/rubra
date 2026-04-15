@@ -2278,7 +2278,8 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
         $descendientes[] = $id;
 
         $this->depOpciones = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
-            ->whereNull('recurso_id')
+            ->whereNull('recurso_id')        // solo contenedores (no recursos hoja)
+            ->whereNotNull('parent_id')      // excluir categorías raíz
             ->whereNotIn('id', $descendientes)
             ->orderBy('nombre')
             ->get(['id', 'nombre'])
