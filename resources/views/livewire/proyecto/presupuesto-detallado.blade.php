@@ -695,27 +695,29 @@ $totalFinal = $subtotalConBeneficio + $iva;
     @endif
 
     @php
-        // Cierre para recolectar solo los ítems hoja (con recurso_id)
-        $recolectarHojas = function($nodos, $categoria = '') use (&$recolectarHojas) {
+        // Cierre para recolectar solo los ítems hoja (con recurso_id),
+        // propagando el multiplicador de cantidad de los contenedores padres.
+        $recolectarHojas = function($nodos, $categoria = '', float $mult = 1.0) use (&$recolectarHojas) {
             $hojas = [];
             foreach ($nodos as $nodo) {
                 $cat = $categoria ?: ($nodo->categoria ?? 'Sin categoría');
                 if (!is_null($nodo->recurso_id)) {
                     $precioUnitEj  = $nodo->precio_usd ?? 0;
-                    $presupuestado = ($nodo->cantidad ?? 1) * $precioUnitEj;
+                    $cantEfectiva  = ($nodo->cantidad ?? 1) * $mult;
+                    $presupuestado = $cantEfectiva * $precioUnitEj;
                     $hojas[] = [
                         'id'            => $nodo->id,
                         'nombre'        => $nodo->nombre,
                         'unidad'        => $nodo->unidad ?? '',
-                        'cantidad'      => $nodo->cantidad ?? 1,
+                        'cantidad'      => $cantEfectiva,
                         'precio_usd'    => $precioUnitEj,
                         'presupuestado' => $presupuestado,
-                        'costo_real'    => $nodo->costo_real !== null ? $nodo->costo_real * ($nodo->cantidad ?? 1) : null,
+                        'costo_real'    => $nodo->costo_real !== null ? $nodo->costo_real * $cantEfectiva : null,
                         'categoria'     => $cat,
                     ];
                 }
                 if ($nodo->hijos && $nodo->hijos->count() > 0) {
-                    $subHojas = $recolectarHojas($nodo->hijos, $cat);
+                    $subHojas = $recolectarHojas($nodo->hijos, $cat, $mult * (float)($nodo->cantidad ?? 1));
                     $hojas = array_merge($hojas, $subHojas);
                 }
             }
@@ -731,8 +733,29 @@ $totalFinal = $subtotalConBeneficio + $iva;
         }
 
         $hojasPorCategoria = collect($todasLasHojas)->groupBy('categoria');
-        $totalPresupuestado = collect($todasLasHojas)->sum('presupuestado');
-        $totalReal = collect($todasLasHojas)->sum(fn($h) => $h['costo_real'] ?? 0);
+        // Usar subtotalBase (ya calculado correctamente con cantidades propagadas)
+        $totalPresupuestado = $subtotalBase;
+        // Total real calculado con ejCollectReal que ya respeta cantidades de contenedores.
+        // Lo calculamos aquí antes de que ese closure esté disponible, así que usamos la misma
+        // lógica inline para tener el valor correcto en las cards.
+        $totalReal = 0.0;
+        foreach ($categorias as $_nCat => $_nRaiz) {
+            $_nodoPadre = $_nRaiz->first();
+            $_hijos = $_nodoPadre?->hijos ?? collect();
+            $_sumReal = function($_nodos) use (&$_sumReal): float {
+                $s = 0.0;
+                foreach ($_nodos as $_n) {
+                    if (!is_null($_n->recurso_id)) {
+                        if ($_n->costo_real !== null) $s += (float)$_n->costo_real * (float)($_n->cantidad ?? 1);
+                    } else {
+                        $childSum = $_sumReal($_n->hijos ?? collect([]));
+                        $s += $childSum * (float)($_n->cantidad ?? 1);
+                    }
+                }
+                return $s;
+            };
+            $totalReal += $_sumReal($_hijos);
+        }
 
         // Agrupar por nombre de recurso (independientemente de categoría)
         // para mostrar cada recurso una sola vez con totales sumados
