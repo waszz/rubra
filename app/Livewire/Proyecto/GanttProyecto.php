@@ -43,7 +43,7 @@ class GanttProyecto extends Component
         // Cargar todos los rubros raíz con sus hijos
         $rubros = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
             ->whereNull('parent_id')
-            ->with('hijos')
+            ->with(['hijos', 'hijos.dependeDe'])
             ->get();
 
         // Calcular rango total del proyecto
@@ -82,22 +82,26 @@ class GanttProyecto extends Component
         $filas = [];
         foreach ($rubros as $rubro) {
             $filas[] = [
-                'id'           => $rubro->id,
-                'nombre'       => $rubro->nombre,
-                'nivel'        => 0,
-                'fecha_inicio' => $rubro->fecha_inicio?->format('Y-m-d'),
-                'fecha_fin'    => $rubro->fecha_fin?->format('Y-m-d'),
-                'es_categoria' => true,
+                'id'              => $rubro->id,
+                'nombre'          => $rubro->nombre,
+                'nivel'           => 0,
+                'fecha_inicio'    => $rubro->fecha_inicio?->format('Y-m-d'),
+                'fecha_fin'       => $rubro->fecha_fin?->format('Y-m-d'),
+                'es_categoria'    => true,
+                'depends_on_id'   => null,
+                'depends_on_nombre' => null,
             ];
 
             foreach ($rubro->hijos as $hijo) {
                 $filas[] = [
-                    'id'           => $hijo->id,
-                    'nombre'       => $hijo->nombre,
-                    'nivel'        => 1,
-                    'fecha_inicio' => $hijo->fecha_inicio?->format('Y-m-d'),
-                    'fecha_fin'    => $hijo->fecha_fin?->format('Y-m-d'),
-                    'es_categoria' => false,
+                    'id'              => $hijo->id,
+                    'nombre'          => $hijo->nombre,
+                    'nivel'           => 1,
+                    'fecha_inicio'    => $hijo->fecha_inicio?->format('Y-m-d'),
+                    'fecha_fin'       => $hijo->fecha_fin?->format('Y-m-d'),
+                    'es_categoria'    => false,
+                    'depends_on_id'   => $hijo->depends_on_id,
+                    'depends_on_nombre' => $hijo->dependeDe?->nombre,
                 ];
             }
         }

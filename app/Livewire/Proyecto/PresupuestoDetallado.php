@@ -80,6 +80,13 @@ class PresupuestoDetallado extends Component
     public $mostrarModalEliminar = false;
     public $deleteId             = null;
 
+    // Modal dependencia
+    public $mostrarModalDependencia = false;
+    public $depNodoId               = null;
+    public $depNodoNombre           = '';
+    public $depSeleccionadoId       = '';   // '' = sin dependencia
+    public $depOpciones             = [];   // lista de subrubros disponibles
+
     //Beneficio
     public $mostrarBeneficio = true;
 
@@ -2258,11 +2265,61 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
     $this->guardarEstado();
 }
 
+    // ── MODAL DEPENDENCIA ─────────────────────────────────────
+
+    public function abrirModalDependencia($id)
+    {
+        if ($this->modoLectura) return;
+
+        $nodo = ProyectoRecurso::with('hijos.hijos.hijos')->find($id);
+        if (!$nodo) return;
+
+        $descendientes   = $this->recolectarDescendientesIds($nodo);
+        $descendientes[] = $id;
+
+        $this->depOpciones = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->whereNull('recurso_id')
+            ->whereNotIn('id', $descendientes)
+            ->orderBy('nombre')
+            ->get(['id', 'nombre'])
+            ->map(fn($r) => ['id' => $r->id, 'nombre' => $r->nombre])
+            ->toArray();
+
+        $this->depNodoId         = $id;
+        $this->depNodoNombre     = $nodo->nombre;
+        $this->depSeleccionadoId = $nodo->depends_on_id !== null ? (string)$nodo->depends_on_id : '';
+        $this->mostrarModalDependencia = true;
+    }
+
+    private function recolectarDescendientesIds(ProyectoRecurso $nodo): array
+    {
+        $ids = [];
+        foreach ($nodo->hijos ?? collect([]) as $hijo) {
+            $ids[] = $hijo->id;
+            $ids   = array_merge($ids, $this->recolectarDescendientesIds($hijo));
+        }
+        return $ids;
+    }
+
+    public function guardarDependencia()
+    {
+        if ($this->modoLectura) return;
+
+        $nodo = ProyectoRecurso::find($this->depNodoId);
+        if (!$nodo) return;
+
+        $nodo->update([
+            'depends_on_id' => $this->depSeleccionadoId !== '' ? (int)$this->depSeleccionadoId : null,
+        ]);
+
+        $this->reset(['mostrarModalDependencia', 'depNodoId', 'depNodoNombre', 'depSeleccionadoId', 'depOpciones']);
+        $this->cargarProyecto();
+    }
+
     // ── MODAL ELIMINAR ───────────────────────────────────────
 
     public function abrirModalEliminar($id)
     {
-        if ($this->modoLectura) return;
         $this->deleteId = $id;
         $this->mostrarModalEliminar = true;
     }

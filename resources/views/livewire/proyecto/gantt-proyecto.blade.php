@@ -80,10 +80,17 @@
                         @else
                             <div class="w-1 h-1 rounded-full bg-blue-500/40 shrink-0 ml-1"></div>
                         @endif
-                        <span class="text-base truncate
+                        <div class="min-w-0">
+                            <span class="text-base truncate block
                                      {{ $fila['es_categoria'] ? 'text-white font-black uppercase tracking-wide' : 'text-gray-400 font-medium' }}">
-                            {{ $fila['nombre'] }}
-                        </span>
+                                {{ $fila['nombre'] }}
+                            </span>
+                            @if(!$fila['es_categoria'] && $fila['depends_on_nombre'])
+                                <span class="text-[10px] text-orange-400 font-bold truncate block" title="Depende de: {{ $fila['depends_on_nombre'] }}">
+                                    → {{ Str::limit($fila['depends_on_nombre'], 22) }}
+                                </span>
+                            @endif
+                        </div>
                     </div>
                     <button wire:click="abrirModalFechas({{ $fila['id'] }})"
                             title="Asignar fechas"

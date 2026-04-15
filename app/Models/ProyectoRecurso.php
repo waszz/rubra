@@ -10,7 +10,8 @@ class ProyectoRecurso extends Model
 
   protected $fillable = [
     'proyecto_id',
-    'parent_id',      
+    'parent_id',
+    'depends_on_id',
     'recurso_id',
     'nombre',
     'unidad',
@@ -20,8 +21,8 @@ class ProyectoRecurso extends Model
     'imported',
     'categoria',
     'orden',
-    'fecha_inicio', 
-    'fecha_fin',    
+    'fecha_inicio',
+    'fecha_fin',
 ];
 
 protected $casts = [
@@ -51,5 +52,14 @@ public function padre()
     return $this->belongsTo(ProyectoRecurso::class, 'parent_id');
 }
 
+public function dependeDe()
+{
+    return $this->belongsTo(ProyectoRecurso::class, 'depends_on_id');
+}
+
+public function dependientes()
+{
+    return $this->hasMany(ProyectoRecurso::class, 'depends_on_id');
+}
 
 }

@@ -1325,6 +1325,43 @@ $totalFinal = $subtotalConBeneficio + $iva;
 </div>
 @endif
 
+{{-- MODAL DEPENDENCIA --}}
+@if($mostrarModalDependencia)
+<div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+    <div class="w-full max-w-md border border-orange-500/20 rounded-2xl p-6 space-y-5 bg-[#0d0d0d] shadow-2xl">
+
+        <div class="text-center">
+            <p class="text-xs text-gray-600 uppercase font-black mb-1">Dependencia Gantt</p>
+            <h2 class="text-orange-400 font-extrabold text-sm uppercase truncate">{{ $depNodoNombre }}</h2>
+            <p class="text-xs text-gray-600 mt-1">Este rubro comienza después de que termine el seleccionado</p>
+        </div>
+
+        <div>
+            <label class="text-xs text-gray-500 uppercase font-black">Depende de</label>
+            <select wire:model="depSeleccionadoId"
+                class="w-full mt-1 p-3 rounded-xl bg-[#0f1115] text-white border border-white/10 text-sm outline-none focus:border-orange-500/50">
+                <option value="">— Sin dependencia —</option>
+                @foreach($depOpciones as $op)
+                    <option value="{{ $op['id'] }}">{{ $op['nombre'] }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="flex gap-3 pt-1">
+            <button wire:click="$set('mostrarModalDependencia', false)"
+                class="w-1/2 py-3 rounded-xl border border-white/10 text-white text-xs font-bold hover:bg-white/5 transition-all">
+                CANCELAR
+            </button>
+            <button wire:click="guardarDependencia"
+                class="w-1/2 bg-orange-500 text-black py-3 rounded-xl font-black text-xs hover:bg-orange-400 transition-all">
+                GUARDAR
+            </button>
+        </div>
+
+    </div>
+</div>
+@endif
+
 @if($mostrarModalInvitar)
 <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-[300]">
     <div class="bg-[#1a1a1a] p-4 rounded-xl w-96">
