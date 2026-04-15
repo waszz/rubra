@@ -40,22 +40,26 @@
 
     // Precio unitario real: solo para hojas (input del usuario).
     // Para subrubros/rubros padre se muestra '—' en P.U. Real.
-    // collectRealTotal(node) devuelve el Total Real del nodo YA multiplicado por su propia cantidad.
-    // Hoja:      costo_real × cantidad
-    // Contenedor: (suma de collectRealTotal(hijos)) × cantidad_propio
-    // Así cada nivel acumula correctamente la cantidad de sus ancestros.
-    $collectRealTotal = function($node) use (&$collectRealTotal): ?float {
-        if (!is_null($node->recurso_id)) {
-            return $node->costo_real !== null
-                ? (float)$node->costo_real * (float)($node->cantidad ?? 1)
-                : null;
+    // Suma todos los "costo_real × cantidad" de las hojas descendientes.
+    // NO multiplica por la cantidad del nodo contenedor pasado — eso lo hace el caller.
+    $sumRealHojas = function($nodos) use (&$sumRealHojas): ?float {
+        $total = 0.0; $tieneReal = false;
+        foreach ($nodos as $n) {
+            if (!is_null($n->recurso_id)) {
+                if ($n->costo_real !== null) {
+                    $total += (float)$n->costo_real * (float)($n->cantidad ?? 1);
+                    $tieneReal = true;
+                }
+            } else {
+                // Subrubro: suma sus hijos y multiplica por su propia cantidad
+                $sub = $sumRealHojas($n->hijos ?? collect([]));
+                if ($sub !== null) {
+                    $total += $sub * (float)($n->cantidad ?? 1);
+                    $tieneReal = true;
+                }
+            }
         }
-        $sum = 0.0; $tieneReal = false;
-        foreach ($node->hijos ?? collect([]) as $child) {
-            $childVal = $collectRealTotal($child);
-            if ($childVal !== null) { $sum += $childVal; $tieneReal = true; }
-        }
-        return $tieneReal ? $sum * (float)($node->cantidad ?? 1) : null;
+        return $tieneReal ? $total : null;
     };
 
     if ($esRecurso) {
@@ -63,14 +67,9 @@
         $realUnitNodo   = $nodo->costo_real !== null ? (float)$nodo->costo_real : null;
         $costoRealTotal = $realUnitNodo !== null ? $realUnitNodo * (float)($nodo->cantidad ?? 1) : null;
     } else {
-        // Contenedor: P.U. Real = suma de los Total Real de cada hijo (sin multiplicar por cantidad propia)
+        // Contenedor: P.U. Real = suma de los totales reales de sus hijos directos
         //             Total Real = P.U. Real × cantidad propia
-        $sum = 0.0; $tieneReal = false;
-        foreach ($hijos as $child) {
-            $childVal = $collectRealTotal($child);
-            if ($childVal !== null) { $sum += $childVal; $tieneReal = true; }
-        }
-        $realUnitNodo   = $tieneReal ? $sum : null;
+        $realUnitNodo   = $sumRealHojas($hijos);
         $costoRealTotal = $realUnitNodo !== null ? $realUnitNodo * (float)($nodo->cantidad ?? 1) : null;
     }
 

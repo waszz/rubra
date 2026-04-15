@@ -827,16 +827,26 @@ $totalFinal = $subtotalConBeneficio + $iva;
             return $total;
         };
 
-        // Recolecta total real de las hojas: costo_real es precio unitario, total = costo_real × cantidad
+        // Recolecta total real: hoja = costo_real × cantidad;
+        // contenedor = sumRealHijos(hijos) × cantidad_propia (igual lógica que nodo-ejecucion).
         $ejCollectReal = function($nodos) use (&$ejCollectReal): array {
-            $real = 0; $tieneReal = false;
+            $real = 0.0; $tieneReal = false;
             foreach ($nodos as $n) {
-                if (!is_null($n->recurso_id) && $n->costo_real !== null) {
-                    $real += (float)$n->costo_real * (float)($n->cantidad ?? 1); $tieneReal = true;
-                }
-                if ($n->hijos && $n->hijos->count() > 0) {
-                    [$sr, $st] = $ejCollectReal($n->hijos);
-                    if ($st) { $real += $sr; $tieneReal = true; }
+                if (!is_null($n->recurso_id)) {
+                    // Hoja
+                    if ($n->costo_real !== null) {
+                        $real += (float)$n->costo_real * (float)($n->cantidad ?? 1);
+                        $tieneReal = true;
+                    }
+                } else {
+                    // Contenedor: suma hijos y multiplica por su propia cantidad
+                    if ($n->hijos && $n->hijos->count() > 0) {
+                        [$sr, $st] = $ejCollectReal($n->hijos);
+                        if ($st) {
+                            $real += $sr * (float)($n->cantidad ?? 1);
+                            $tieneReal = true;
+                        }
+                    }
                 }
             }
             return [$real, $tieneReal];
