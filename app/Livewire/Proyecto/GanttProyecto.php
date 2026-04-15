@@ -33,6 +33,7 @@ class GanttProyecto extends Component
     public $editNombre          = '';
     public float $editHorasTotales   = 0.0;
     public int   $editDiasLaborables = 0;
+    public int   $editTrabajadores   = 1;
 
     public function mount(Proyecto $proyecto)
     {
@@ -153,7 +154,8 @@ class GanttProyecto extends Component
                 // - Si nada → null
                 $fechaFinGuardada = $hijo->fecha_fin?->format('Y-m-d');
                 if ($horasTotales > 0 && $fechaInicioHijo) {
-                    $fechaFinHijo = $this->calcularFechaFinPorHoras($fechaInicioHijo, $horasTotales);
+                    $trabajadoresHijo = max(1, (int)($hijo->trabajadores ?? 1));
+                    $fechaFinHijo = $this->calcularFechaFinPorHoras($fechaInicioHijo, $horasTotales, $trabajadoresHijo);
                 } elseif ($fechaFinGuardada) {
                     $fechaFinHijo = $fechaFinGuardada;
                 } else {
@@ -176,6 +178,7 @@ class GanttProyecto extends Component
                     'depends_on_nombre' => $hijo->dependeDe?->nombre,
                     'dependientes'      => $hijo->dependientes->pluck('nombre')->toArray(),
                     'horas_totales'     => $horasTotales,
+                    'trabajadores'      => max(1, (int)($hijo->trabajadores ?? 1)),
                 ];
             }
         }
@@ -236,6 +239,7 @@ class GanttProyecto extends Component
         $this->editNombre      = $nodo->nombre;
         $this->editFechaInicio = $nodo->fecha_inicio?->format('Y-m-d') ?? '';
         $this->editFechaFin    = $nodo->fecha_fin?->format('Y-m-d') ?? '';
+        $this->editTrabajadores = max(1, (int)($nodo->trabajadores ?? 1));
 
         // Cargar horas totales de mano de obra para este subrubro
         $filaRubro = collect($this->rubros)->firstWhere('id', $id);
@@ -261,12 +265,35 @@ class GanttProyecto extends Component
         $this->editFechaInicio = $this->snapToNextDiaLaboral($this->editFechaInicio);
 
         if ($this->editHorasTotales > 0) {
-            $this->editFechaFin = $this->calcularFechaFinPorHoras($this->editFechaInicio, $this->editHorasTotales);
+            $this->editFechaFin = $this->calcularFechaFinPorHoras($this->editFechaInicio, $this->editHorasTotales, $this->editTrabajadores);
         }
 
         if ($this->editFechaInicio && $this->editFechaFin) {
             $this->editDiasLaborables = $this->contarDiasLaborables($this->editFechaInicio, $this->editFechaFin);
         }
+    }
+
+    public function updatedEditTrabajadores()
+    {
+        $this->editTrabajadores = max(1, (int)$this->editTrabajadores);
+        if ($this->editHorasTotales > 0 && $this->editFechaInicio) {
+            $this->editFechaFin = $this->calcularFechaFinPorHoras($this->editFechaInicio, $this->editHorasTotales, $this->editTrabajadores);
+            if ($this->editFechaFin) {
+                $this->editDiasLaborables = $this->contarDiasLaborables($this->editFechaInicio, $this->editFechaFin);
+            }
+        }
+    }
+
+    public function incrementarTrabajadores()
+    {
+        $this->editTrabajadores = min(99, $this->editTrabajadores + 1);
+        $this->updatedEditTrabajadores();
+    }
+
+    public function decrementarTrabajadores()
+    {
+        $this->editTrabajadores = max(1, $this->editTrabajadores - 1);
+        $this->updatedEditTrabajadores();
     }
 
     public function toggleSabado()
@@ -278,7 +305,7 @@ class GanttProyecto extends Component
         if ($this->mostrarModalFechas && $this->editFechaInicio) {
             $this->editFechaInicio = $this->snapToNextDiaLaboral($this->editFechaInicio);
             if ($this->editHorasTotales > 0) {
-                $this->editFechaFin = $this->calcularFechaFinPorHoras($this->editFechaInicio, $this->editHorasTotales);
+                $this->editFechaFin = $this->calcularFechaFinPorHoras($this->editFechaInicio, $this->editHorasTotales, $this->editTrabajadores);
             }
             if ($this->editFechaFin) {
                 $this->editDiasLaborables = $this->contarDiasLaborables($this->editFechaInicio, $this->editFechaFin);
@@ -295,7 +322,7 @@ class GanttProyecto extends Component
         if ($this->mostrarModalFechas && $this->editFechaInicio) {
             $this->editFechaInicio = $this->snapToNextDiaLaboral($this->editFechaInicio);
             if ($this->editHorasTotales > 0) {
-                $this->editFechaFin = $this->calcularFechaFinPorHoras($this->editFechaInicio, $this->editHorasTotales);
+                $this->editFechaFin = $this->calcularFechaFinPorHoras($this->editFechaInicio, $this->editHorasTotales, $this->editTrabajadores);
             }
             if ($this->editFechaFin) {
                 $this->editDiasLaborables = $this->contarDiasLaborables($this->editFechaInicio, $this->editFechaFin);
@@ -352,9 +379,10 @@ class GanttProyecto extends Component
      * Calcula la fecha fin partiendo de fecha_inicio sumando N días laborables.
      * N = ceil(horas / 8), saltando sábados y domingos según la config.
      */
-    private function calcularFechaFinPorHoras(string $fechaInicio, float $horas): string
+    private function calcularFechaFinPorHoras(string $fechaInicio, float $horas, int $trabajadores = 1): string
     {
-        $diasNecesarios = (int) ceil($horas / 8);
+        $trabajadores   = max(1, $trabajadores);
+        $diasNecesarios = (int) ceil($horas / (8 * $trabajadores));
         if ($diasNecesarios <= 0) return $fechaInicio;
 
         $cursor       = Carbon::parse($fechaInicio);
@@ -454,6 +482,7 @@ class GanttProyecto extends Component
     $nodo->update([
         'fecha_inicio' => $this->editFechaInicio,
         'fecha_fin'    => $this->editFechaFin,
+        'trabajadores' => $this->editTrabajadores,
     ]);
 
     // Propagar inicio a dependientes: su fecha_inicio = fecha_fin del nodo + 1 día
@@ -473,7 +502,8 @@ class GanttProyecto extends Component
         }
     }
 
-    $this->reset(['mostrarModalFechas', 'editFechaId', 'editNombre', 'editFechaInicio', 'editFechaFin', 'editHorasTotales', 'editDiasLaborables']);
+    $this->reset(['mostrarModalFechas', 'editFechaId', 'editNombre', 'editFechaInicio', 'editFechaFin', 'editHorasTotales', 'editDiasLaborables', 'editTrabajadores']);
+    $this->editTrabajadores = 1;
     $this->cargarGantt();
 }
 

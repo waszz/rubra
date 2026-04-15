@@ -337,10 +337,12 @@
                 var btn = document.getElementById('nav-toggle-btn');
                 var ic = document.getElementById('nav-toggle-icon-close');
                 var io = document.getElementById('nav-toggle-icon-open');
+                var mainContent = document.getElementById('main-content');
                 if (sw) sw.style.display = 'none';
                 if (btn) btn.style.left = '0';
                 if (ic) ic.style.display = 'none';
                 if (io) io.style.display = '';
+                if (mainContent) mainContent.style.paddingLeft = '20px';
             }
         })();
         function rubraNavToggle() {
@@ -348,16 +350,18 @@
             var btn = document.getElementById('nav-toggle-btn');
             var ic  = document.getElementById('nav-toggle-icon-close');
             var io  = document.getElementById('nav-toggle-icon-open');
+            var mainContent = document.getElementById('main-content');
             var visible = sw && sw.style.display !== 'none';
             if (sw)  sw.style.display  = visible ? 'none' : 'flex';
             if (btn) btn.style.left    = visible ? '0' : '256px';
             if (ic)  ic.style.display  = visible ? 'none' : '';
             if (io)  io.style.display  = visible ? '' : 'none';
+            if (mainContent) mainContent.style.paddingLeft = visible ? '20px' : '';
             localStorage.setItem('rubra_nav', visible ? '0' : '1');
         }
         </script>
 
-        <div class="flex flex-col flex-1 overflow-visible">
+        <div id="main-content" class="flex flex-col flex-1 min-w-0 overflow-visible">
 
             {{-- BANNER IMPERSONACIÓN --}}
             @if(session('impersonating_from'))

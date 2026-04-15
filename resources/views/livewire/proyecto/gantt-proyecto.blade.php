@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-white dark:bg-[#0a0a0a]">
+<div class="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#0a0a0a]">
 
     {{-- NAVBAR --}}
     <nav class="border-b border-gray-200 dark:border-white/5 bg-white dark:bg-[#0d0d0d]">
@@ -119,10 +119,10 @@
             Sin rubros cargados
         </div>
     @else
-    <div class="flex overflow-hidden border-t border-gray-200 dark:border-white/5">
+    <div id="gantt-wrap" class="flex flex-1 overflow-hidden border-t border-gray-200 dark:border-white/5">
 
         {{-- ── Columna izquierda FIJA: nombres (resizable) ── --}}
-        <div id="gantt-left" class="shrink-0 border-r border-gray-200 dark:border-white/5 flex flex-col bg-white dark:bg-[#0d0d0d]"
+        <div id="gantt-left" wire:ignore.self class="shrink-0 border-r border-gray-200 dark:border-white/5 flex flex-col bg-white dark:bg-[#0d0d0d] overflow-y-auto overflow-x-hidden"
              style="width:256px; min-width:160px; max-width:640px;">
 
             {{-- Cabecera meses (placeholder para alinear altura) --}}
@@ -158,7 +158,7 @@
                             @endif
                             @if(!$fila['es_categoria'] && $fila['horas_totales'] > 0)
                                 <span class="text-[10px] text-blue-500 dark:text-blue-400 opacity-70 font-bold truncate block">
-                                    {{ number_format($fila['horas_totales'], 1) }} hs MO
+                                    {{ number_format($fila['horas_totales'], 1) }} hs MO{{ ($fila['trabajadores'] ?? 1) > 1 ? ' · ' . $fila['trabajadores'] . ' trab.' : '' }}
                                 </span>
                             @endif
                         </div>
@@ -180,11 +180,16 @@
            <div id="gantt-resizer" class="w-1 cursor-col-resize bg-transparent hover:bg-gray-200 dark:hover:bg-white/10 touch-none"
                title="Arrastrar para redimensionar" style="user-select:none"></div>
 
-           {{-- ── Área derecha scrollable (UN SOLO contenedor) ── --}}
-           <div id="gantt-right" class="flex-1 overflow-x-auto overflow-y-hidden"
-                data-vista="{{ $vistaGantt }}"
-                data-trabaja-sabado="{{ $trabajaSabado ? '1' : '0' }}"
-                data-trabaja-domingo="{{ $trabajaDomingo ? '1' : '0' }}">
+           {{-- Columna derecha: scroll espejo arriba + contenido --}}
+           <div class="flex-1 min-w-0 flex flex-col overflow-hidden">
+
+               {{-- Scroll espejo superior --}}
+               <div id="gantt-scroll-top" class="overflow-x-auto overflow-y-hidden shrink-0" style="height:10px">
+                   <div id="gantt-scroll-top-inner" style="height:1px; min-width:{{ $totalPxActual }}px"></div>
+               </div>
+
+               {{-- Cabeceras (sinc. horizontal via JS, no scroll propio) --}}
+               <div id="gantt-headers" class="overflow-x-hidden shrink-0">
 
             {{-- Cabecera meses --}}
             <div class="flex border-b border-gray-200 dark:border-white/5 bg-white dark:bg-[#0d0d0d]" style="min-width:{{ $totalPxActual }}px; height:33px">
@@ -233,7 +238,15 @@
                         </div>
                     @endforeach
                 @endif
-            </div>
+            </div>{{-- /cabecera semanas\/días --}}
+
+               </div>{{-- /gantt-headers --}}
+
+               {{-- ── Filas Gantt (scroll horizontal + vertical) ── --}}
+               <div id="gantt-right" class="flex-1 min-w-0 overflow-x-auto overflow-y-auto"
+                    data-vista="{{ $vistaGantt }}"
+                    data-trabaja-sabado="{{ $trabajaSabado ? '1' : '0' }}"
+                    data-trabaja-domingo="{{ $trabajaDomingo ? '1' : '0' }}">
 
             {{-- Filas barras Gantt --}}
             @php
@@ -304,7 +317,7 @@
                              data-bar-id="{{ $fila['id'] }}"
                              data-fecha-inicio="{{ $fechaIniBar }}"
                              data-fecha-fin="{{ $fechaFinBar }}"
-                             title="{{ $fila['nombre'] }}{{ $fila['horas_totales'] > 0 ? ' · ' . number_format($fila['horas_totales'], 1) . ' hs MO' : '' }}">
+                             title="{{ $fila['nombre'] }}{{ $fila['horas_totales'] > 0 ? ' · ' . number_format($fila['horas_totales'], 1) . ' hs MO' . (($fila['trabajadores'] ?? 1) > 1 ? ' · ' . $fila['trabajadores'] . ' trab.' : '') : '' }}">
                             @if($fila['depends_on_id'])
                                 <svg class="w-2.5 h-2.5 text-white/70 shrink-0 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
@@ -332,11 +345,40 @@
 
         </div>
     </div>
+    </div>
     @endif
 
 <script>
     (function(){
-        const left = document.getElementById('gantt-left');
+        // ── Sincronizar scroll vertical (left ↔ right) y horizontal (headers + scroll-top ↔ right) ──
+        const left    = document.getElementById('gantt-left');
+        const right   = document.getElementById('gantt-right');
+        const headers = document.getElementById('gantt-headers');
+        const scrollTop = document.getElementById('gantt-scroll-top');
+
+        if (left && right) {
+            let syncing = false;
+            left.addEventListener('scroll', function() {
+                if (syncing) return; syncing = true;
+                right.scrollTop = left.scrollTop;
+                syncing = false;
+            });
+            right.addEventListener('scroll', function() {
+                if (syncing) return; syncing = true;
+                left.scrollTop = right.scrollTop;
+                if (scrollTop) scrollTop.scrollLeft = right.scrollLeft;
+                if (headers)   headers.scrollLeft   = right.scrollLeft;
+                syncing = false;
+            });
+        }
+
+        if (scrollTop && right) {
+            scrollTop.addEventListener('scroll', function() {
+                right.scrollLeft    = scrollTop.scrollLeft;
+                if (headers) headers.scrollLeft = scrollTop.scrollLeft;
+            });
+        }
+
         const resizer = document.getElementById('gantt-resizer');
         if (!left || !resizer) return;
 
@@ -557,6 +599,30 @@
 })();
 </script>
 
+{{-- Scrollbar styles for gantt-right --}}
+<style>
+/* Gantt ocupa todo el espacio disponible dentro del layout sin scroll de página */
+main { overflow: hidden !important; display: flex; flex-direction: column; }
+/* Ocultar scrollbar horizontal inferior de gantt-right (usamos el espejo superior) */
+#gantt-right::-webkit-scrollbar:horizontal { display: none; }
+#gantt-right { scrollbar-width: none; }
+/* Scroll espejo superior (ancho completo, encima del gantt) */
+#gantt-scroll-top::-webkit-scrollbar        { height: 8px; }
+#gantt-scroll-top::-webkit-scrollbar-track  { background: transparent; }
+#gantt-scroll-top::-webkit-scrollbar-thumb  { background: rgba(150,150,150,.4); border-radius: 4px; }
+#gantt-scroll-top::-webkit-scrollbar-thumb:hover { background: rgba(150,150,150,.65); }
+#gantt-scroll-top { scrollbar-width: thin; scrollbar-color: rgba(150,150,150,.4) transparent; }
+/* Scroll vertical de gantt-right */
+#gantt-right::-webkit-scrollbar:vertical    { width: 8px; }
+#gantt-right::-webkit-scrollbar-track       { background: transparent; }
+#gantt-right::-webkit-scrollbar-thumb       { background: rgba(150,150,150,.35); border-radius: 4px; }
+#gantt-right::-webkit-scrollbar-thumb:hover { background: rgba(150,150,150,.6); }
+/* Scroll vertical izquierda */
+#gantt-left::-webkit-scrollbar         { width: 4px; }
+#gantt-left::-webkit-scrollbar-track   { background: transparent; }
+#gantt-left::-webkit-scrollbar-thumb   { background: rgba(150,150,150,.25); border-radius: 4px; }
+</style>
+
 {{-- MODAL FECHAS --}}
 @if($mostrarModalFechas)
     <div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-md px-4">
@@ -575,7 +641,8 @@
                 @php
                     $filaActual = collect($rubros)->firstWhere('id', $editFechaId);
                     $tieneDepend = $filaActual && count($filaActual['dependientes'] ?? []) > 0;
-                    $diasCalculados = $editHorasTotales > 0 ? (int) ceil($editHorasTotales / 8) : 0;
+                    $trabActual = max(1, (int)$editTrabajadores);
+                    $diasCalculados = $editHorasTotales > 0 ? (int) ceil($editHorasTotales / (8 * $trabActual)) : 0;
                 @endphp
 
                 {{-- Badge horas MO --}}
@@ -585,9 +652,33 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         <p class="text-xs text-blue-300 font-bold">
-                            {{ number_format($editHorasTotales, 1) }} hs MO&nbsp;&nbsp;→&nbsp;&nbsp;<span class="text-blue-200">{{ $diasCalculados }} días laborables</span>
-                            <span class="text-blue-400/60 font-normal ml-1">(8 hs/día{{ $trabajaSabado || $trabajaDomingo ? ', con ' . ($trabajaSabado ? 'Sáb' : '') . ($trabajaSabado && $trabajaDomingo ? '+' : '') . ($trabajaDomingo ? 'Dom' : '') : '' }})</span>
+                            {{ number_format($editHorasTotales, 1) }} hs MO&nbsp;&nbsp;÷&nbsp;&nbsp;<span class="text-blue-200">{{ $trabActual }} trab.</span>&nbsp;&nbsp;→&nbsp;&nbsp;<span class="text-blue-200">{{ $diasCalculados }} días</span>
+                            <span class="text-blue-400/60 font-normal ml-1">({{ $trabActual * 8 }} hs/día{{ $trabajaSabado || $trabajaDomingo ? ', con ' . ($trabajaSabado ? 'Sáb' : '') . ($trabajaSabado && $trabajaDomingo ? '+' : '') . ($trabajaDomingo ? 'Dom' : '') : '' }})</span>
                         </p>
+                    </div>
+                @endif
+
+                {{-- Cantidad de trabajadores --}}
+                @if($editHorasTotales > 0)
+                    <div>
+                        <label class="text-sm text-gray-600 dark:text-gray-500 uppercase font-black flex items-center gap-2">
+                            Trabajadores
+                            <span class="text-[10px] text-gray-500 dark:text-gray-600 font-normal normal-case">en paralelo</span>
+                        </label>
+                        <div class="flex items-center gap-2 mt-1">
+                            <button type="button" wire:click="decrementarTrabajadores" wire:loading.attr="disabled"
+                                    class="w-9 h-9 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 font-black text-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/10 transition-colors disabled:opacity-40">
+                                &minus;
+                            </button>
+                            <input type="number" wire:model.live="editTrabajadores"
+                                   wire:key="trab-input-{{ $editTrabajadores }}"
+                                   min="1" max="99"
+                                   class="w-16 text-center p-2 rounded-xl bg-gray-100 dark:bg-[#0f1115] text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 text-sm font-black outline-none focus:border-blue-500/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                            <button type="button" wire:click="incrementarTrabajadores" wire:loading.attr="disabled"
+                                    class="w-9 h-9 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 font-black text-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/10 transition-colors disabled:opacity-40">
+                                +
+                            </button>
+                        </div>
                     </div>
                 @endif
 
@@ -626,9 +717,10 @@
                         <p class="text-xs text-blue-500/70 dark:text-blue-400/60 mt-1 font-bold">
                             {{ $editDiasLaborables }} días laborables
                             @if($editHorasTotales > 0)
-                                · {{ number_format($editDiasLaborables * 8, 0) }} hs disponibles
-                                @if($editDiasLaborables * 8 < $editHorasTotales)
-                                    <span class="text-red-400">⚠ faltan {{ number_format($editHorasTotales - $editDiasLaborables * 8, 1) }} hs</span>
+                                @php $hsDisp = $editDiasLaborables * 8 * max(1,(int)$editTrabajadores); @endphp
+                                · {{ number_format($hsDisp, 0) }} hs disponibles
+                                @if($hsDisp < $editHorasTotales)
+                                    <span class="text-red-400">⚠ faltan {{ number_format($editHorasTotales - $hsDisp, 1) }} hs</span>
                                 @endif
                             @endif
                         </p>

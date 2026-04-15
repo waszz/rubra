@@ -23,12 +23,14 @@ class ProyectoRecurso extends Model
     'orden',
     'fecha_inicio',
     'fecha_fin',
+    'trabajadores',
 ];
 
 protected $casts = [
     'fecha_inicio' => 'date',
     'fecha_fin'    => 'date',
     'costo_real'   => 'float',
+    'trabajadores' => 'integer',
 ];
 
 
