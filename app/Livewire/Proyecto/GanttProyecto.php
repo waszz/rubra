@@ -131,14 +131,19 @@ class GanttProyecto extends Component
                 $horasTotales    = $this->calcularHorasSubrubro($hijo);
                 $fechaInicioHijo = $hijo->fecha_inicio?->format('Y-m-d');
 
-                // Si depende de otro subrubro, la fecha inicio es la fecha fin
-                // calculada del predecesor + 1 día laborable
+                // Si depende de otro subrubro, calcular la fecha mínima permitida
+                // (fin del predecesor + 1 día laborable) pero respetar una fecha
+                // guardada manualmente si es mayor o igual a ese mínimo.
                 if ($hijo->depends_on_id && isset($fechaFinCalculada[$hijo->depends_on_id])) {
-                    $fechaInicioHijo = Carbon::parse($fechaFinCalculada[$hijo->depends_on_id])
+                    $minInicio = Carbon::parse($fechaFinCalculada[$hijo->depends_on_id])
                         ->addDay()
                         ->format('Y-m-d');
-                    // Snap al siguiente día laborable
-                    $fechaInicioHijo = $this->snapToNextDiaLaboral($fechaInicioHijo);
+                    $minInicio = $this->snapToNextDiaLaboral($minInicio);
+
+                    // Usar la fecha guardada sólo si es >= al mínimo, de lo contrario forzar el mínimo
+                    if (!$fechaInicioHijo || $fechaInicioHijo < $minInicio) {
+                        $fechaInicioHijo = $minInicio;
+                    }
                 }
 
                 // Calcular fecha_fin:
