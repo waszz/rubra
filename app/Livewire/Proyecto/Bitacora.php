@@ -29,7 +29,7 @@ class Bitacora extends Component
     public function exportarPDF()
 {
     // Obtenemos los mismos registros con los filtros actuales
-    $query = DiarioObra::with('recurso')
+    $query = DiarioObra::with('recurso', 'user')
         ->where('proyecto_id', $this->proyecto->id);
 
     if ($this->searchFecha) {
@@ -58,7 +58,7 @@ class Bitacora extends Component
     public function render()
     {
         // Iniciamos la consulta
-        $query = DiarioObra::with('recurso')
+        $query = DiarioObra::with('recurso', 'user')
             ->where('proyecto_id', $this->proyecto->id);
 
         // Filtro por Fecha (si existe valor)

@@ -11,6 +11,7 @@ class DiarioObra extends Model
     protected $fillable = [
         'proyecto_id',
         'proyecto_recurso_id',
+        'user_id',
         'fecha',
         'avance_fisico',
         'cantidad_hoy',
@@ -35,5 +36,10 @@ class DiarioObra extends Model
     public function recurso()
     {
         return $this->belongsTo(ProyectoRecurso::class, 'proyecto_recurso_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class);
     }
 }

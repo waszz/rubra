@@ -272,6 +272,7 @@ private function cargarHistorial()
     DiarioObraModel::create([
         'proyecto_id'         => $this->proyecto->id,
         'proyecto_recurso_id' => $this->rubroId,
+        'user_id'             => auth()->id(),
         'fecha'               => $this->fecha,
         'avance_fisico'       => (float) ($this->avanceFisico ?? 0),
         'cantidad_hoy'        => $this->cantidadHoy,
