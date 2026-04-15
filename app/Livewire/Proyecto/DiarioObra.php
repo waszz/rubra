@@ -27,7 +27,11 @@ class DiarioObra extends Component
 
     // Modal detalle
     public $mostrarDetalle = false;
-    public $detalleRegistro = null;
+    public ?int $detalleRegistroId = null;
+
+    // Modal confirmar eliminación
+    public $mostrarConfirmar = false;
+    public $eliminarId = null;
 
     // Form
     public $fecha = '';
@@ -59,11 +63,41 @@ class DiarioObra extends Component
      */
     public function verDetalle($id)
     {
-        $this->detalleRegistro = DiarioObraModel::find($id);
+        $registro = DiarioObraModel::find($id);
+        if (!$registro) return;
 
-        if (!$this->detalleRegistro) return;
-
+        $this->detalleRegistroId = $registro->id;
         $this->mostrarDetalle = true;
+    }
+
+    /**
+     * 📌 ELIMINAR REGISTRO
+     */
+    public function confirmarEliminar($id)
+    {
+        $this->eliminarId = $id;
+        $this->mostrarConfirmar = true;
+    }
+
+    public function eliminarRegistro()
+    {
+        $registro = DiarioObraModel::find($this->eliminarId);
+        if (!$registro || $registro->proyecto_id !== $this->proyecto->id) {
+            $this->mostrarConfirmar = false;
+            return;
+        }
+
+        if ($registro->foto_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($registro->foto_path);
+        }
+
+        $registro->delete();
+
+        $this->mostrarConfirmar = false;
+        $this->eliminarId = null;
+        $this->mostrarDetalle = false;
+        $this->detalleRegistroId = null;
+        $this->cargarHistorial();
     }
 
     /**
@@ -135,9 +169,22 @@ private function cargarHistorial()
             ->where('proyecto_recurso_id', $this->rubroId)
             ->orderByDesc('fecha')
             ->orderByDesc('id')
-            ->get();
+            ->get()
+            ->map(fn($h) => [
+                'id'            => $h->id,
+                'fecha'         => $h->fecha->format('d/m/Y'),
+                'avance_fisico' => $h->avance_fisico,
+                'notas'         => $h->notas,
+            ])
+            ->toArray();
     }
 }
+
+    public function cerrarModal()
+    {
+        $this->mostrarModal = false;
+        $this->cargarRubros();
+    }
 
   public function abrirModal($rubroId)
 {
@@ -258,7 +305,10 @@ private function cargarHistorial()
 
     public function render()
     {
-        return view('livewire.proyecto.diario-obra')
-            ->layout('layouts.app');
+        return view('livewire.proyecto.diario-obra', [
+            'detalleRegistro' => $this->detalleRegistroId
+                ? DiarioObraModel::find($this->detalleRegistroId)
+                : null,
+        ])->layout('layouts.app');
     }
 }

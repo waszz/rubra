@@ -315,7 +315,7 @@
         {{-- Botón central en el borde del sidebar --}}
         <button onclick="rubraNavToggle()"
                 id="nav-toggle-btn"
-                class="hidden lg:flex fixed top-1/2 -translate-y-1/2 z-[201] items-center justify-center w-5 h-12
+                class="hidden lg:flex fixed top-1/2 -translate-y-1/2 z-[50] items-center justify-center w-5 h-12
                        bg-[#1a1a1a] border border-l-0 border-gray-800 hover:border-[#e85d27] rounded-r-xl
                        text-gray-500 hover:text-[#e85d27] transition-all duration-300 ease-in-out"
                 style="left:256px">

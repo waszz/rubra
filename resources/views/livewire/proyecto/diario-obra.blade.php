@@ -159,7 +159,7 @@
                         <p class="text-xs text-gray-700 dark:text-gray-400 uppercase font-black">Reporte del día</p>
                         <h3 class="font-black text-sm uppercase truncate text-black dark:text-white">{{ $rubroNombre }}</h3>
                     </div>
-                    <button wire:click="$set('mostrarModal', false)"
+                    <button wire:click="cerrarModal"
                         class="text-gray-400 dark:text-gray-600 hover:text-black dark:hover:text-white transition-colors text-2xl leading-none">×</button>
                 </div>
 
@@ -253,20 +253,21 @@
         <div class="space-y-1.5">
             @foreach($historial as $h)
                 <div
+                    wire:key="hist-{{ $h['id'] }}"
                     wire:click="verDetalle({{ $h['id'] }})"
                     class="flex items-center justify-between bg-white/[0.02] rounded-lg px-3 py-2 border border-white/[0.03] hover:border-white/10 cursor-pointer transition"
                 >
                     <span class="text-sm text-gray-500 font-mono">
-                        {{ $h->fecha->format('d/m/Y') }}
+                        {{ $h['fecha'] }}
                     </span>
 
                     <span class="text-sm text-blue-400 font-black">
-                        {{ $h->avance_fisico }}%
+                        {{ $h['avance_fisico'] }}%
                     </span>
 
                     @if($h['notas'])
                         <span class="text-xs text-gray-600 truncate max-w-32">
-                           {{ $h->notas }}
+                           {{ $h['notas'] }}
                         </span>
                     @endif
                 </div>
@@ -380,6 +381,52 @@
     </div>
 @endif
 
+            </div>
+
+            {{-- Footer detalle --}}
+            <div class="px-6 py-4 border-t border-white/5">
+                <button
+                    wire:click="confirmarEliminar({{ $detalleRegistro->id }})"
+                    class="w-full bg-red-600/10 hover:bg-red-600 border border-red-600/30 hover:border-red-600 text-red-400 hover:text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Eliminar este registro
+                </button>
+            </div>
+
+        </div>
+    </div>
+@endif
+
+{{-- MODAL CONFIRMAR ELIMINACIÓN --}}
+@if($mostrarConfirmar)
+    <div class="fixed inset-0 z-[110] flex items-end justify-center sm:items-center bg-black/70 backdrop-blur-sm px-4 pb-6 sm:pb-0">
+        <div class="w-full max-w-sm bg-[#111] border border-white/10 rounded-2xl overflow-hidden">
+
+            <div class="p-6 text-center">
+                {{-- Ícono --}}
+                <div class="w-12 h-12 rounded-full bg-red-600/10 border border-red-600/20 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                </div>
+
+                <p class="text-white font-black text-sm uppercase tracking-wide mb-1">¿Eliminar registro?</p>
+                <p class="text-gray-500 text-xs">Esta acción no se puede deshacer.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 px-6 pb-6">
+                <button
+                    wire:click="$set('mostrarConfirmar', false)"
+                    class="w-full py-3 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:border-white/30 font-black text-xs uppercase tracking-widest transition-all">
+                    Cancelar
+                </button>
+                <button
+                    wire:click="eliminarRegistro"
+                    class="w-full py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest transition-all">
+                    Eliminar
+                </button>
             </div>
 
         </div>
