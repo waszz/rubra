@@ -142,13 +142,15 @@ class GanttProyecto extends Component
                 }
 
                 // Calcular fecha_fin:
-                // - Si tiene fecha_fin guardada en BD → respetarla siempre
-                // - Si NO tiene fecha_fin pero tiene horas y fecha_inicio → auto-calcular
+                // - Si tiene horas Y fecha_inicio → siempre recalcular con config actual de Sáb/Dom
+                //   (así al toggle de Sáb/Dom la barra refleja el nuevo calendario laboral)
+                // - Si NO tiene horas pero tiene fecha_fin guardada → usarla
+                // - Si nada → null
                 $fechaFinGuardada = $hijo->fecha_fin?->format('Y-m-d');
-                if ($fechaFinGuardada) {
-                    $fechaFinHijo = $fechaFinGuardada;
-                } elseif ($horasTotales > 0 && $fechaInicioHijo) {
+                if ($horasTotales > 0 && $fechaInicioHijo) {
                     $fechaFinHijo = $this->calcularFechaFinPorHoras($fechaInicioHijo, $horasTotales);
+                } elseif ($fechaFinGuardada) {
+                    $fechaFinHijo = $fechaFinGuardada;
                 } else {
                     $fechaFinHijo = null;
                 }
