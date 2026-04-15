@@ -182,17 +182,27 @@ class GanttProyecto extends Component
      * - Recursos directos tipo labor/mano_obra: recurso_hijo.cantidad × subrubro.cantidad
      * - Composiciones APU: sum(item.cantidad × subrubro.cantidad) para items tipo labor
      */
-    private function calcularHorasSubrubro($subrubro): float
+    private function calcularHorasSubrubro($subrubro, float $factorAcumulado = 1.0): float
     {
-        $cantSubrubro = (float) ($subrubro->cantidad ?? 1);
+        $cant  = (float) ($subrubro->cantidad ?? 1) * $factorAcumulado;
         $horas = 0.0;
 
-        foreach ($subrubro->hijos as $recursoPR) {
-            $rec = $recursoPR->recurso;
-            if (!$rec) continue;
+        // Si los hijos ya están cargados (eager load) los usamos, si no lazy load
+        $hijos = $subrubro->relationLoaded('hijos')
+            ? $subrubro->hijos
+            : $subrubro->hijos()->with('recurso')->get();
+
+        foreach ($hijos as $child) {
+            $rec = $child->recurso;
+
+            if (!$rec) {
+                // Es un sub-subrubro anidado → recurrir acumulando el factor
+                $horas += $this->calcularHorasSubrubro($child, $cant);
+                continue;
+            }
 
             if (in_array($rec->tipo, ['labor', 'mano_obra'])) {
-                $horas += (float) ($recursoPR->cantidad ?? 0) * $cantSubrubro;
+                $horas += (float) ($child->cantidad ?? 0) * $cant;
 
             } elseif ($rec->tipo === 'composition') {
                 $items = ComposicionItem::where('composicion_id', $rec->id)
@@ -201,7 +211,7 @@ class GanttProyecto extends Component
                 foreach ($items as $item) {
                     $base = $item->recursoBase;
                     if ($base && in_array($base->tipo, ['labor', 'mano_obra'])) {
-                        $horas += (float) ($item->cantidad ?? 0) * (float) ($recursoPR->cantidad ?? 1) * $cantSubrubro;
+                        $horas += (float) ($item->cantidad ?? 0) * (float) ($child->cantidad ?? 1) * $cant;
                     }
                 }
             }
