@@ -2309,9 +2309,17 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
         $nodo = ProyectoRecurso::find($this->depNodoId);
         if (!$nodo) return;
 
-        $nodo->update([
-            'depends_on_id' => $this->depSeleccionadoId !== '' ? (int)$this->depSeleccionadoId : null,
-        ]);
+        $nuevaDep = $this->depSeleccionadoId !== '' ? (int)$this->depSeleccionadoId : null;
+
+        $updateData = ['depends_on_id' => $nuevaDep];
+
+        // Si se quita la dependencia y el nodo tenía fechas en el Gantt, borrarlas
+        if ($nuevaDep === null && $nodo->depends_on_id !== null) {
+            $updateData['fecha_inicio'] = null;
+            $updateData['fecha_fin']    = null;
+        }
+
+        $nodo->update($updateData);
 
         $this->reset(['mostrarModalDependencia', 'depNodoId', 'depNodoNombre', 'depSeleccionadoId', 'depOpciones']);
         $this->cargarProyecto();
