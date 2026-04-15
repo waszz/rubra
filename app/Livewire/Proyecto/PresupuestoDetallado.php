@@ -41,6 +41,7 @@ class PresupuestoDetallado extends Component
     // UI
     public $nodosAbiertos     = [];
     public $rubrosExpandidos  = false; // estado del toggle global de rubros padre
+    public $ejExpandidos      = false; // estado del toggle global en vista ejecución
     public $filtroTipo        = 'Todos';
     public $buscarSelector    = '';
 
@@ -2310,6 +2311,28 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
         $this->rubrosExpandidos = false;
     }
 
+    public function expandirTodosEjecucion(): void
+    {
+        $catNames = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->whereNull('parent_id')
+            ->pluck('categoria')
+            ->filter()
+            ->unique();
+        $catKeys = $catNames->map(fn($n) => 'ej_cat_' . \Illuminate\Support\Str::slug($n))->toArray();
+        $this->nodosAbiertos = array_values(array_unique(array_merge($this->nodosAbiertos, $catKeys)));
+        $this->ejExpandidos  = true;
+    }
+
+    public function colapsarTodosEjecucion(): void
+    {
+        // Quitar todas las claves ej_ del array
+        $this->nodosAbiertos = array_values(array_filter(
+            $this->nodosAbiertos,
+            fn($k) => !str_starts_with($k, 'ej_')
+        ));
+        $this->ejExpandidos = false;
+    }
+
     /**
      * Abre o cierra todos los subrubros (hijos directos sin recurso) de una categoría.
      */
@@ -2337,6 +2360,62 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
         // Asegurar que la categoría padre quede abierta en el servidor
         if (!in_array($catKey, $this->nodosAbiertos)) {
             $this->nodosAbiertos[] = $catKey;
+        }
+    }
+
+    /**
+     * Toggle todos los subrubros directos de una categoría en vista ejecución.
+     * Usa claves ej_X.
+     */
+    public function toggleSubrubrosEjecucion(int $catNodeId, string $catKeyEj): void
+    {
+        $keys = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->where('parent_id', $catNodeId)
+            ->whereNull('recurso_id')
+            ->pluck('id')
+            ->map(fn($id) => 'ej_' . $id)
+            ->toArray();
+
+        if (empty($keys)) return;
+
+        $abiertos = array_filter($keys, fn($k) => in_array($k, $this->nodosAbiertos));
+
+        if (count($abiertos) === count($keys)) {
+            $this->nodosAbiertos = array_values(array_diff($this->nodosAbiertos, $keys));
+        } else {
+            $this->nodosAbiertos = array_values(array_unique(array_merge($this->nodosAbiertos, $keys)));
+        }
+
+        if (!in_array($catKeyEj, $this->nodosAbiertos)) {
+            $this->nodosAbiertos[] = $catKeyEj;
+        }
+    }
+
+    /**
+     * Toggle todos los subrubros de un rubro (nodo sin recurso) en vista ejecución.
+     * Usa claves ej_X para los hijos directos sin recurso_id.
+     */
+    public function toggleSubrubrosDeRubroEjecucion(int $rubroId, string $rubroKey): void
+    {
+        $keys = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->where('parent_id', $rubroId)
+            ->whereNull('recurso_id')
+            ->pluck('id')
+            ->map(fn($id) => 'ej_' . $id)
+            ->toArray();
+
+        if (empty($keys)) return;
+
+        $abiertos = array_filter($keys, fn($k) => in_array($k, $this->nodosAbiertos));
+
+        if (count($abiertos) === count($keys)) {
+            $this->nodosAbiertos = array_values(array_diff($this->nodosAbiertos, $keys));
+        } else {
+            $this->nodosAbiertos = array_values(array_unique(array_merge($this->nodosAbiertos, $keys)));
+        }
+
+        if (!in_array($rubroKey, $this->nodosAbiertos)) {
+            $this->nodosAbiertos[] = $rubroKey;
         }
     }
 

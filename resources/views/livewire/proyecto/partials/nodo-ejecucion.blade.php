@@ -82,23 +82,45 @@
         {{-- Descripción --}}
         <div class="flex items-center gap-1.5 min-w-0" style="padding-left: {{ $padLeft }}">
             @if(!$esRecurso)
-                <button onclick="_lwToggle('{{ $nodeKey }}')" class="shrink-0 p-0.5 rounded hover:bg-white/10 transition">
+                {{-- Toggle propio del nodo --}}
+                <div onclick="_lwToggle('{{ $nodeKey }}')" class="flex items-center gap-1.5 cursor-pointer min-w-0">
                     <svg id="chv-{{ $nodeKey }}"
-                         class="w-3 h-3 text-gray-500 shrink-0"
+                         class="w-2.5 h-2.5 text-gray-500 shrink-0"
                          style="transition:transform .2s; {{ $nodoAbierto ? 'transform:rotate(90deg)' : '' }}"
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
                     </svg>
+                    <span class="text-xs {{ $colorTexto }} {{ $pesoTexto }} uppercase truncate" title="{{ $nodo->nombre }}">
+                        {{ $nodo->nombre }}
+                    </span>
+                </div>
+                {{-- Botón Sub: abre/cierra todos los subrubros directos de este rubro --}}
+                @php
+                    $subRubrosEj  = $hijos->whereNull('recurso_id');
+                    $subKeysEjN   = $subRubrosEj->map(fn($n) => 'ej_' . $n->id)->toArray();
+                    $todosSubAbjN = count($subKeysEjN) > 0 && count(array_intersect($subKeysEjN, $nodosAbiertos ?? [])) === count($subKeysEjN);
+                @endphp
+                @if(count($subKeysEjN) > 0)
+                <button wire:click.stop="toggleSubrubrosDeRubroEjecucion({{ $nodo->id }}, '{{ $nodeKey }}')"
+                    onclick="_lwEnsureCatOpen('{{ $nodeKey }}')"
+                    class="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider transition
+                        {{ $todosSubAbjN ? 'bg-white/10 text-gray-300 hover:bg-white/20' : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300' }}">
+                    @if($todosSubAbjN)
+                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"/></svg>
+                    @else
+                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"/></svg>
+                    @endif
+                    Sub
                 </button>
+                @endif
             @else
                 <div class="w-4 h-4 shrink-0 flex items-center justify-center">
                     <div class="w-1 h-1 rounded-full bg-gray-600"></div>
                 </div>
+                <span class="text-xs {{ $colorTexto }} {{ $pesoTexto }} uppercase truncate" title="{{ $nodo->nombre }}">
+                    {{ $nodo->nombre }}
+                </span>
             @endif
-
-            <span class="text-xs {{ $colorTexto }} {{ $pesoTexto }} uppercase truncate" title="{{ $nodo->nombre }}">
-                {{ $nodo->nombre }}
-            </span>
         </div>
 
         {{-- Unidad --}}

@@ -150,7 +150,7 @@
                      class="pl-7 pr-3 py-1 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-lg text-xs text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:border-gray-300 dark:focus:border-white/20 w-full sm:w-40 transition-all">
         </div>
 
-        {{-- Expand / Collapse all (sólo categorías padre) --}}
+        {{-- Expand / Collapse all --}}
         @if($vistaActiva === 'presupuesto')
         <button id="btn-toggle-rubros"
             wire:click="{{ $rubrosExpandidos ? 'colapsarTodos' : 'expandirTodos' }}"
@@ -163,6 +163,19 @@
                       d="{{ $rubrosExpandidos ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7' }}"/>
             </svg>
             <span id="btn-toggle-rubros-txt">{{ $rubrosExpandidos ? 'Cerrar rubros' : 'Abrir rubros' }}</span>
+        </button>
+        @elseif($vistaActiva === 'ejecucion')
+        <button id="btn-toggle-ej"
+            wire:click="{{ $ejExpandidos ? 'colapsarTodosEjecucion' : 'expandirTodosEjecucion' }}"
+            onclick="_handleToggleEj()"
+            data-abierto="{{ $ejExpandidos ? '1' : '0' }}"
+            title="{{ $ejExpandidos ? 'Cerrar todos los rubros' : 'Abrir todos los rubros' }}"
+            class="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 text-[11px] font-black uppercase tracking-wider transition-all">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path id="btn-toggle-ej-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="{{ $ejExpandidos ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7' }}"/>
+            </svg>
+            <span id="btn-toggle-ej-txt">{{ $ejExpandidos ? 'Cerrar rubros' : 'Abrir rubros' }}</span>
         </button>
         @endif
 
@@ -868,18 +881,37 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
                     {{-- Nombre categoría --}}
                     <div class="flex items-center gap-2 min-w-0">
-                        <button onclick="_lwToggle('{{ $catKeyEj }}')" class="shrink-0 p-0.5 rounded hover:bg-white/10 transition">
+                        {{-- Toggle categoría --}}
+                        <div onclick="_lwToggle('{{ $catKeyEj }}')" class="flex items-center gap-1.5 cursor-pointer min-w-0">
                             <svg id="chv-{{ $catKeyEj }}"
-                                 class="w-3 h-3 text-gray-400 shrink-0"
+                                 class="w-2.5 h-2.5 text-gray-500 shrink-0"
                                  style="transition:transform .2s; {{ $catAbiertaEj ? 'transform:rotate(90deg)' : '' }}"
                                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
                             </svg>
-                        </button>
-                        <div class="min-w-0">
-                            <p class="text-xs font-black uppercase tracking-widest text-white truncate">{{ $nombreCat }}</p>
-                            <p class="text-[10px] text-gray-600 font-bold uppercase">{{ $hijosEj2->count() }} rubros</p>
+                            <div class="min-w-0">
+                                <p class="text-xs font-black uppercase tracking-widest text-white truncate">{{ $nombreCat }}</p>
+                                <p class="text-[10px] text-gray-600 font-bold uppercase">{{ $hijosEj2->count() }} rubros</p>
+                            </div>
                         </div>
+                        {{-- Botón Sub: expande/colapsa todos los subrubros directos de esta categoría --}}
+                        @php
+                            $subKeysEj = $hijosEj2->whereNull('recurso_id')->map(fn($n) => 'ej_' . $n->id)->toArray();
+                            $todosSubAbiertosEj = count($subKeysEj) > 0 && count(array_intersect($subKeysEj, $nodosAbiertos)) === count($subKeysEj);
+                        @endphp
+                        @if(count($subKeysEj) > 0)
+                        <button wire:click.stop="toggleSubrubrosEjecucion({{ $nodoPadreEj2->id }}, '{{ $catKeyEj }}')"
+                            onclick="_lwEnsureCatOpen('{{ $catKeyEj }}')"
+                            class="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider transition
+                                {{ $todosSubAbiertosEj ? 'bg-white/10 text-gray-300 hover:bg-white/20' : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300' }}">
+                            @if($todosSubAbiertosEj)
+                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"/></svg>
+                            @else
+                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"/></svg>
+                            @endif
+                            Sub
+                        </button>
+                        @endif
                     </div>
 
                     <div></div>
@@ -1876,6 +1908,34 @@ function _handleToggleRubros() {
         btn.title = 'Abrir todos los rubros';
     } else {
         _expandirTodosDOM();
+        btn.dataset.abierto = '1';
+        if (txt)  txt.textContent = 'Cerrar rubros';
+        if (path) path.setAttribute('d', 'M5 15l7-7 7 7');
+        btn.title = 'Cerrar todos los rubros';
+    }
+}
+function _expandirTodosEjDOM() {
+    document.querySelectorAll('[id^="children-ej_cat_"]').forEach(function(el) { el.style.display = ''; });
+    document.querySelectorAll('[id^="chv-ej_cat_"]').forEach(function(chv) { chv.style.transform = 'rotate(90deg)'; });
+}
+function _colapsarTodosEjDOM() {
+    document.querySelectorAll('[id^="children-ej_"]').forEach(function(el) { el.style.display = 'none'; });
+    document.querySelectorAll('[id^="chv-ej_"]').forEach(function(chv) { chv.style.transform = ''; });
+}
+function _handleToggleEj() {
+    var btn  = document.getElementById('btn-toggle-ej');
+    var txt  = document.getElementById('btn-toggle-ej-txt');
+    var path = document.getElementById('btn-toggle-ej-path');
+    if (!btn) return;
+    var abierto = btn.dataset.abierto === '1';
+    if (abierto) {
+        _colapsarTodosEjDOM();
+        btn.dataset.abierto = '0';
+        if (txt)  txt.textContent = 'Abrir rubros';
+        if (path) path.setAttribute('d', 'M19 9l-7 7-7-7');
+        btn.title = 'Abrir todos los rubros';
+    } else {
+        _expandirTodosEjDOM();
         btn.dataset.abierto = '1';
         if (txt)  txt.textContent = 'Cerrar rubros';
         if (path) path.setAttribute('d', 'M5 15l7-7 7 7');
