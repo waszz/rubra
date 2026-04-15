@@ -38,25 +38,32 @@
     $precioUnitPresup  = $computePerUnitEj($nodo);
     $presupuestadoNodo = $precioUnitPresup * (float)($nodo->cantidad ?? 1);
 
-    // Precio unitario real: costo_real almacenado es el precio unitario ingresado por el usuario.
-    // Para subrubros: suma recursiva de (precio_unit_real_hijo × cantidad_hijo).
-    $computeRealUnit = function($node) use (&$computeRealUnit): ?float {
+    // Precio unitario real: solo para hojas (input del usuario).
+    // Para subrubros/rubros padre se muestra '—' en P.U. Real.
+    $realUnitNodo = $esRecurso && $nodo->costo_real !== null
+        ? (float)$nodo->costo_real
+        : null;
+
+    // Total real: hoja = costo_real × cantidad; contenedor = suma directa de los totales de sus hijos.
+    // No se multiplica por la cantidad del contenedor para evitar doble conteo.
+    $collectRealTotal = function($node) use (&$collectRealTotal): ?float {
         if (!is_null($node->recurso_id)) {
-            return $node->costo_real !== null ? (float)$node->costo_real : null;
+            return $node->costo_real !== null
+                ? (float)$node->costo_real * (float)($node->cantidad ?? 1)
+                : null;
         }
         $total = 0.0; $tieneReal = false;
         foreach ($node->hijos ?? collect([]) as $child) {
-            $childUnit = $computeRealUnit($child);
-            if ($childUnit !== null) {
-                $total += $childUnit * (float)($child->cantidad ?? 1);
+            $childTotal = $collectRealTotal($child);
+            if ($childTotal !== null) {
+                $total += $childTotal;
                 $tieneReal = true;
             }
         }
         return $tieneReal ? $total : null;
     };
 
-    $realUnitNodo   = $computeRealUnit($nodo);
-    $costoRealTotal = $realUnitNodo !== null ? $realUnitNodo * (float)($nodo->cantidad ?? 1) : null;
+    $costoRealTotal = $collectRealTotal($nodo);
 
     $diferenciaNodo = ($costoRealTotal !== null) ? ($costoRealTotal - $presupuestadoNodo) : null;
     $desvioPct      = ($diferenciaNodo !== null && $presupuestadoNodo > 0)
