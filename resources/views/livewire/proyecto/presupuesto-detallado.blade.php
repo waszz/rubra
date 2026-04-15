@@ -713,7 +713,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
             foreach ($nodos as $nodo) {
                 $cat = $categoria ?: ($nodo->categoria ?? 'Sin categoría');
                 if (!is_null($nodo->recurso_id)) {
-                    $precioUnitEj  = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
+                    $precioUnitEj  = $nodo->precio_usd ?? 0;
                     $presupuestado = ($nodo->cantidad ?? 1) * $precioUnitEj;
                     $hojas[] = [
                         'id'            => $nodo->id,
@@ -722,7 +722,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
                         'cantidad'      => $nodo->cantidad ?? 1,
                         'precio_usd'    => $precioUnitEj,
                         'presupuestado' => $presupuestado,
-                        'costo_real'    => $nodo->costo_real,
+                        'costo_real'    => $nodo->costo_real !== null ? $nodo->costo_real * ($nodo->cantidad ?? 1) : null,
                         'categoria'     => $cat,
                     ];
                 }
@@ -827,28 +827,24 @@ $totalFinal = $subtotalConBeneficio + $iva;
     @php
         $puedeEditarEj = in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']);
 
-        // Mismo algoritmo que calcularSubtotalRecursivo en presupuesto.
-        // La cantidad de cada nodo intermedio (subrubro/rubro) multiplica a sus hijos.
+        // Precio unitario presupuestado: hoja = precio_usd; subrubro = suma recursiva de hijos
         $ejComputePerUnit = function($node) use (&$ejComputePerUnit): float {
-            $perUnit = (float)($node->precio_unitario ?? $node->precio_usd ?? 0);
-            if ($node->hijos && $node->hijos->count() > 0) {
-                foreach ($node->hijos as $child) {
-                    if (is_null($child->recurso_id)) {
-                        $perUnit += $ejComputePerUnit($child) * (float)($child->cantidad ?? 1);
-                    } else {
-                        $perUnit += (float)($child->cantidad ?? 1) * (float)($child->precio_unitario ?? $child->precio_usd ?? 0);
-                    }
-                }
+            if (!is_null($node->recurso_id)) {
+                return (float)($node->precio_usd ?? 0);
             }
-            return $perUnit;
+            $total = 0.0;
+            foreach ($node->hijos ?? collect([]) as $child) {
+                $total += $ejComputePerUnit($child) * (float)($child->cantidad ?? 1);
+            }
+            return $total;
         };
 
-        // Recolecta costo_real de las hojas (sin multiplicar por jerarquía)
+        // Recolecta total real de las hojas: costo_real es precio unitario, total = costo_real × cantidad
         $ejCollectReal = function($nodos) use (&$ejCollectReal): array {
             $real = 0; $tieneReal = false;
             foreach ($nodos as $n) {
                 if (!is_null($n->recurso_id) && $n->costo_real !== null) {
-                    $real += $n->costo_real; $tieneReal = true;
+                    $real += (float)$n->costo_real * (float)($n->cantidad ?? 1); $tieneReal = true;
                 }
                 if ($n->hijos && $n->hijos->count() > 0) {
                     [$sr, $st] = $ejCollectReal($n->hijos);
@@ -870,16 +866,18 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
     <div class="bg-[#111] border border-white/5 rounded-2xl overflow-hidden">
         <div class="overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-        <div class="min-w-[860px]">
+        <div class="min-w-[1060px]">
 
         {{-- Cabecera --}}
         <div class="grid px-4 py-3 border-b border-white/5 bg-white/[0.01]"
-             style="grid-template-columns: 2fr 60px 90px 100px 160px 130px 90px;">
+             style="grid-template-columns: 2fr 60px 90px 100px 110px 110px 110px 110px 80px;">
             <div class="text-xs text-gray-500 font-black uppercase tracking-widest">Descripción</div>
             <div class="text-xs text-gray-500 font-black text-center uppercase tracking-widest">Ud.</div>
             <div class="text-xs text-gray-500 font-black text-center uppercase tracking-widest">Cant.</div>
             <div class="text-xs text-gray-500 font-black text-right uppercase tracking-widest">P. Unit.</div>
-            <div class="text-xs text-orange-500 font-black text-right pr-2 uppercase tracking-widest">Costo Real</div>
+            <div class="text-xs text-gray-500 font-black text-right uppercase tracking-widest">Total Pres.</div>
+            <div class="text-xs text-orange-500 font-black text-right pr-2 uppercase tracking-widest">P.U. Real</div>
+            <div class="text-xs text-orange-500 font-black text-right uppercase tracking-widest">Total Real</div>
             <div class="text-xs text-gray-500 font-black text-right uppercase tracking-widest">Diferencia</div>
             <div class="text-xs text-gray-500 font-black text-right uppercase tracking-widest">Desvío</div>
         </div>
@@ -901,7 +899,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
             <div class="border-b border-white/5" wire:key="ej-cat-{{ Str::slug($nombreCat) }}">
 
                 <div class="grid px-4 py-2.5 bg-white/[0.03] items-center border-b border-white/[0.04]"
-                     style="grid-template-columns: 2fr 60px 90px 100px 160px 130px 90px;">
+                     style="grid-template-columns: 2fr 60px 90px 100px 110px 110px 110px 110px 80px;">
 
                     {{-- Nombre categoría --}}
                     <div class="flex items-center gap-2 min-w-0">
@@ -941,8 +939,10 @@ $totalFinal = $subtotalConBeneficio + $iva;
                     <div></div>
                     <div></div>
                     <div></div>
+                    <div></div>
+                    <div></div>
 
-                    {{-- Real categoría (suma) --}}
+                    {{-- Total Real categoría --}}
                     <div class="flex justify-end pr-1">
                         <span class="text-xs font-mono text-right {{ $catRealVal !== null ? 'text-orange-300 font-bold' : 'text-gray-700' }}">
                             {{ $catRealVal !== null ? number_format($catRealVal, 2, ',', '.') : '—' }}

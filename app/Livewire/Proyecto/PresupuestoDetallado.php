@@ -2122,7 +2122,16 @@ public function actualizarCostoReal($id, $valor)
     $recurso = ProyectoRecurso::find($id);
     if (!$recurso || $recurso->proyecto_id !== $this->proyecto->id) return;
 
-    $recurso->update(['costo_real' => $costo]);
+    // Propagar el mismo precio unitario real a todos los nodos del proyecto
+    // que compartan el mismo recurso_id (mismo recurso repetido en distintos subrubros).
+    if ($recurso->recurso_id) {
+        ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->where('recurso_id', $recurso->recurso_id)
+            ->update(['costo_real' => $costo]);
+    } else {
+        $recurso->update(['costo_real' => $costo]);
+    }
+
     $this->proyecto->refresh();
     $this->cargarProyecto();
 }

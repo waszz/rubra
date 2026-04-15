@@ -23,47 +23,42 @@
         default      => '48px',
     };
 
-    // Mismo algoritmo que calcularSubtotalRecursivo en presupuesto:
-    // computePerUnit propaga la cantidad de cada nodo padre hacia sus hijos.
+    // Precio unitario presupuestado: hoja = precio_usd propio o del catálogo; subrubro = suma recursiva
     $computePerUnitEj = function($node) use (&$computePerUnitEj): float {
-        $perUnit = (float)($node->precio_unitario ?? $node->precio_usd ?? 0);
-        if ($node->hijos && $node->hijos->count() > 0) {
-            foreach ($node->hijos as $child) {
-                if (is_null($child->recurso_id)) {
-                    $perUnit += $computePerUnitEj($child) * (float)($child->cantidad ?? 1);
-                } else {
-                    $perUnit += (float)($child->cantidad ?? 1) * (float)($child->precio_unitario ?? $child->precio_usd ?? 0);
-                }
-            }
+        if (!is_null($node->recurso_id)) {
+            return (float)($node->precio_usd ?? $node->recurso?->precio_usd ?? 0);
         }
-        return $perUnit;
+        $total = 0.0;
+        foreach ($node->hijos ?? collect([]) as $child) {
+            $total += $computePerUnitEj($child) * (float)($child->cantidad ?? 1);
+        }
+        return $total;
     };
 
-    // Presupuestado de este nodo (igual que la columna Total en presupuesto)
-    $presupuestadoNodo = $computePerUnitEj($nodo) * (float)($nodo->cantidad ?? 1);
-    $costoRealNodo = $nodo->costo_real;
+    $precioUnitPresup  = $computePerUnitEj($nodo);
+    $presupuestadoNodo = $precioUnitPresup * (float)($nodo->cantidad ?? 1);
 
-    // Para subrubros/rubros: costo real = suma de hojas (no se multiplica por la jerarquía)
-    if (!$esRecurso && $hijos->count() > 0) {
-        $calcRealEj = function($nodos) use (&$calcRealEj): array {
-            $real = 0; $tieneReal = false;
-            foreach ($nodos as $n) {
-                if (!is_null($n->recurso_id) && $n->costo_real !== null) {
-                    $real += $n->costo_real;
-                    $tieneReal = true;
-                }
-                if ($n->hijos && $n->hijos->count() > 0) {
-                    [$sr, $st] = $calcRealEj($n->hijos);
-                    if ($st) { $real += $sr; $tieneReal = true; }
-                }
+    // Precio unitario real: costo_real almacenado es el precio unitario ingresado por el usuario.
+    // Para subrubros: suma recursiva de (precio_unit_real_hijo × cantidad_hijo).
+    $computeRealUnit = function($node) use (&$computeRealUnit): ?float {
+        if (!is_null($node->recurso_id)) {
+            return $node->costo_real !== null ? (float)$node->costo_real : null;
+        }
+        $total = 0.0; $tieneReal = false;
+        foreach ($node->hijos ?? collect([]) as $child) {
+            $childUnit = $computeRealUnit($child);
+            if ($childUnit !== null) {
+                $total += $childUnit * (float)($child->cantidad ?? 1);
+                $tieneReal = true;
             }
-            return [$real, $tieneReal];
-        };
-        [$realHijos, $tieneRealHijos] = $calcRealEj($hijos);
-        $costoRealNodo = $tieneRealHijos ? $realHijos : null;
-    }
+        }
+        return $tieneReal ? $total : null;
+    };
 
-    $diferenciaNodo = ($costoRealNodo !== null) ? ($costoRealNodo - $presupuestadoNodo) : null;
+    $realUnitNodo   = $computeRealUnit($nodo);
+    $costoRealTotal = $realUnitNodo !== null ? $realUnitNodo * (float)($nodo->cantidad ?? 1) : null;
+
+    $diferenciaNodo = ($costoRealTotal !== null) ? ($costoRealTotal - $presupuestadoNodo) : null;
     $desvioPct      = ($diferenciaNodo !== null && $presupuestadoNodo > 0)
                         ? (($diferenciaNodo / $presupuestadoNodo) * 100)
                         : null;
@@ -74,16 +69,15 @@
         !$esRecurso                 => 'bg-white/[0.015]',
         default                     => '',
     };
-    $pesoTexto = !$esRecurso ? 'font-bold' : 'font-medium';
+    $pesoTexto  = !$esRecurso ? 'font-bold' : 'font-medium';
     $colorTexto = !$esRecurso ? 'text-gray-200' : 'text-gray-400';
-    $precioUnitEj = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
 @endphp
 
 <div wire:key="ej-node-{{ $nodo->id }}">
 
     {{-- FILA --}}
     <div class="grid border-b border-white/[0.025] px-4 py-2 items-center hover:bg-white/[0.015] transition {{ $bgFila }}"
-         style="grid-template-columns: 2fr 60px 90px 100px 160px 130px 90px;">
+         style="grid-template-columns: 2fr 60px 90px 100px 110px 110px 110px 110px 80px;">
 
         {{-- Descripción --}}
         <div class="flex items-center gap-1.5 min-w-0" style="padding-left: {{ $padLeft }}">
@@ -131,40 +125,51 @@
 
         {{-- Unidad --}}
         <div class="text-xs text-gray-600 text-center uppercase font-mono">
-            {{ $esRecurso ? ($nodo->unidad ?? '') : '' }}
+            {{ $nodo->unidad ?? '' }}
         </div>
 
         {{-- Cantidad --}}
         <div class="text-xs text-gray-500 text-center font-mono">
-            {{ $esRecurso ? number_format($nodo->cantidad ?? 1, 2) : '' }}
+            {{ number_format($nodo->cantidad ?? 1, 2) }}
         </div>
 
-        {{-- Precio Unitario --}}
-        <div class="text-right text-xs font-mono {{ $esRecurso ? 'text-gray-500' : 'text-gray-700' }}">
-            {{ $esRecurso ? number_format($precioUnitEj, 2, ',', '.') : '' }}
+        {{-- P. Unit. presupuestado --}}
+        <div class="text-right text-xs font-mono text-gray-500">
+            {{ number_format($precioUnitPresup, 2, ',', '.') }}
         </div>
 
-        {{-- Costo Real (input solo en hojas) --}}
+        {{-- Total Presupuestado (P. Unit. × Cant.) --}}
+        <div class="text-right text-xs font-mono text-gray-400 font-semibold">
+            {{ number_format($presupuestadoNodo, 2, ',', '.') }}
+        </div>
+
+        {{-- P.U. Real (input en hojas, calculado en subrubros) --}}
         <div class="flex justify-end pr-1">
             @if($esRecurso)
                 <input
+                    wire:key="costo-real-{{ $nodo->id }}-{{ $nodo->costo_real }}"
                     type="number"
                     step="0.01"
                     min="0"
                     placeholder="0,00"
-                    value="{{ $costoRealNodo !== null ? number_format($costoRealNodo, 2, '.', '') : '' }}"
+                    value="{{ $nodo->costo_real !== null ? number_format($nodo->costo_real, 2, '.', '') : '' }}"
                     wire:change="actualizarCostoReal({{ $nodo->id }}, $event.target.value)"
                     @disabled(!$puedeEditar)
-                    class="w-32 bg-[#0a0a0a] border
+                    class="w-full bg-[#0a0a0a] border
                         {{ !$puedeEditar
                             ? 'border-gray-600/30 text-gray-600 cursor-not-allowed opacity-50'
                             : 'border-orange-500/30 text-orange-300 focus:border-orange-500' }}
                         rounded-lg px-2 py-1 text-xs font-mono text-right outline-none placeholder-gray-700 transition">
             @else
-                <span class="text-xs font-mono text-right {{ $costoRealNodo !== null ? 'text-orange-300' : 'text-gray-700' }}">
-                    {{ $costoRealNodo !== null ? number_format($costoRealNodo, 2, ',', '.') : '—' }}
+                <span class="text-xs font-mono text-right {{ $realUnitNodo !== null ? 'text-orange-300' : 'text-gray-700' }}">
+                    {{ $realUnitNodo !== null ? number_format($realUnitNodo, 2, ',', '.') : '—' }}
                 </span>
             @endif
+        </div>
+
+        {{-- Total Real (precio_unit_real × cantidad) --}}
+        <div class="text-right text-xs font-mono {{ $costoRealTotal !== null ? 'text-orange-300 font-semibold' : 'text-gray-700' }}">
+            {{ $costoRealTotal !== null ? number_format($costoRealTotal, 2, ',', '.') : '—' }}
         </div>
 
         {{-- Diferencia --}}
