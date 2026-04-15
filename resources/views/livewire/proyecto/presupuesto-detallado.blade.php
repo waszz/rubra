@@ -305,48 +305,36 @@
 
 {{-- CARDS TOTALES ACTUALIZADAS --}}
 @php
-    // Función recursiva para calcular subtotal de todos los recursos en el árbol
-    // Ahora calcula el costo "por unidad" de cada nodo y luego multiplica por su cantidad,
-    // de forma que la cantidad de un subrubro multiplique lo que tenga agregado.
-    function calcularSubtotalRecursivo($nodos) {
-        $computePerUnit = function($node) use (&$computePerUnit) {
-            $perUnit = 0;
-            $precioUnitario = $node->precio_unitario ?? $node->precio_usd ?? 0;
-            $perUnit += $precioUnitario;
-
-            // Hijos: su contribución se agrega en función de su cantidad por unidad.
-            // Para APUs (compositions), precio_usd ya incluye el costo total de sus items
-            // (asignado al crear la composición), por lo que no se re-expanden aquí.
-            if ($node->hijos && $node->hijos->count() > 0) {
-                foreach ($node->hijos as $child) {
-                    if (is_null($child->recurso_id)) {
-                        $perUnit += $computePerUnit($child) * ($child->cantidad ?? 1);
-                    } else {
-                        $pChild = $child->precio_unitario ?? $child->precio_usd ?? 0;
-                        $cantChild = $child->cantidad ?? 1;
-                        $perUnit += $cantChild * $pChild;
-                    }
-                }
-            }
-
-            return $perUnit;
-        };
-
-        $total = 0;
-        foreach ($nodos as $nodo) {
-            $total += ($nodo->cantidad ?? 1) * $computePerUnit($nodo);
+    // Cierre recursivo: precio unitario de un nodo calculado desde sus hojas.
+    // Nodo hoja (con recurso_id): devuelve precio_usd almacenado.
+    // Nodo contenedor (sin recurso_id): suma (computePerUnit(hijo) × hijo.cantidad) de todos los hijos.
+    // NO se agrega el precio_usd propio del contenedor para evitar doble conteo.
+    $computePerUnitGlobal = function($node) use (&$computePerUnitGlobal): float {
+        if (!is_null($node->recurso_id)) {
+            return (float)($node->precio_usd ?? 0);
         }
-
+        $total = 0.0;
+        foreach ($node->hijos ?? [] as $child) {
+            $total += $computePerUnitGlobal($child) * (float)($child->cantidad ?? 1);
+        }
         return $total;
-    }
+    };
 
-    // Función recursiva para calcular carga social
-    // $pctGlobal: si es null usa el del recurso, si es 0 o >0 fuerza ese valor (igual que PHP)
-    function calcularCargaSocialRecursiva($nodos, float $multiplier = 1, $pctGlobal = null) {
-        $totalCS = 0;
+    $calcularSubtotalRecursivo = function($nodos) use ($computePerUnitGlobal): float {
+        $total = 0.0;
+        foreach ($nodos as $nodo) {
+            $total += $computePerUnitGlobal($nodo) * (float)($nodo->cantidad ?? 1);
+        }
+        return $total;
+    };
+
+    // Cierre recursivo para carga social
+    // $pctGlobal: null = usar el del recurso; 0 o >0 = forzar ese valor
+    $calcularCargaSocialRecursiva = function($nodos, float $multiplier = 1, $pctGlobal = null) use (&$calcularCargaSocialRecursiva): float {
+        $totalCS = 0.0;
         foreach ($nodos as $nodo) {
             $cantNodo       = $nodo->cantidad ?? 1;
-            $precioUnitario = $nodo->precio_unitario ?? $nodo->precio_usd ?? 0;
+            $precioUnitario = $nodo->precio_usd ?? 0;
 
             if (($nodo->recurso && in_array($nodo->recurso->tipo, ['labor', 'mano_obra'])) || in_array($nodo->tipo ?? '', ['labor', 'mano_obra'])) {
                 $porcentajeCS = !is_null($pctGlobal)
@@ -369,11 +357,11 @@
             }
 
             if ($nodo->hijos && $nodo->hijos->count() > 0) {
-                $totalCS += calcularCargaSocialRecursiva($nodo->hijos, $multiplier * $cantNodo, $pctGlobal);
+                $totalCS += $calcularCargaSocialRecursiva($nodo->hijos, $multiplier * $cantNodo, $pctGlobal);
             }
         }
         return $totalCS;
-    }
+    };
 
 
     $subtotalBase = 0;
@@ -382,8 +370,8 @@
 
     foreach ($categorias as $nodosRaiz) {
         foreach ($nodosRaiz as $nodoPadre) {
-            $subtotalBase += calcularSubtotalRecursivo($nodoPadre->hijos);
-            $cargaSocialCalculada += calcularCargaSocialRecursiva($nodoPadre->hijos, 1, $pctCSGlobal);
+            $subtotalBase += $calcularSubtotalRecursivo($nodoPadre->hijos);
+            $cargaSocialCalculada += $calcularCargaSocialRecursiva($nodoPadre->hijos, 1, $pctCSGlobal);
         }
     }
 
@@ -492,7 +480,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
             @php
                 $nodoPadre   = $nodosRaiz->first();
                 $nodosReales = $nodoPadre?->hijos ?? collect();
-                $totalCategoria = calcularSubtotalRecursivo($nodosReales);
+                $totalCategoria = $calcularSubtotalRecursivo($nodosReales);
                 $catKey         = 'cat_' . $nombreCategoria;
                 $catAbierta     = in_array($catKey, $nodosAbiertos ?? []);
 
@@ -707,8 +695,8 @@ $totalFinal = $subtotalConBeneficio + $iva;
     @endif
 
     @php
-        // Función para recolectar solo los ítems hoja (con recurso_id)
-        function recolectarHojas($nodos, $categoria = '') {
+        // Cierre para recolectar solo los ítems hoja (con recurso_id)
+        $recolectarHojas = function($nodos, $categoria = '') use (&$recolectarHojas) {
             $hojas = [];
             foreach ($nodos as $nodo) {
                 $cat = $categoria ?: ($nodo->categoria ?? 'Sin categoría');
@@ -727,18 +715,18 @@ $totalFinal = $subtotalConBeneficio + $iva;
                     ];
                 }
                 if ($nodo->hijos && $nodo->hijos->count() > 0) {
-                    $subHojas = recolectarHojas($nodo->hijos, $cat);
+                    $subHojas = $recolectarHojas($nodo->hijos, $cat);
                     $hojas = array_merge($hojas, $subHojas);
                 }
             }
             return $hojas;
-        }
+        };
 
         $todasLasHojas = [];
         foreach ($categorias as $nombreCat => $nodosRaiz) {
             $nodoPadreEj = $nodosRaiz->first();
             $hijosEj = $nodoPadreEj?->hijos ?? collect();
-            $subHojas = recolectarHojas($hijosEj, $nombreCat);
+            $subHojas = $recolectarHojas($hijosEj, $nombreCat);
             $todasLasHojas = array_merge($todasLasHojas, $subHojas);
         }
 
@@ -939,7 +927,10 @@ $totalFinal = $subtotalConBeneficio + $iva;
                     <div></div>
                     <div></div>
                     <div></div>
-                    <div></div>
+                    {{-- Total Presupuestado categoría --}}
+                    <div class="text-right text-xs font-mono text-gray-400 font-semibold pr-1">
+                        {{ number_format($catPres, 2, ',', '.') }}
+                    </div>
                     <div></div>
 
                     {{-- Total Real categoría --}}
