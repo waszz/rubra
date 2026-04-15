@@ -25,7 +25,7 @@
 
     // Presupuestado de este nodo
     $presupuestadoNodo = $esRecurso
-        ? (($nodo->cantidad ?? 1) * ($nodo->precio_usd ?? 0))
+        ? (($nodo->cantidad ?? 1) * ($nodo->precio_unitario ?? $nodo->precio_usd ?? 0))
         : 0;
     $costoRealNodo = $nodo->costo_real;
 
@@ -37,7 +37,7 @@
             $tieneReal = false;
             foreach ($nodos as $n) {
                 if (!is_null($n->recurso_id)) {
-                    $pres += ($n->cantidad ?? 1) * ($n->precio_usd ?? 0);
+                    $pres += ($n->cantidad ?? 1) * ($n->precio_unitario ?? $n->precio_usd ?? 0);
                     if ($n->costo_real !== null) {
                         $real += $n->costo_real;
                         $tieneReal = true;

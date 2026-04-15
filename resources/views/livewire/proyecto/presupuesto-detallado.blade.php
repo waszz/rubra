@@ -831,7 +831,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
             $pres = 0; $real = 0; $tieneReal = false;
             foreach ($nodos as $n) {
                 if (!is_null($n->recurso_id)) {
-                    $pres += ($n->cantidad ?? 1) * ($n->precio_usd ?? 0);
+                    $pres += ($n->cantidad ?? 1) * ($n->precio_unitario ?? $n->precio_usd ?? 0);
                     if ($n->costo_real !== null) { $real += $n->costo_real; $tieneReal = true; }
                 }
                 if ($n->hijos && $n->hijos->count() > 0) {
