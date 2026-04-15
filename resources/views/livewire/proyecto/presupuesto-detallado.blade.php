@@ -809,13 +809,35 @@ $totalFinal = $subtotalConBeneficio + $iva;
         </div>
     </div>
 
-    {{-- Tabla de comparación --}}
+    {{-- Tabla árbol de ejecución --}}
+    @php
+        $puedeEditarEj = in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']);
+
+        // Helper para sumar presupuestado y real recursivamente en una lista de nodos
+        $calcEjCat = function($nodos) use (&$calcEjCat): array {
+            $pres = 0; $real = 0; $tieneReal = false;
+            foreach ($nodos as $n) {
+                if (!is_null($n->recurso_id)) {
+                    $pres += ($n->cantidad ?? 1) * ($n->precio_usd ?? 0);
+                    if ($n->costo_real !== null) { $real += $n->costo_real; $tieneReal = true; }
+                }
+                if ($n->hijos && $n->hijos->count() > 0) {
+                    [$sp, $sr, $st] = $calcEjCat($n->hijos);
+                    $pres += $sp;
+                    if ($st) { $real += $sr; $tieneReal = true; }
+                }
+            }
+            return [$pres, $real, $tieneReal];
+        };
+    @endphp
+
     <div class="bg-[#111] border border-white/5 rounded-2xl overflow-hidden">
         <div class="overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-        <div class="min-w-[900px]">
+        <div class="min-w-[860px]">
 
         {{-- Cabecera --}}
-        <div class="grid px-5 py-3.5 border-b border-white/5 bg-white/[0.01]" style="grid-template-columns: 2fr 60px 80px 130px 150px 120px 90px;">
+        <div class="grid px-4 py-3 border-b border-white/5 bg-white/[0.01]"
+             style="grid-template-columns: 2fr 60px 90px 140px 160px 130px 90px;">
             <div class="text-xs text-gray-500 font-black uppercase tracking-widest">Descripción</div>
             <div class="text-xs text-gray-500 font-black text-center uppercase tracking-widest">Ud.</div>
             <div class="text-xs text-gray-500 font-black text-center uppercase tracking-widest">Cant.</div>
@@ -825,67 +847,94 @@ $totalFinal = $subtotalConBeneficio + $iva;
             <div class="text-xs text-gray-500 font-black text-right uppercase tracking-widest">Desvío</div>
         </div>
 
-        @forelse($recursoAgrupado as $rec)
+        @forelse($categorias as $nombreCat => $nodosRaiz)
             @php
-                $hjPres = $rec['presupuestado'];
-                $hjReal = $rec['costo_real'];
-                $hjDiff = $hjReal !== null ? $hjReal - $hjPres : null;
-                $hjPct  = ($hjReal !== null && $hjPres > 0) ? (($hjReal - $hjPres) / $hjPres) * 100 : null;
-                $idsJson = json_encode($rec['ids']);
+                $nodoPadreEj2 = $nodosRaiz->first();
+                $hijosEj2     = $nodoPadreEj2?->hijos ?? collect();
+                $catKeyEj     = 'ej_cat_' . Str::slug($nombreCat);
+                $catAbiertaEj = in_array($catKeyEj, $nodosAbiertos ?? []);
+
+                [$catPres, $catReal, $catTieneReal] = $calcEjCat($hijosEj2);
+                $catRealVal  = $catTieneReal ? $catReal : null;
+                $catDiff     = $catRealVal !== null ? $catRealVal - $catPres : null;
+                $catDesvio   = ($catDiff !== null && $catPres > 0) ? (($catDiff / $catPres) * 100) : null;
             @endphp
-            <div class="grid px-5 py-3 border-b border-white/[0.025] hover:bg-white/[0.01] items-center"
-                 style="grid-template-columns: 2fr 60px 80px 130px 150px 120px 90px;"
-                 wire:key="ej-grp-{{ implode('-', $rec['ids']) }}">
-                {{-- Nombre --}}
-                <div class="text-base text-gray-300 font-medium truncate">{{ $rec['nombre'] }}</div>
 
-                {{-- Unidad --}}
-                <div class="text-sm text-gray-600 text-center uppercase">{{ $rec['unidad'] }}</div>
+            {{-- FILA CATEGORÍA --}}
+            <div class="border-b border-white/5" wire:key="ej-cat-{{ Str::slug($nombreCat) }}">
 
-                {{-- Cantidad total --}}
-                <div class="text-sm text-gray-500 text-center font-mono">{{ number_format($rec['cantidad'], 2) }}</div>
+                <div class="grid px-4 py-2.5 bg-white/[0.03] items-center border-b border-white/[0.04]"
+                     style="grid-template-columns: 2fr 60px 90px 140px 160px 130px 90px;">
 
-                {{-- Presupuestado total --}}
-                <div class="text-right text-base text-gray-400 font-mono">{{ number_format($hjPres, 2, ',', '.') }}</div>
+                    {{-- Nombre categoría --}}
+                    <div class="flex items-center gap-2 min-w-0">
+                        <button onclick="_lwToggle('{{ $catKeyEj }}')" class="shrink-0 p-0.5 rounded hover:bg-white/10 transition">
+                            <svg id="chv-{{ $catKeyEj }}"
+                                 class="w-3 h-3 text-gray-400 shrink-0"
+                                 style="transition:transform .2s; {{ $catAbiertaEj ? 'transform:rotate(90deg)' : '' }}"
+                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                        <div class="min-w-0">
+                            <p class="text-xs font-black uppercase tracking-widest text-white truncate">{{ $nombreCat }}</p>
+                            <p class="text-[10px] text-gray-600 font-bold uppercase">{{ $hijosEj2->count() }} rubros</p>
+                        </div>
+                    </div>
 
-                {{-- Costo Real (input editable) --}}
-                <div class="flex justify-end pr-2">
-                    <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0,00"
-                        value="{{ $hjReal !== null ? number_format($hjReal, 2, '.', '') : '' }}"
-                        wire:change="actualizarCostoRealGrupo({{ $idsJson }}, $event.target.value)"
-                        @disabled(!in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']))
-                        class="w-32 bg-[#0a0a0a] border {{ !in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']) ? 'border-gray-600/30 text-gray-600 cursor-not-allowed opacity-50' : 'border-orange-500/30 text-orange-300' }} rounded-lg px-2 py-1 text-base font-mono text-right focus:border-orange-500 focus:outline-none placeholder-gray-700">
+                    <div></div>
+                    <div></div>
+
+                    {{-- Presupuestado categoría --}}
+                    <div class="text-right text-xs font-black text-gray-300 font-mono">
+                        {{ number_format($catPres, 2, ',', '.') }}
+                    </div>
+
+                    {{-- Real categoría (suma) --}}
+                    <div class="flex justify-end pr-1">
+                        <span class="text-xs font-mono text-right {{ $catRealVal !== null ? 'text-orange-300 font-bold' : 'text-gray-700' }}">
+                            {{ $catRealVal !== null ? number_format($catRealVal, 2, ',', '.') : '—' }}
+                        </span>
+                    </div>
+
+                    {{-- Diferencia --}}
+                    <div class="text-right text-xs font-mono
+                        {{ $catDiff === null ? 'text-gray-700' : ($catDiff > 0 ? 'text-red-400' : ($catDiff < 0 ? 'text-green-400' : 'text-gray-500')) }}">
+                        @if($catDiff !== null)
+                            {{ ($catDiff >= 0 ? '+' : '') . number_format($catDiff, 2, ',', '.') }}
+                        @else —
+                        @endif
+                    </div>
+
+                    {{-- Desvío --}}
+                    <div class="text-right text-xs font-black
+                        {{ $catDesvio === null ? 'text-gray-700' : ($catDesvio > 5 ? 'text-red-400' : ($catDesvio < -5 ? 'text-green-400' : 'text-yellow-400')) }}">
+                        @if($catDesvio !== null)
+                            {{ ($catDesvio >= 0 ? '+' : '') . number_format($catDesvio, 1) }}%
+                        @else —
+                        @endif
+                    </div>
+
                 </div>
 
-                {{-- Diferencia --}}
-                <div class="text-right text-base font-mono
-                    {{ $hjDiff === null ? 'text-gray-700' :
-                       ($hjDiff > 0 ? 'text-red-400' : ($hjDiff < 0 ? 'text-green-400' : 'text-gray-500')) }}">
-                    @if($hjDiff !== null)
-                        {{ ($hjDiff >= 0 ? '+' : '') . number_format($hjDiff, 2, ',', '.') }}
-                    @else
-                        —
-                    @endif
+                {{-- RUBROS DE ESTA CATEGORÍA (colapsables) --}}
+                <div id="children-{{ $catKeyEj }}" style="{{ $catAbiertaEj ? '' : 'display:none' }}">
+                    @foreach($hijosEj2 as $nodoEj)
+                        @include('livewire.proyecto.partials.nodo-ejecucion', [
+                            'nodo'          => $nodoEj,
+                            'nivel'         => 0,
+                            'nodosAbiertos' => $nodosAbiertos,
+                            'proyecto'      => $proyecto,
+                            'puedeEditar'   => $puedeEditarEj,
+                        ])
+                    @endforeach
                 </div>
 
-                {{-- % Desvío --}}
-                <div class="text-right text-sm font-black
-                    {{ $hjPct === null ? 'text-gray-700' :
-                       ($hjPct > 5 ? 'text-red-400' : ($hjPct < -5 ? 'text-green-400' : 'text-yellow-400')) }}">
-                    @if($hjPct !== null)
-                        {{ ($hjPct >= 0 ? '+' : '') . number_format($hjPct, 1) }}%
-                    @else
-                        —
-                    @endif
-                </div>
             </div>
+
         @empty
             <div class="py-16 text-center text-gray-700 text-sm uppercase font-bold tracking-widest">
-                Sin recursos cargados
+                Sin rubros cargados
             </div>
         @endforelse
 
