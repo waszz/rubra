@@ -23,38 +23,43 @@
         default      => '48px',
     };
 
-    // Presupuestado de este nodo
-    $presupuestadoNodo = $esRecurso
-        ? (($nodo->cantidad ?? 1) * ($nodo->precio_unitario ?? $nodo->precio_usd ?? 0))
-        : 0;
-    $costoRealNodo = $nodo->costo_real;
-
-    // Para subrubros: suma recursiva de sus hijos
-    if (!$esRecurso && $hijos->count() > 0) {
-        $calcSubtotalesEj = function($nodos) use (&$calcSubtotalesEj): array {
-            $pres  = 0;
-            $real  = 0;
-            $tieneReal = false;
-            foreach ($nodos as $n) {
-                if (!is_null($n->recurso_id)) {
-                    $pres += ($n->cantidad ?? 1) * ($n->precio_unitario ?? $n->precio_usd ?? 0);
-                    if ($n->costo_real !== null) {
-                        $real += $n->costo_real;
-                        $tieneReal = true;
-                    }
-                }
-                if ($n->hijos && $n->hijos->count() > 0) {
-                    [$subPres, $subReal, $subTiene] = $calcSubtotalesEj($n->hijos);
-                    $pres += $subPres;
-                    if ($subTiene) {
-                        $real += $subReal;
-                        $tieneReal = true;
-                    }
+    // Mismo algoritmo que calcularSubtotalRecursivo en presupuesto:
+    // computePerUnit propaga la cantidad de cada nodo padre hacia sus hijos.
+    $computePerUnitEj = function($node) use (&$computePerUnitEj): float {
+        $perUnit = (float)($node->precio_unitario ?? $node->precio_usd ?? 0);
+        if ($node->hijos && $node->hijos->count() > 0) {
+            foreach ($node->hijos as $child) {
+                if (is_null($child->recurso_id)) {
+                    $perUnit += $computePerUnitEj($child) * (float)($child->cantidad ?? 1);
+                } else {
+                    $perUnit += (float)($child->cantidad ?? 1) * (float)($child->precio_unitario ?? $child->precio_usd ?? 0);
                 }
             }
-            return [$pres, $real, $tieneReal];
+        }
+        return $perUnit;
+    };
+
+    // Presupuestado de este nodo (igual que la columna Total en presupuesto)
+    $presupuestadoNodo = $computePerUnitEj($nodo) * (float)($nodo->cantidad ?? 1);
+    $costoRealNodo = $nodo->costo_real;
+
+    // Para subrubros/rubros: costo real = suma de hojas (no se multiplica por la jerarquía)
+    if (!$esRecurso && $hijos->count() > 0) {
+        $calcRealEj = function($nodos) use (&$calcRealEj): array {
+            $real = 0; $tieneReal = false;
+            foreach ($nodos as $n) {
+                if (!is_null($n->recurso_id) && $n->costo_real !== null) {
+                    $real += $n->costo_real;
+                    $tieneReal = true;
+                }
+                if ($n->hijos && $n->hijos->count() > 0) {
+                    [$sr, $st] = $calcRealEj($n->hijos);
+                    if ($st) { $real += $sr; $tieneReal = true; }
+                }
+            }
+            return [$real, $tieneReal];
         };
-        [$presupuestadoNodo, $realHijos, $tieneRealHijos] = $calcSubtotalesEj($hijos);
+        [$realHijos, $tieneRealHijos] = $calcRealEj($hijos);
         $costoRealNodo = $tieneRealHijos ? $realHijos : null;
     }
 

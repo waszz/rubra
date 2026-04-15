@@ -826,20 +826,43 @@ $totalFinal = $subtotalConBeneficio + $iva;
     @php
         $puedeEditarEj = in_array($proyecto->estado_obra, ['ejecucion', 'en_ejecucion']);
 
-        // Helper para sumar presupuestado y real recursivamente en una lista de nodos
-        $calcEjCat = function($nodos) use (&$calcEjCat): array {
-            $pres = 0; $real = 0; $tieneReal = false;
+        // Mismo algoritmo que calcularSubtotalRecursivo en presupuesto.
+        // La cantidad de cada nodo intermedio (subrubro/rubro) multiplica a sus hijos.
+        $ejComputePerUnit = function($node) use (&$ejComputePerUnit): float {
+            $perUnit = (float)($node->precio_unitario ?? $node->precio_usd ?? 0);
+            if ($node->hijos && $node->hijos->count() > 0) {
+                foreach ($node->hijos as $child) {
+                    if (is_null($child->recurso_id)) {
+                        $perUnit += $ejComputePerUnit($child) * (float)($child->cantidad ?? 1);
+                    } else {
+                        $perUnit += (float)($child->cantidad ?? 1) * (float)($child->precio_unitario ?? $child->precio_usd ?? 0);
+                    }
+                }
+            }
+            return $perUnit;
+        };
+
+        // Recolecta costo_real de las hojas (sin multiplicar por jerarquía)
+        $ejCollectReal = function($nodos) use (&$ejCollectReal): array {
+            $real = 0; $tieneReal = false;
             foreach ($nodos as $n) {
-                if (!is_null($n->recurso_id)) {
-                    $pres += ($n->cantidad ?? 1) * ($n->precio_unitario ?? $n->precio_usd ?? 0);
-                    if ($n->costo_real !== null) { $real += $n->costo_real; $tieneReal = true; }
+                if (!is_null($n->recurso_id) && $n->costo_real !== null) {
+                    $real += $n->costo_real; $tieneReal = true;
                 }
                 if ($n->hijos && $n->hijos->count() > 0) {
-                    [$sp, $sr, $st] = $calcEjCat($n->hijos);
-                    $pres += $sp;
+                    [$sr, $st] = $ejCollectReal($n->hijos);
                     if ($st) { $real += $sr; $tieneReal = true; }
                 }
             }
+            return [$real, $tieneReal];
+        };
+
+        $calcEjCat = function($nodos) use ($ejComputePerUnit, $ejCollectReal): array {
+            $pres = 0;
+            foreach ($nodos as $n) {
+                $pres += $ejComputePerUnit($n) * (float)($n->cantidad ?? 1);
+            }
+            [$real, $tieneReal] = $ejCollectReal($nodos);
             return [$pres, $real, $tieneReal];
         };
     @endphp
