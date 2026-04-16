@@ -76,7 +76,7 @@ Route::middleware(['auth', 'trial.expirado'])->group(function () {
 
     Route::get('/proyectos/{proyecto}/gantt', \App\Livewire\Proyecto\GanttProyecto::class)
         ->name('proyectos.gantt')
-        ->middleware('role:mapa');
+        ->middleware('role:computos');
 
     Route::get('/proyectos/{proyecto}/diario', \App\Livewire\Proyecto\DiarioObra::class)
         ->name('proyectos.diario')

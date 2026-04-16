@@ -99,6 +99,19 @@
                 Dom
             </button>
 
+            {{-- Separador --}}
+            <div class="w-px h-5 bg-gray-200 dark:bg-white/10 shrink-0"></div>
+
+            {{-- Botón Historial global --}}
+            <button wire:click="abrirHistorialGlobal"
+                    class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-black uppercase tracking-wider transition-all shrink-0
+                           border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-600 hover:border-blue-400/50 hover:text-blue-500 dark:hover:text-blue-400">
+                <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Historial
+            </button>
+
         </div>
 
     </nav>
@@ -163,14 +176,24 @@
                             @endif
                         </div>
                     </div>
-                    <button wire:click="abrirModalFechas({{ $fila['id'] }})"
-                            title="Asignar fechas"
-                            class="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-white">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                    </button>
+                    <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button wire:click="abrirModalFechas({{ $fila['id'] }})"
+                                title="Asignar fechas"
+                                class="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-white">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                        <button wire:click="abrirHistorial({{ $fila['id'] }})"
+                                title="Historial de fechas"
+                                class="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             @endforeach
 
@@ -747,6 +770,265 @@ main { overflow: hidden !important; display: flex; flex-direction: column; }
                     GUARDAR
                 </button>
             </div>
+        </div>
+    </div>
+@endif
+
+{{-- MODAL HISTORIAL --}}
+@if($mostrarModalHistorial)
+    <div class="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-md px-4">
+        <div class="w-full max-w-lg border border-gray-200 dark:border-white/10 rounded-2xl bg-white dark:bg-[#0d0d0d] shadow-2xl flex flex-col max-h-[80vh]">
+            {{-- Header --}}
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/5 shrink-0">
+                <div>
+                    <p class="text-[10px] text-blue-400 uppercase font-black tracking-widest mb-0.5">Historial de fechas</p>
+                    <h2 class="text-gray-900 dark:text-white font-extrabold text-sm uppercase truncate max-w-xs">{{ $historialNombre }}</h2>
+                </div>
+                <button wire:click="$set('mostrarModalHistorial', false)"
+                        class="p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Body --}}
+            <div class="overflow-y-auto flex-1 px-4 py-3 space-y-2">
+                @forelse($historialRegistros as $reg)
+                    @php
+                        $accionColor = match($reg['accion']) {
+                            'eliminado'  => 'text-red-400 bg-red-500/10 border-red-500/20',
+                            'arrastrado' => 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+                            default      => 'text-green-400 bg-green-500/10 border-green-500/20',
+                        };
+                        $accionLabel = match($reg['accion']) {
+                            'eliminado'  => 'Eliminado',
+                            'arrastrado' => 'Arrastrado',
+                            default      => 'Guardado',
+                        };
+                    @endphp
+                    <div class="rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.02] px-4 py-3 space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase border {{ $accionColor }}">
+                                    {{ $accionLabel }}
+                                </span>
+                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">{{ $reg['user_name'] }}</span>
+                            </div>
+                            <span class="text-[10px] text-gray-400 dark:text-gray-600 font-mono shrink-0">{{ $reg['fecha'] }}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                            <div>
+                                <span class="text-gray-400 dark:text-gray-600 font-black uppercase text-[10px]">Antes</span>
+                                <p class="text-gray-600 dark:text-gray-400 font-mono">
+                                    {{ $reg['fecha_inicio_anterior'] ?? '—' }}
+                                    @if($reg['fecha_inicio_anterior'] || $reg['fecha_fin_anterior'])
+                                        → {{ $reg['fecha_fin_anterior'] ?? '—' }}
+                                    @endif
+                                    @if($reg['trabajadores_anterior'] && $reg['trabajadores_anterior'] > 1)
+                                        <span class="text-gray-400">· {{ $reg['trabajadores_anterior'] }} trab.</span>
+                                    @endif
+                                </p>
+                            </div>
+                            @if($reg['accion'] !== 'eliminado')
+                            <div>
+                                <span class="text-gray-400 dark:text-gray-600 font-black uppercase text-[10px]">Después</span>
+                                <p class="text-gray-700 dark:text-gray-300 font-mono font-bold">
+                                    {{ $reg['fecha_inicio_nueva'] ?? '—' }}
+                                    @if($reg['fecha_inicio_nueva'] || $reg['fecha_fin_nueva'])
+                                        → {{ $reg['fecha_fin_nueva'] ?? '—' }}
+                                    @endif
+                                    @if($reg['trabajadores_nueva'] && $reg['trabajadores_nueva'] > 1)
+                                        <span class="text-gray-400">· {{ $reg['trabajadores_nueva'] }} trab.</span>
+                                    @endif
+                                </p>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="py-16 text-center">
+                        <p class="text-gray-400 dark:text-gray-600 text-sm uppercase font-bold tracking-widest">Sin historial registrado</p>
+                        <p class="text-gray-300 dark:text-gray-700 text-xs mt-1">Los cambios futuros aparecerán aquí</p>
+                    </div>
+                @endforelse
+            </div>
+
+            {{-- Footer --}}
+            <div class="px-6 py-3 border-t border-gray-100 dark:border-white/5 shrink-0">
+                <button wire:click="$set('mostrarModalHistorial', false)"
+                        class="w-full py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white text-sm font-bold hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                    CERRAR
+                </button>
+            </div>
+        </div>
+    </div>
+@endif
+
+{{-- MODAL HISTORIAL GLOBAL --}}
+@if($mostrarModalHistorialGlobal)
+    <div class="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-md px-4">
+        <div class="w-full max-w-lg border border-gray-200 dark:border-white/10 rounded-2xl bg-white dark:bg-[#0d0d0d] shadow-2xl flex flex-col max-h-[80vh]">
+
+            @if(!$historialGlobalDetalle)
+                {{-- PANTALLA 1: lista de rubros/subrubros --}}
+                <div wire:key="historial-global-lista" class="flex flex-col flex-1 min-h-0">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/5 shrink-0">
+                    <div>
+                        <p class="text-[10px] text-blue-400 uppercase font-black tracking-widest mb-0.5">Historial de fechas</p>
+                        <h2 class="text-gray-900 dark:text-white font-extrabold text-sm uppercase">{{ $proyecto->nombre_proyecto }}</h2>
+                    </div>
+                    <button wire:click="cerrarHistorialGlobal"
+                            class="p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="overflow-y-auto flex-1 px-4 py-3 space-y-4">
+                    @forelse($historialGlobal as $grupo)
+                        <div>
+                            <div class="flex items-center gap-2 mb-1.5 px-1">
+                                <div class="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0"></div>
+                                <span class="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-black tracking-widest">{{ $grupo['nombre'] }}</span>
+                            </div>
+                            <div class="space-y-1">
+                                @foreach($grupo['hijos'] as $hijo)
+                                    <button wire:click="seleccionarHistorialGlobal({{ $hijo['id'] }})"
+                                            class="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.02] hover:bg-gray-100 dark:hover:bg-white/[0.05] hover:border-blue-400/30 transition-all text-left group">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <div class="w-1 h-1 rounded-full bg-blue-400 shrink-0"></div>
+                                            <span class="text-sm text-gray-700 dark:text-gray-300 font-medium truncate group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                                                {{ $hijo['nombre'] }}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-3 shrink-0 ml-3">
+                                            <div class="text-right">
+                                                <span class="block text-[10px] text-blue-400 font-black">{{ $hijo['total'] }} {{ $hijo['total'] == 1 ? 'cambio' : 'cambios' }}</span>
+                                                @if($hijo['ultimo'])
+                                                    <span class="block text-[9px] text-gray-400 dark:text-gray-600 font-mono">{{ $hijo['ultimo'] }}</span>
+                                                @endif
+                                            </div>
+                                            <svg class="w-3.5 h-3.5 text-gray-300 dark:text-gray-700 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                        </div>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @empty
+                        <div class="py-16 text-center">
+                            <p class="text-gray-400 dark:text-gray-600 text-sm uppercase font-bold tracking-widest">Sin historial registrado</p>
+                            <p class="text-gray-300 dark:text-gray-700 text-xs mt-1">Los cambios de fechas futuros aparecerán aquí</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                <div class="px-6 py-3 border-t border-gray-100 dark:border-white/5 shrink-0">
+                    <button wire:click="cerrarHistorialGlobal"
+                            class="w-full py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white text-sm font-bold hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                        CERRAR
+                    </button>
+                </div>
+                </div>{{-- /pantalla-1 --}}
+
+            @else
+                {{-- PANTALLA 2: detalle del subrubro seleccionado --}}
+                <div wire:key="historial-global-detalle" class="flex flex-col flex-1 min-h-0">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/5 shrink-0">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <button wire:click="volverListaHistorial"
+                                class="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <div class="min-w-0">
+                            <p class="text-[10px] text-blue-400 uppercase font-black tracking-widest mb-0.5">Historial de fechas</p>
+                            <h2 class="text-gray-900 dark:text-white font-extrabold text-sm uppercase truncate">{{ $historialNombre }}</h2>
+                        </div>
+                    </div>
+                    <button wire:click="cerrarHistorialGlobal"
+                            class="p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="overflow-y-auto flex-1 px-4 py-3 space-y-2">
+                    @forelse($historialRegistros as $reg)
+                        @php
+                            $accionColor = match($reg['accion']) {
+                                'eliminado'  => 'text-red-400 bg-red-500/10 border-red-500/20',
+                                'arrastrado' => 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+                                default      => 'text-green-400 bg-green-500/10 border-green-500/20',
+                            };
+                            $accionLabel = match($reg['accion']) {
+                                'eliminado'  => 'Eliminado',
+                                'arrastrado' => 'Arrastrado',
+                                default      => 'Guardado',
+                            };
+                        @endphp
+                        <div class="rounded-xl border border-gray-100 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.02] px-4 py-3 space-y-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase border {{ $accionColor }}">{{ $accionLabel }}</span>
+                                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300">{{ $reg['user_name'] }}</span>
+                                </div>
+                                <span class="text-[10px] text-gray-400 dark:text-gray-600 font-mono shrink-0">{{ $reg['fecha'] }}</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                <div>
+                                    <span class="text-gray-400 dark:text-gray-600 font-black uppercase text-[10px]">Antes</span>
+                                    <p class="text-gray-600 dark:text-gray-400 font-mono">
+                                        {{ $reg['fecha_inicio_anterior'] ?? '—' }}
+                                        @if($reg['fecha_inicio_anterior'] || $reg['fecha_fin_anterior'])
+                                            → {{ $reg['fecha_fin_anterior'] ?? '—' }}
+                                        @endif
+                                        @if($reg['trabajadores_anterior'] && $reg['trabajadores_anterior'] > 1)
+                                            <span class="text-gray-400">· {{ $reg['trabajadores_anterior'] }} trab.</span>
+                                        @endif
+                                    </p>
+                                </div>
+                                @if($reg['accion'] !== 'eliminado')
+                                <div>
+                                    <span class="text-gray-400 dark:text-gray-600 font-black uppercase text-[10px]">Después</span>
+                                    <p class="text-gray-700 dark:text-gray-300 font-mono font-bold">
+                                        {{ $reg['fecha_inicio_nueva'] ?? '—' }}
+                                        @if($reg['fecha_inicio_nueva'] || $reg['fecha_fin_nueva'])
+                                            → {{ $reg['fecha_fin_nueva'] ?? '—' }}
+                                        @endif
+                                        @if($reg['trabajadores_nueva'] && $reg['trabajadores_nueva'] > 1)
+                                            <span class="text-gray-400">· {{ $reg['trabajadores_nueva'] }} trab.</span>
+                                        @endif
+                                    </p>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="py-16 text-center">
+                            <p class="text-gray-400 dark:text-gray-600 text-sm uppercase font-bold tracking-widest">Sin historial</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                <div class="px-6 py-3 border-t border-gray-100 dark:border-white/5 shrink-0 flex gap-3">
+                    <button wire:click="volverListaHistorial"
+                            class="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white text-sm font-bold hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                        ← VOLVER
+                    </button>
+                    <button wire:click="cerrarHistorialGlobal"
+                            class="flex-1 py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-black text-sm font-black hover:bg-gray-800 dark:hover:bg-gray-100 transition-all">
+                        CERRAR
+                    </button>
+                </div>
+                </div>{{-- /pantalla-2 --}}
+            @endif
+
         </div>
     </div>
 @endif

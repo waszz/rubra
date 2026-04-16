@@ -41,7 +41,7 @@ public $mostrarModalEliminar = false;
         'mapa'           => 'Mapa',
         'bitacora'       => 'Bitácora',
         'reporte_diario' => 'Reporte Diario',
-        'computos'       => 'Cómputos',
+        'computos'       => 'Gantt',
     ];
 
     public array $roles = [

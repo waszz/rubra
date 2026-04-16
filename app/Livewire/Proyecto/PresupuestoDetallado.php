@@ -1171,7 +1171,7 @@ public function cargarUsuarios()
     $this->usuariosDisponibles = \App\Models\User::query()
         ->where('name', 'like', '%' . $this->buscarUsuario . '%')
         ->where('invited_by', auth()->id())
-        ->whereNotIn('id', $idsInvitados) // 🔥 clave
+        ->whereNotIn('id', $idsInvitados) //  clave
         ->limit(10)
         ->get();
 }

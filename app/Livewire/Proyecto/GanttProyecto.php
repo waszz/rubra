@@ -7,7 +7,9 @@ use App\Models\Proyecto;
 use App\Livewire\Concerns\AutorizaProyecto;
 use App\Models\ProyectoRecurso;
 use App\Models\ComposicionItem;
+use App\Models\GanttFechaHistorial;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class GanttProyecto extends Component
 {
@@ -24,6 +26,17 @@ class GanttProyecto extends Component
     public string $vistaGantt     = 'semanas';
     public bool   $trabajaSabado  = false;
     public bool   $trabajaDomingo = false;
+
+    // Modal historial fechas (individual)
+    public bool   $mostrarModalHistorial = false;
+    public $historialRecursoId   = null;
+    public string $historialNombre      = '';
+    public array  $historialRegistros   = [];
+
+    // Modal historial global
+    public bool  $mostrarModalHistorialGlobal = false;
+    public array $historialGlobal             = [];
+    public bool  $historialGlobalDetalle       = false; // true = mostrando detalle de un subrubro
 
     // Modal editar fechas
     public $mostrarModalFechas  = false;
@@ -411,6 +424,8 @@ class GanttProyecto extends Component
         $nodo = ProyectoRecurso::find($this->editFechaId);
         if (!$nodo) return;
 
+        $this->registrarHistorial($nodo, 'eliminado', null, null, null);
+
         $nodo->update(['fecha_inicio' => null, 'fecha_fin' => null]);
 
         $this->reset(['mostrarModalFechas', 'editFechaId', 'editNombre', 'editFechaInicio', 'editFechaFin', 'editHorasTotales', 'editDiasLaborables']);
@@ -479,6 +494,8 @@ class GanttProyecto extends Component
         }
     }
 
+    $this->registrarHistorial($nodo, 'guardado', $this->editFechaInicio, $this->editFechaFin, $this->editTrabajadores);
+
     $nodo->update([
         'fecha_inicio' => $this->editFechaInicio,
         'fecha_fin'    => $this->editFechaFin,
@@ -506,6 +523,145 @@ class GanttProyecto extends Component
     $this->editTrabajadores = 1;
     $this->cargarGantt();
 }
+
+    private function registrarHistorial(ProyectoRecurso $nodo, string $accion, ?string $nuevaInicio, ?string $nuevaFin, $nuevosTrabajadores): void
+    {
+        GanttFechaHistorial::create([
+            'proyecto_recurso_id'  => $nodo->id,
+            'user_id'              => Auth::id(),
+            'accion'               => $accion,
+            'fecha_inicio_anterior'=> $nodo->fecha_inicio?->format('Y-m-d'),
+            'fecha_fin_anterior'   => $nodo->fecha_fin?->format('Y-m-d'),
+            'fecha_inicio_nueva'   => $nuevaInicio,
+            'fecha_fin_nueva'      => $nuevaFin,
+            'trabajadores_anterior'=> $nodo->trabajadores,
+            'trabajadores_nueva'   => $nuevosTrabajadores,
+        ]);
+    }
+
+    public function abrirHistorial(int $id): void
+    {
+        $nodo = ProyectoRecurso::find($id);
+        if (!$nodo) return;
+
+        $this->historialRecursoId = $id;
+        $this->historialNombre    = $nodo->nombre ?? '';
+        $this->historialRegistros = GanttFechaHistorial::where('proyecto_recurso_id', $id)
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get()
+            ->map(fn($r) => [
+                'id'                   => $r->id,
+                'accion'               => $r->accion,
+                'user_name'            => $r->user?->name ?? 'Sistema',
+                'fecha_inicio_anterior'=> $r->fecha_inicio_anterior?->format('d/m/Y'),
+                'fecha_fin_anterior'   => $r->fecha_fin_anterior?->format('d/m/Y'),
+                'fecha_inicio_nueva'   => $r->fecha_inicio_nueva?->format('d/m/Y'),
+                'fecha_fin_nueva'      => $r->fecha_fin_nueva?->format('d/m/Y'),
+                'trabajadores_anterior'=> $r->trabajadores_anterior,
+                'trabajadores_nueva'   => $r->trabajadores_nueva,
+                'fecha'                => $r->created_at->format('d/m/Y H:i'),
+            ])
+            ->toArray();
+
+        $this->mostrarModalHistorial = true;
+    }
+
+    public function abrirHistorialGlobal(): void
+    {
+        // Cargar todos los proyecto_recursos del proyecto que tienen historial,
+        // agrupados por rubro padre (parent_id = null).
+        $idsConHistorial = GanttFechaHistorial::whereHas('proyectoRecurso', function ($q) {
+            $q->where('proyecto_id', $this->proyecto->id);
+        })->pluck('proyecto_recurso_id')->unique()->values();
+
+        // Cargar rubros raíz y sus hijos
+        $rubros = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+            ->whereNull('parent_id')
+            ->with(['hijos' => function ($q) use ($idsConHistorial) {
+                $q->whereIn('id', $idsConHistorial);
+            }])
+            ->whereHas('hijos', function ($q) use ($idsConHistorial) {
+                $q->whereIn('id', $idsConHistorial);
+            })
+            ->get();
+
+        // Contar cambios por subrubro
+        $conteos = GanttFechaHistorial::whereIn('proyecto_recurso_id', $idsConHistorial)
+            ->selectRaw('proyecto_recurso_id, COUNT(*) as total, MAX(created_at) as ultimo')
+            ->groupBy('proyecto_recurso_id')
+            ->get()
+            ->keyBy('proyecto_recurso_id')
+            ->map(fn($r) => ['total' => (int)$r->total, 'ultimo' => Carbon::parse($r->ultimo)->format('d/m/Y H:i')]);
+
+        $grupos = [];
+        foreach ($rubros as $rubro) {
+            $hijos = [];
+            foreach ($rubro->hijos as $hijo) {
+                $c = $conteos[$hijo->id] ?? ['total' => 0, 'ultimo' => null];
+                $hijos[] = [
+                    'id'     => $hijo->id,
+                    'nombre' => $hijo->nombre,
+                    'total'  => $c['total'],
+                    'ultimo' => $c['ultimo'],
+                ];
+            }
+            if (count($hijos)) {
+                $grupos[] = [
+                    'nombre' => $rubro->nombre,
+                    'hijos'  => $hijos,
+                ];
+            }
+        }
+
+        $this->historialGlobal            = $grupos;
+        $this->historialGlobalDetalle     = false;
+        $this->mostrarModalHistorialGlobal = true;
+    }
+
+    public function seleccionarHistorialGlobal(int $id): void
+    {
+        $nodo = ProyectoRecurso::find($id);
+        if (!$nodo) return;
+
+        $this->historialRecursoId = $id;
+        $this->historialNombre    = $nodo->nombre ?? '';
+        $this->historialRegistros = GanttFechaHistorial::where('proyecto_recurso_id', $id)
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get()
+            ->map(fn($r) => [
+                'id'                   => $r->id,
+                'accion'               => $r->accion,
+                'user_name'            => $r->user?->name ?? 'Sistema',
+                'fecha_inicio_anterior'=> $r->fecha_inicio_anterior?->format('d/m/Y'),
+                'fecha_fin_anterior'   => $r->fecha_fin_anterior?->format('d/m/Y'),
+                'fecha_inicio_nueva'   => $r->fecha_inicio_nueva?->format('d/m/Y'),
+                'fecha_fin_nueva'      => $r->fecha_fin_nueva?->format('d/m/Y'),
+                'trabajadores_anterior'=> $r->trabajadores_anterior,
+                'trabajadores_nueva'   => $r->trabajadores_nueva,
+                'fecha'                => $r->created_at->format('d/m/Y H:i'),
+            ])
+            ->toArray();
+
+        $this->historialGlobalDetalle = true;
+        // No activamos mostrarModalHistorial para no abrir el modal individual
+    }
+
+    public function volverListaHistorial(): void
+    {
+        $this->historialGlobalDetalle = false;
+        $this->mostrarModalHistorial  = false;
+    }
+
+    public function cerrarHistorialGlobal(): void
+    {
+        $this->mostrarModalHistorialGlobal = false;
+        $this->historialGlobalDetalle      = false;
+        $this->mostrarModalHistorial       = false;
+    }
 
     public function moverBarra(int $id, string $nuevaFechaInicio, string $nuevaFechaFin): void
     {
@@ -535,6 +691,8 @@ class GanttProyecto extends Component
 
         $nodo = ProyectoRecurso::find($id);
         if (!$nodo) return;
+
+        $this->registrarHistorial($nodo, 'arrastrado', $inicio->format('Y-m-d'), $fin->format('Y-m-d'), null);
 
         $nodo->update([
             'fecha_inicio' => $inicio->format('Y-m-d'),

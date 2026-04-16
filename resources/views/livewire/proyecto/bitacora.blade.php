@@ -125,7 +125,7 @@
                                             @if($registro->user?->role)
                                                 <span class="text-[#e85d27]">{{ ucfirst($registro->user->role) }}</span> ·
                                             @endif
-                                            Reporte: <span class="text-blue-400">{{ $registro->recurso->nombre }}</span>
+                                            Reporte: <span class="text-blue-400">{{ $registro->recurso?->nombre ?? 'Sin recurso' }}</span>
                                         </p>
                                     </div>
                                 </div>
