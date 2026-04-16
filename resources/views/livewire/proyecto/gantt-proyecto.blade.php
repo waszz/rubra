@@ -716,10 +716,15 @@ main { overflow: hidden !important; display: flex; flex-direction: column; }
                     </div>
                 @endif
                 <div>
-                    <label class="text-sm text-gray-600 dark:text-gray-500 uppercase font-black">Fecha Inicio</label>
+                    <label class="text-sm text-gray-600 dark:text-gray-500 uppercase font-black flex items-center gap-2">
+                        Fecha Inicio
+                        @if($editFechaMinima)
+                            <span class="text-[10px] text-orange-500 dark:text-orange-400 font-bold normal-case">Mín. {{ \Carbon\Carbon::parse($editFechaMinima)->format('d/m/Y') }}</span>
+                        @endif
+                    </label>
                     <input type="date" wire:model.live="editFechaInicio"
                         wire:key="fechainicio-{{ (int)$trabajaSabado }}-{{ (int)$trabajaDomingo }}"
-                        min="{{ $proyecto->fecha_inicio?->format('Y-m-d') }}"
+                        min="{{ $editFechaMinima ?: $proyecto->fecha_inicio?->format('Y-m-d') }}"
                         class="w-full mt-1 p-3 rounded-xl bg-gray-100 dark:bg-[#0f1115] text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 text-sm focus:border-purple-500/50 outline-none">
                     @error('editFechaInicio')
                         <p class="text-red-400 text-sm mt-1">{{ $message }}</p>

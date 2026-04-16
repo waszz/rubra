@@ -54,6 +54,9 @@ class EstadisticasProyectoExport implements FromArray, WithHeadings, WithStyles,
         $this->rows[] = ['Costo Real Ejecutado',        'USD ' . number_format($this->stats['costoReal'],          0, ',', '.')];
         $this->rows[] = ['Costo Real (sin IVA)',        'USD ' . number_format($this->stats['costoRealSubtotal'],  0, ',', '.')];
         $this->rows[] = ['IVA Ejecutado (' . ($this->proyecto->impuestos ?? 22) . '%)', 'USD ' . number_format($this->stats['ivaEjecutado'], 0, ',', '.')];
+        if (($this->stats['cargaSocialTotal'] ?? 0) > 0) {
+            $this->rows[] = ['Carga Social MO (' . ($this->stats['pctCS'] ?? 0) . '%)', 'USD ' . number_format($this->stats['cargaSocialTotal'], 0, ',', '.')];
+        }
         $this->rows[] = ['Desviación',                 'USD ' . number_format($this->stats['desviacion'],         0, ',', '.')];
         $this->rows[] = ['Avance Financiero',           number_format($this->stats['avanceFinanciero'], 1) . '%'];
         if (($this->proyecto->metros_cuadrados ?? 0) > 0 && ($this->stats['subtotal'] ?? 0) > 0) {

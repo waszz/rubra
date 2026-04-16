@@ -254,6 +254,8 @@ class EstadisticasExportController extends Controller
 
         $evolucion = collect([]);
 
+        $cargaSocialTotal = $manoDeObra->sum('cargaSocial');
+
         return compact(
             'presupuesto', 'subtotal', 'beneficio',
             'costoReal', 'costoRealSubtotal', 'ivaEjecutado',
@@ -261,7 +263,7 @@ class EstadisticasExportController extends Controller
             'rubros', 'topPartidas', 'distribucion',
             'mayoresMateriales', 'todosLosMateriales',
             'manoDeObra', 'pctCS',
-            'evolucion'
+            'evolucion', 'cargaSocialTotal'
         );
     }
 

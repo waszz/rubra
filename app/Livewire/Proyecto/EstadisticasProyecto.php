@@ -174,6 +174,9 @@ public function mount($proyectoId = null): void
         // ── EVOLUCIÓN (vacía si no hay datos de fecha) ────────────────────────────
         $evolucion = collect([]);
 
+        // ── CARGA SOCIAL TOTAL ───────────────────────────────────────────────────────
+        $cargaSocialTotal = $manoDeObra->sum('cargaSocial');
+
         return compact(
             'presupuesto',
             'manoDeObra',
@@ -190,7 +193,8 @@ public function mount($proyectoId = null): void
             'todosLosMateriales',
             'evolucion',
             'subtotal',
-            'beneficio'
+            'beneficio',
+            'cargaSocialTotal'
         );
     }
 

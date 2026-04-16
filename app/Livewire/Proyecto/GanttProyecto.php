@@ -44,6 +44,7 @@ class GanttProyecto extends Component
     public $editFechaInicio     = '';
     public $editFechaFin        = '';
     public $editNombre          = '';
+    public string $editFechaMinima   = ''; // fecha mínima de inicio (fin del predecesor)
     public float $editHorasTotales   = 0.0;
     public int   $editDiasLaborables = 0;
     public int   $editTrabajadores   = 1;
@@ -254,6 +255,18 @@ class GanttProyecto extends Component
         $this->editFechaFin    = $nodo->fecha_fin?->format('Y-m-d') ?? '';
         $this->editTrabajadores = max(1, (int)($nodo->trabajadores ?? 1));
 
+        // Fecha mínima de inicio: si depende de otro subrubro, min = fin del predecesor + 1 día
+        $this->editFechaMinima = '';
+        if ($nodo->depends_on_id) {
+            $predecesor = ProyectoRecurso::find($nodo->depends_on_id);
+            if ($predecesor && $predecesor->fecha_fin) {
+                $this->editFechaMinima = Carbon::parse($predecesor->fecha_fin)
+                    ->addDay()
+                    ->format('Y-m-d');
+                $this->editFechaMinima = $this->snapToNextDiaLaboral($this->editFechaMinima);
+            }
+        }
+
         // Cargar horas totales de mano de obra para este subrubro
         $filaRubro = collect($this->rubros)->firstWhere('id', $id);
         $this->editHorasTotales = $filaRubro ? (float)($filaRubro['horas_totales'] ?? 0) : 0.0;
@@ -444,6 +457,18 @@ class GanttProyecto extends Component
         $minDate = Carbon::parse($this->proyecto->fecha_inicio);
         if (Carbon::parse($this->editFechaInicio)->lt($minDate)) {
             $this->addError('editFechaInicio', 'No puede ser anterior al inicio del proyecto (' . $minDate->format('d/m/Y') . ').');
+            return;
+        }
+    }
+
+    // Validar que no sea anterior al fin del predecesor (dependencia)
+    if ($this->editFechaMinima) {
+        if (Carbon::parse($this->editFechaInicio)->lt(Carbon::parse($this->editFechaMinima))) {
+            $nodoTemp = ProyectoRecurso::find($this->editFechaId);
+            $predecesor = $nodoTemp ? ProyectoRecurso::find($nodoTemp->depends_on_id) : null;
+            $nombrePred = $predecesor ? $predecesor->nombre : 'predecesor';
+            $this->addError('editFechaInicio',
+                'Depende de "' . $nombrePred . '". La fecha de inicio no puede ser anterior al ' . Carbon::parse($this->editFechaMinima)->format('d/m/Y') . '.');
             return;
         }
     }
