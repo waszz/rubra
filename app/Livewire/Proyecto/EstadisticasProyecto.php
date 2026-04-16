@@ -5,6 +5,7 @@ namespace App\Livewire\Proyecto;
 use Livewire\Component;
 use App\Models\Proyecto;
 use App\Models\ProyectoRecurso;
+use App\Models\DiarioObra;
 use Illuminate\Support\Facades\DB;
 
 class EstadisticasProyecto extends Component
@@ -91,10 +92,14 @@ public function mount($proyectoId = null): void
         $beneficio = $subtotal * ($pctBen / 100);
         $iva       = ($subtotal + $beneficio) * ($pctIva / 100);
 
-        // ── COSTOS REALES (de ejecución) ─────────────────────────────
-        $costoRealSubtotal = ProyectoRecurso::where('proyecto_id', $proyecto->id)
-            ->whereNotNull('parent_id')
-            ->sum('costo_real');
+        // ── COSTOS REALES (del Diario de Obra) ────────────────────────────────────
+        $costosRealesDiario = DiarioObra::where('proyecto_id', $proyecto->id)
+            ->groupBy('proyecto_recurso_id')
+            ->pluck(DB::raw('SUM(costo_hoy)'), 'proyecto_recurso_id')
+            ->map(fn($v) => (float)$v)
+            ->toArray();
+
+        $costoRealSubtotal = array_sum($costosRealesDiario);
         
         // Calcular el precio final de ejecución (con IVA)
         $pctImpuestos = (float) ($proyecto->impuestos ?? 22);
@@ -122,11 +127,11 @@ public function mount($proyectoId = null): void
             ])
             ->get();
 
-        $rubrosRaw = $rubrosRoot->map(function ($rubro) {
+        $rubrosRaw = $rubrosRoot->map(function ($rubro) use ($costosRealesDiario) {
             $presMap = [];
             $this->sumarSubtotalNodos($rubro->hijos ?? collect(), $presMap, 1);
             $pres = array_sum($presMap);
-            $real = $this->sumarCostoRealNodos($rubro->hijos ?? collect());
+            $real = $this->sumarCostoRealNodos($rubro->hijos ?? collect(), $costosRealesDiario);
             return [
                 'nombre'      => $rubro->nombre ?? 'Sin nombre',
                 'presupuesto' => round($pres, 2),
@@ -224,14 +229,17 @@ public function mount($proyectoId = null): void
     }
 
     /**
-     * Suma el costo_real de todas las hojas de un árbol (sin multiplicadores, costo_real ya es el final).
+     * Suma el costo real de los nodos usando el Diario de Obra (costo_hoy acumulado).
+     * Si un nodo tiene entradas en el diario, se toma directo. Si no, se baja a los hijos.
      */
-    private function sumarCostoRealNodos($nodos): float
+    private function sumarCostoRealNodos($nodos, array $costosRealesDiario = []): float
     {
         $total = 0.0;
         foreach ($nodos as $nodo) {
-            if ($nodo->hijos && $nodo->hijos->count() > 0) {
-                $total += $this->sumarCostoRealNodos($nodo->hijos);
+            if (isset($costosRealesDiario[$nodo->id])) {
+                $total += $costosRealesDiario[$nodo->id];
+            } elseif ($nodo->hijos && $nodo->hijos->count() > 0) {
+                $total += $this->sumarCostoRealNodos($nodo->hijos, $costosRealesDiario);
             } else {
                 $total += (float)($nodo->costo_real ?? 0);
             }

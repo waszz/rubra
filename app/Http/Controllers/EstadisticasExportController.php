@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Proyecto;
 use App\Models\ProyectoRecurso;
+use App\Models\DiarioObra;
 use App\Exports\EstadisticasProyectoExport;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
@@ -179,9 +180,13 @@ class EstadisticasExportController extends Controller
         $subtotal  = $presupuesto / ((1 + $pctBen / 100) * (1 + $pctIva / 100));
         $beneficio = $subtotal * ($pctBen / 100);
 
-        $costoRealSubtotal = ProyectoRecurso::where('proyecto_id', $proyecto->id)
-            ->whereNotNull('parent_id')
-            ->sum('costo_real');
+        $costosRealesDiario = DiarioObra::where('proyecto_id', $proyecto->id)
+            ->groupBy('proyecto_recurso_id')
+            ->pluck(DB::raw('SUM(costo_hoy)'), 'proyecto_recurso_id')
+            ->map(fn($v) => (float)$v)
+            ->toArray();
+
+        $costoRealSubtotal = array_sum($costosRealesDiario);
 
         $ivaEjecutado = $costoRealSubtotal * ($pctIva / 100);
         $costoReal    = $costoRealSubtotal + $ivaEjecutado;
@@ -208,7 +213,7 @@ class EstadisticasExportController extends Controller
             $presMap = [];
             $this->sumarSubtotalNodos($rubro->hijos ?? collect(), $presMap, 1);
             $pres = array_sum($presMap);
-            $real = $this->sumarCostoRealNodos($rubro->hijos ?? collect());
+            $real = $this->sumarCostoRealNodos($rubro->hijos ?? collect(), $costosRealesDiario);
             return [
                 'nombre'      => $rubro->nombre ?? 'Sin nombre',
                 'presupuesto' => round($pres, 2),
@@ -279,12 +284,14 @@ class EstadisticasExportController extends Controller
         }
     }
 
-    private function sumarCostoRealNodos($nodos): float
+    private function sumarCostoRealNodos($nodos, array $costosRealesDiario = []): float
     {
         $total = 0.0;
         foreach ($nodos as $nodo) {
-            if ($nodo->hijos && $nodo->hijos->count() > 0) {
-                $total += $this->sumarCostoRealNodos($nodo->hijos);
+            if (isset($costosRealesDiario[$nodo->id])) {
+                $total += $costosRealesDiario[$nodo->id];
+            } elseif ($nodo->hijos && $nodo->hijos->count() > 0) {
+                $total += $this->sumarCostoRealNodos($nodo->hijos, $costosRealesDiario);
             } else {
                 $total += (float)($nodo->costo_real ?? 0);
             }
