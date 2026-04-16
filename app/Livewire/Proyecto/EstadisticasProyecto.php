@@ -140,8 +140,23 @@ public function mount($proyectoId = null): void
             'pct' => $totalRubros > 0 ? round(($r['presupuesto'] / $totalRubros) * 100, 1) : 0,
         ]))->values();
 
-        // ── TOP 5 RUBROS PRINCIPALES CON MAYOR DESVIACIÓN ──────────────────────────
-        $topPartidas = $rubrosRaw->sortByDesc('desviacion')->take(5)->values();
+        // ── TOP 5 SUBRUBROS CON MAYOR DESVIACIÓN ──────────────────────────
+        $subrubrosRaw = collect();
+        foreach ($rubrosRoot as $rubro) {
+            foreach ($rubro->hijos as $hijo) {
+                $presMap = [];
+                $this->sumarSubtotalNodos(collect([$hijo]), $presMap, 1);
+                $pres = array_sum($presMap);
+                $real = $this->sumarCostoRealNodos(collect([$hijo]));
+                $subrubrosRaw->push([
+                    'nombre'      => $hijo->nombre ?? 'Sin nombre',
+                    'presupuesto' => round($pres, 2),
+                    'costo_real'  => round($real, 2),
+                    'desviacion'  => round($real - $pres, 2),
+                ]);
+            }
+        }
+        $topPartidas = $subrubrosRaw->sortByDesc('desviacion')->take(5)->values();
 
         // ── DISTRIBUCIÓN ─────────────────────────────
         // Recorremos el árbol correctamente para sumar por tipo,

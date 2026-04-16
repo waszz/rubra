@@ -222,7 +222,22 @@ class EstadisticasExportController extends Controller
             'pct' => $totalRubros > 0 ? round(($r['presupuesto'] / $totalRubros) * 100, 1) : 0,
         ]))->values();
 
-        $topPartidas = $rubrosRaw->sortByDesc('desviacion')->take(5)->values();
+        $topPartidas = collect();
+        foreach ($rootNodes as $rubro) {
+            foreach ($rubro->hijos as $hijo) {
+                $presMap = [];
+                $this->sumarSubtotalNodos(collect([$hijo]), $presMap, 1);
+                $pres = array_sum($presMap);
+                $real = $this->sumarCostoRealNodos(collect([$hijo]));
+                $topPartidas->push([
+                    'nombre'      => $hijo->nombre ?? 'Sin nombre',
+                    'presupuesto' => round($pres, 2),
+                    'costo_real'  => round($real, 2),
+                    'desviacion'  => round($real - $pres, 2),
+                ]);
+            }
+        }
+        $topPartidas = $topPartidas->sortByDesc('desviacion')->take(5)->values();
 
         // Reuse rootNodes (already deep-loaded) for all traversals
         $distribucionMap = [];

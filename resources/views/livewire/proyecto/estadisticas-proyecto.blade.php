@@ -236,7 +236,7 @@
         <div class="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-gray-800/50 rounded-2xl p-6">
             <h2 class="text-sm font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mb-5">Mayores Desviaciones (Top 5)</h2>
             @if($stats['topPartidas']->count())
-                <div id="data-partidas" wire:key="data-partidas-{{ $proyecto->id }}" data-value='@json($stats["rubros"]->sortByDesc("desviacion")->take(5)->values())' class="hidden"></div>
+                <div id="data-partidas" wire:key="data-partidas-{{ $proyecto->id }}" data-value='@json($stats["topPartidas"])' class="hidden"></div>
                 <div class="space-y-3" wire:ignore>
                     <canvas id="bar-partidas" height="180"></canvas>
                 </div>
