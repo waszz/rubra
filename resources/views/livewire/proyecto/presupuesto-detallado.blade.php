@@ -1428,48 +1428,65 @@ $totalFinal = $subtotalConBeneficio + $iva;
         </div>
 
         <div class="space-y-4">
-            {{-- Descripción --}}
-            <div class="text-sm text-gray-400">
-                <p class="mb-3">Comparte este enlace con otros usuarios para que accedan a este proyecto:</p>
-            </div>
 
-            {{-- Selector de rol --}}
             @if($linkCompartible === '')
-                <div class="bg-[#0f0f0f] border border-gray-800 rounded-lg p-4 space-y-3" x-data="{ rol: @js($rolCompartir) }">
-                    <label class="block text-xs font-bold text-gray-300 uppercase">Rol del usuario invitado:</label>
-                    <div class="space-y-2.5">
-                        <label @click="rol = 'supervisor'" class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors" :class="rol === 'supervisor' ? 'border-[#d15330] bg-[#d15330]/10' : 'border-gray-800 hover:bg-white/5'">
-                            <input type="radio" name="rol_compartir" value="supervisor" :checked="rol === 'supervisor'" class="w-4 h-4" />
-                            <div class="flex-1 min-w-0">
-                                <div class="text-xs font-bold text-white">Supervisor</div>
-                                <div class="text-sm text-gray-500">Acceso completo a todo</div>
-                            </div>
-                        </label>
-                        <label @click="rol = 'presupuestador'" class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors" :class="rol === 'presupuestador' ? 'border-[#d15330] bg-[#d15330]/10' : 'border-gray-800 hover:bg-white/5'">
-                            <input type="radio" name="rol_compartir" value="presupuestador" :checked="rol === 'presupuestador'" class="w-4 h-4" />
-                            <div class="flex-1 min-w-0">
-                                <div class="text-xs font-bold text-white">Presupuestador</div>
-                                <div class="text-sm text-gray-500">Editar presupuestos y recursos</div>
-                            </div>
-                        </label>
-                        <label @click="rol = 'jefe_obra'" class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors" :class="rol === 'jefe_obra' ? 'border-[#d15330] bg-[#d15330]/10' : 'border-gray-800 hover:bg-white/5'">
-                            <input type="radio" name="rol_compartir" value="jefe_obra" :checked="rol === 'jefe_obra'" class="w-4 h-4" />
-                            <div class="flex-1 min-w-0">
-                                <div class="text-xs font-bold text-white">Jefe de Obra</div>
-                                <div class="text-sm text-gray-500">Seguimiento de ejecución</div>
-                            </div>
-                        </label>
-                    </div>
 
-                    {{-- Botón generar --}}
-                    <button @click="$wire.rolCompartir = rol; $wire.generarLinkCompartir()" class="w-full py-2.5 bg-[#d15330] hover:bg-[#c74620] text-white text-xs font-bold uppercase rounded-lg transition-colors mt-1">
-                        Generar Link
-                    </button>
-                </div>
+                {{-- Sin roles disponibles --}}
+                @if(count($rolCompartirOpciones) === 0)
+                    <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 text-center">
+                        <p class="text-yellow-400 text-sm font-bold">Tu plan no permite invitar usuarios con roles adicionales.</p>
+                        <p class="text-gray-500 text-xs mt-1">Actualizá tu plan para poder compartir proyectos.</p>
+                    </div>
+                @else
+                    <p class="text-sm text-gray-400">Elegí el rol del usuario invitado. Solo se muestran los roles disponibles en tu plan.</p>
+
+                    {{-- Selector de rol según plan --}}
+                    <div class="bg-[#0f0f0f] border border-gray-800 rounded-lg p-4 space-y-2.5"
+                         x-data="{ rol: @js($rolCompartir) }">
+                        <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Rol del usuario invitado</label>
+
+                        @foreach($rolCompartirOpciones as $opcion)
+                            @php $disponible = $opcion['disponible']; @endphp
+                            <label
+                                @if($disponible) @click="rol = '{{ $opcion['rol'] }}'" @endif
+                                class="flex items-center gap-3 p-3 border rounded-lg transition-colors
+                                    {{ $disponible ? 'cursor-pointer hover:bg-white/5' : 'opacity-50 cursor-not-allowed' }}"
+                                :class="rol === '{{ $opcion['rol'] }}' ? 'border-[#d15330] bg-[#d15330]/10' : 'border-gray-800'">
+
+                                <input type="radio" name="rol_compartir" value="{{ $opcion['rol'] }}"
+                                    :checked="rol === '{{ $opcion['rol'] }}'"
+                                    {{ !$disponible ? 'disabled' : '' }}
+                                    class="w-4 h-4 accent-[#d15330]" />
+
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-bold {{ $disponible ? 'text-white' : 'text-gray-500' }}">{{ $opcion['label'] }}</span>
+                                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded {{ $disponible ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400' }}">
+                                            {{ $opcion['usado'] }}/{{ $opcion['limite'] }}
+                                        </span>
+                                        @if(!$disponible)
+                                            <span class="text-[10px] text-red-400 font-bold">Límite alcanzado</span>
+                                        @endif
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-0.5">{{ $opcion['desc'] }}</div>
+                                </div>
+                            </label>
+                        @endforeach
+
+                        {{-- Botón generar --}}
+                        <button
+                            @click="$wire.rolCompartir = rol; $wire.generarLinkCompartir()"
+                            x-bind:disabled="!{{ json_encode(collect($rolCompartirOpciones)->firstWhere('disponible', true) !== null) }}"
+                            class="w-full py-2.5 bg-[#d15330] hover:bg-[#c74620] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold uppercase rounded-lg transition-colors mt-2">
+                            Generar Link de Invitación
+                        </button>
+                    </div>
+                @endif
+
             @else
                 {{-- Campo con link (solo después de generar) --}}
                 <div class="flex items-center gap-2 bg-[#0f0f0f] border border-gray-800 rounded-lg p-3">
-                    <input 
+                    <input
                         type="text"
                         readonly
                         id="linkCompartible"
@@ -1494,7 +1511,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
                 {{-- Info --}}
                 <div class="text-xs text-gray-500 space-y-1">
                     <p>📌 Este enlace expira en <strong>24 horas</strong></p>
-                    <p>👤 Rol: <strong>{{ $rolCompartir === 'supervisor' ? 'Supervisor' : ($rolCompartir === 'presupuestador' ? 'Presupuestador' : 'Jefe de Obra') }}</strong></p>
+                    <p>👤 Rol: <strong>{{ collect($rolCompartirOpciones)->firstWhere('rol', $rolCompartir)['label'] ?? ucfirst($rolCompartir) }}</strong></p>
                     <p>📝 Si no tiene cuenta, se la crearemos antes de acceder</p>
                 </div>
 
@@ -1505,7 +1522,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
             @endif
         </div>
 
-        {{-- Botones --}}
+        {{-- Footer --}}
         <div class="flex gap-2 mt-6">
             <button
                 wire:click="cerrarModalCompartir"

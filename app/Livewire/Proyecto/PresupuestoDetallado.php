@@ -122,6 +122,7 @@ public $mostrarModalCompartir = false;
 public $linkCompartible = '';
 public $linkCopiado = false;
 public $rolCompartir = 'supervisor'; // Rol que elegirá quien genera el link
+public array $rolCompartirOpciones = []; // Opciones de rol según plan del usuario
 
     // Dropdown exportación
     public $mostrarDropdownExportar = false;
@@ -2833,7 +2834,61 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
             return;
         }
 
-        $this->rolCompartir = 'supervisor'; // Reset rol a valor por defecto
+        // Calcular opciones de rol según plan
+        $roleLimits = [
+            'gratis'       => ['supervisor' => 1, 'presupuestador' => 0, 'jefe_obra' => 0, 'administrativo' => 0],
+            'basico'       => ['supervisor' => 1, 'presupuestador' => 0, 'jefe_obra' => 2, 'administrativo' => 0],
+            'profesional'  => ['supervisor' => 1, 'presupuestador' => 3, 'jefe_obra' => 6, 'administrativo' => 0],
+            'enterprise'   => ['supervisor' => 2, 'presupuestador' => 6, 'jefe_obra' => 12, 'administrativo' => 5],
+        ];
+        $roleLabels = [
+            'supervisor'     => ['label' => 'Supervisor',     'desc' => 'Acceso completo a todo el proyecto'],
+            'presupuestador' => ['label' => 'Presupuestador', 'desc' => 'Editar presupuestos y recursos'],
+            'jefe_obra'      => ['label' => 'Jefe de Obra',   'desc' => 'Seguimiento de ejecución en campo'],
+            'administrativo' => ['label' => 'Administrativo', 'desc' => 'Documentación y tareas administrativas'],
+        ];
+
+        $owner  = auth()->user();
+        $plan   = $owner->plan ?? 'gratis';
+        $limits = $roleLimits[$plan] ?? $roleLimits['gratis'];
+
+        // Contar slots ya usados (aceptados + invitaciones pendientes)
+        $proyectosDelOwner = \App\Models\Proyecto::where('user_id', $owner->id)->pluck('id');
+        $opciones = [];
+        foreach ($limits as $rol => $limite) {
+            if ($limite <= 0) continue; // rol no disponible en este plan
+
+            $aceptados = \Illuminate\Support\Facades\DB::table('proyecto_user')
+                ->whereIn('proyecto_id', $proyectosDelOwner)
+                ->where('rol', $rol)
+                ->distinct()->count('user_id');
+
+            $pendientes = \App\Models\Invitacion::where('invited_by', $owner->id)
+                ->where('rol', $rol)
+                ->where('expires_at', '>', now())
+                ->count();
+
+            // El propio dueño ocupa un slot si su rol coincide
+            $esOwnerDelRol = ($owner->role === $rol) ? 1 : 0;
+
+            $usado = $aceptados + $pendientes + $esOwnerDelRol;
+
+            $opciones[] = [
+                'rol'        => $rol,
+                'label'      => $roleLabels[$rol]['label'],
+                'desc'       => $roleLabels[$rol]['desc'],
+                'limite'     => $limite,
+                'usado'      => $usado,
+                'disponible' => $usado < $limite,
+            ];
+        }
+
+        $this->rolCompartirOpciones = $opciones;
+
+        // Preseleccionar primer rol disponible
+        $primero = collect($opciones)->firstWhere('disponible', true);
+        $this->rolCompartir = $primero ? $primero['rol'] : ($opciones[0]['rol'] ?? 'supervisor');
+
         $this->mostrarModalCompartir = true;
         $this->linkCompartible = '';
         $this->linkCopiado = false;
@@ -2848,10 +2903,20 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
         }
 
         try {
-            // Validar que se haya seleccionado un rol válido
-            $rolesValidos = ['supervisor', 'presupuestador', 'jefe_obra'];
+            // Validar que se haya seleccionado un rol válido (de las opciones del plan)
+            $rolesValidos = collect($this->rolCompartirOpciones)->pluck('rol')->toArray();
+            if (empty($rolesValidos)) {
+                $rolesValidos = ['supervisor', 'presupuestador', 'jefe_obra', 'administrativo'];
+            }
             if (!in_array($this->rolCompartir, $rolesValidos)) {
                 session()->flash('error', 'Rol inválido seleccionado.');
+                return;
+            }
+
+            // Verificar que el rol todavía tiene slots disponibles
+            $opcion = collect($this->rolCompartirOpciones)->firstWhere('rol', $this->rolCompartir);
+            if ($opcion && !$opcion['disponible']) {
+                session()->flash('error', 'No tenés slots disponibles para el rol ' . $opcion['label'] . ' en tu plan.');
                 return;
             }
 

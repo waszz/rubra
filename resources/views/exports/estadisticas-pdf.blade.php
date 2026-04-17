@@ -27,7 +27,7 @@
         /* â”€â”€ Cards row (table-based for DomPDF) â”€â”€ */
         .cards-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
         .card-cell {
-            width: 20%; padding: 8px 10px; vertical-align: top;
+            width: 16.6%; padding: 6px 8px; vertical-align: top;
             border: 1px solid #E5E7EB; border-left: 3px solid #374151;
             background: #F9FAFB;
         }
@@ -84,6 +84,7 @@
             &nbsp;|&nbsp; Estado: {{ ucfirst($proyecto->estado_obra ?? 'â€”') }}
             &nbsp;|&nbsp; Beneficio: {{ $proyecto->beneficio ?? 0 }}%
             &nbsp;|&nbsp; IVA: {{ $proyecto->impuestos ?? 22 }}%
+            @if(isset($stats['pctCS']) && $stats['pctCS'] > 0) &nbsp;|&nbsp; Carga Social: {{ $stats['pctCS'] }}% @endif
         </p>
     </div>
 
@@ -110,6 +111,11 @@
                     <div class="card-label">Costo Real Ejecutado</div>
                     <div class="card-value">USD {{ number_format($stats['costoReal'], 0, ',', '.') }}</div>
                     <div class="card-sub">Incl. IVA {{ $proyecto->impuestos ?? 22 }}%</div>
+                </td>
+                <td class="card-cell accent-vio">
+                    <div class="card-label">Carga Social{{ isset($stats['pctCS']) && $stats['pctCS'] > 0 ? ' ('.$stats['pctCS'].'%)' : '' }}</div>
+                    <div class="card-value">USD {{ number_format($stats['cargaSocialTotal'] ?? 0, 0, ',', '.') }}</div>
+                    <div class="card-sub">Sobre mano de obra</div>
                 </td>
                 <td class="card-cell {{ $stats['desviacion'] > 0 ? 'accent-red' : 'accent-green' }}">
                     <div class="card-label">DesviaciÃ³n</div>

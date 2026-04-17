@@ -209,7 +209,7 @@ class EstadisticasExportController extends Controller
             ])
             ->get();
 
-        $rubrosRaw = $rootNodes->map(function ($rubro) {
+        $rubrosRaw = $rootNodes->map(function ($rubro) use ($costosRealesDiario) {
             $presMap = [];
             $this->sumarSubtotalNodos($rubro->hijos ?? collect(), $presMap, 1);
             $pres = array_sum($presMap);

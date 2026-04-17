@@ -64,12 +64,6 @@ class CrearProyecto extends Component
     {
         $this->validate();
 
-        // Cálculo rápido (ajustar según tu lógica de costos)
-        $costo_base = $this->metros_cuadrados * 1200;
-        $ganancia   = $costo_base * ($this->beneficio / 100);
-        $impuesto   = $costo_base * ($this->impuestos / 100);
-        $total      = $costo_base + $ganancia + $impuesto;
-
         // 1. Creamos el Proyecto
      $proyecto = Proyecto::create([
     'nombre_proyecto'     => $this->nombre_proyecto,
@@ -78,8 +72,8 @@ class CrearProyecto extends Component
     'cliente'             => $this->cliente,
     'ubicacion'           => $this->ubicacion,
     'metros_cuadrados'    => $this->metros_cuadrados,
-    'presupuesto_total'   => $total,
-    'ganancia_estimada'   => $ganancia,
+    'presupuesto_total'   => 0,
+    'ganancia_estimada'   => 0,
     'fecha_inicio'        => $this->fecha_inicio,
     'mercado'             => $this->mercado,
     'moneda_base'         => $this->moneda_base,
@@ -109,7 +103,7 @@ if (!empty($this->usuariosSeleccionados)) {
         ->values();
 
     foreach ($categoriasUnicas as $categoria) {
-        $proyecto->recursos()->create([
+        $proyecto->proyectoRecursos()->create([
             'categoria'  => $categoria,
             'nombre'     => $categoria,
             'unidad'     => 'gl',

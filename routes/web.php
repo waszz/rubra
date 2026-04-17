@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\Admin\PanelExportController;
 use App\Http\Controllers\EstadisticasExportController;
+use App\Http\Controllers\GanttExportController;
 use App\Livewire\Proyecto\Bitacora;
 use App\Livewire\Proyecto\ConfiguracionGeneral;
 use App\Livewire\Proyecto\GestionUsuarios as ProyectoGestionUsuarios;
@@ -76,6 +77,14 @@ Route::middleware(['auth', 'trial.expirado'])->group(function () {
 
     Route::get('/proyectos/{proyecto}/gantt', \App\Livewire\Proyecto\GanttProyecto::class)
         ->name('proyectos.gantt')
+        ->middleware('role:computos');
+
+    Route::get('/proyectos/{proyecto}/gantt/export/pdf', [GanttExportController::class, 'pdf'])
+        ->name('proyectos.gantt.export.pdf')
+        ->middleware('role:computos');
+
+    Route::get('/proyectos/{proyecto}/gantt/export/excel', [GanttExportController::class, 'excel'])
+        ->name('proyectos.gantt.export.excel')
         ->middleware('role:computos');
 
     Route::get('/proyectos/{proyecto}/diario', \App\Livewire\Proyecto\DiarioObra::class)
