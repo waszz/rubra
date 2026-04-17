@@ -9,6 +9,8 @@
         .registro-card { background-color: {{ $dark ? '#111' : '#f9fafb' }}; border: 1px solid {{ $dark ? '#222' : '#e5e7eb' }}; border-radius: 15px; padding: 20px; margin-bottom: 20px; }
         .fecha { color: {{ $dark ? '#666' : '#9ca3af' }}; font-size: 10px; float: right; }
         .rubro-nombre { color: {{ $dark ? '#4dabf7' : '#1d4ed8' }}; font-weight: bold; text-transform: uppercase; font-size: 12px; }
+        .autor { font-size: 10px; color: {{ $dark ? '#888' : '#6b7280' }}; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; font-weight: bold; }
+        .autor span { color: #e85d27; }
         .notas { font-style: italic; color: {{ $dark ? '#ccc' : '#374151' }}; margin-top: 10px; font-size: 13px; }
         .meta { margin-top: 15px; font-size: 11px; color: {{ $dark ? '#888' : '#6b7280' }}; }
         .badge { background: {{ $dark ? '#1a1a1a' : '#e5e7eb' }}; color: {{ $dark ? '#aaa' : '#374151' }}; padding: 4px 10px; border-radius: 10px; margin-right: 5px; }
@@ -29,6 +31,16 @@
         <div class="registro-card">
             <span class="fecha">{{ $registro->created_at->format('d/m/Y H:i') }}</span>
             <div class="rubro-nombre">{{ $registro->recurso?->nombre ?? 'Sin rubro' }}</div>
+            <div class="autor">
+                @if($registro->user)
+                    <span>{{ ucfirst($registro->user->name) }}</span>
+                    @if($registro->user->role)
+                        · <span>{{ ucfirst($registro->user->role) }}</span>
+                    @endif
+                    ·
+                @endif
+                Reporte: {{ $registro->recurso?->nombre ?? 'Sin recurso' }}
+            </div>
             
             <div class="notas">
                 "{{ $registro->notas ?? 'Sin observaciones' }}"
