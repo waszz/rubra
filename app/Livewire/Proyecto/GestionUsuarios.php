@@ -213,6 +213,12 @@ public function invitar(): void
     // ── PERMISOS ──────────────────────────────────────────────────────────
     public function togglePermiso(string $rol, string $seccion): void
     {
+        // Recursos compartidos solo es configurable para supervisor y presupuestador
+        $bloqueados = ['jefe_obra', 'administrativo'];
+        if ($seccion === 'recursos_compartidos' && in_array($rol, $bloqueados)) {
+            return;
+        }
+
         $actual = $this->matriz[$rol][$seccion] ?? false;
         $nuevo  = !$actual;
 

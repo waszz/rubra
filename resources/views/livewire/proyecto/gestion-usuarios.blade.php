@@ -255,7 +255,18 @@
                 <tr class="hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors">
                     <td class="px-6 py-4 text-sm text-black dark:text-neutral-300">{{ $secLabel }}</td>
                     @foreach($roles as $rolKey => $_)
+                    @php
+                        $bloqueado = $secKey === 'recursos_compartidos' && in_array($rolKey, ['jefe_obra', 'administrativo']);
+                    @endphp
                     <td class="px-6 py-4 text-center">
+                        @if($bloqueado)
+                            {{-- Celda bloqueada: siempre X, no clickeable --}}
+                            <span title="No disponible para este rol" class="cursor-not-allowed opacity-40 inline-block">
+                                <svg class="w-5 h-5 text-gray-400 dark:text-neutral-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </span>
+                        @else
                         <button
                             wire:click="togglePermiso('{{ $rolKey }}', '{{ $secKey }}')"
                             class="transition-transform hover:scale-110 active:scale-95"
@@ -273,6 +284,7 @@
                                 </svg>
                             @endif
                         </button>
+                        @endif
                     </td>
                     @endforeach
                 </tr>
