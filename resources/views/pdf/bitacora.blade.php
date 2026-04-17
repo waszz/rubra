@@ -11,6 +11,8 @@
         .notas { font-style: italic; color: #ccc; margin-top: 10px; font-size: 13px; }
         .meta { margin-top: 15px; font-size: 11px; color: #888; }
         .badge { background: #1a1a1a; padding: 4px 10px; border-radius: 10px; margin-right: 5px; }
+        .foto { margin-top: 12px; }
+        .foto img { max-width: 100%; max-height: 220px; border-radius: 8px; border: 1px solid #333; display: block; }
     </style>
 </head>
 <body>
@@ -34,6 +36,11 @@
                 <span class="badge">Cantidad: {{ $registro->cantidad_hoy }} (M2)</span>
                 <span class="badge">Costo: ${{ number_format($registro->costo_hoy, 2) }}</span>
             </div>
+            @if(!empty($registro->foto_base64))
+                <div class="foto">
+                    <img src="{{ $registro->foto_base64 }}" alt="Foto de obra">
+                </div>
+            @endif
         </div>
     @endforeach
 </body>

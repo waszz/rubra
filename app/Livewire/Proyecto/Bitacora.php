@@ -42,6 +42,19 @@ class Bitacora extends Component
 
     $registros = $query->orderBy('created_at', 'desc')->get();
 
+    // Convertir fotos a base64 para DomPDF (no puede cargar URLs del servidor)
+    $registros->each(function ($reg) {
+        $reg->foto_base64 = null;
+        if ($reg->foto_path) {
+            $disco = \Illuminate\Support\Facades\Storage::disk('public');
+            if ($disco->exists($reg->foto_path)) {
+                $mime = $disco->mimeType($reg->foto_path);
+                $datos = $disco->get($reg->foto_path);
+                $reg->foto_base64 = 'data:' . $mime . ';base64,' . base64_encode($datos);
+            }
+        }
+    });
+
     // Cargamos una vista dedicada para el PDF
     $pdf = Pdf::loadView('pdf.bitacora', [
         'proyecto' => $this->proyecto,
