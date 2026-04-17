@@ -22,7 +22,7 @@
             </div>
             {{-- Exportar PDF --}}
             <button
-                wire:click="exportarPDF"
+                @click="$wire.exportarPDF(document.documentElement.classList.contains('dark'))"
                 wire:loading.attr="disabled"
                 class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 text-sm font-black uppercase tracking-wider transition-all">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -64,14 +64,6 @@
                     <h1 class="text-3xl font-black uppercase tracking-tighter italic">Bitácora de Obra</h1>
                     <p class="text-gray-500 dark:text-gray-400 text-sm uppercase font-bold tracking-widest">Historial de movimientos del proyecto</p>
                 </div>
-                <button 
-    wire:click="exportarPDF" 
-    wire:loading.attr="disabled"
-    class="bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10 px-4 py-2 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white hover:text-black dark:hover:text-black transition-all flex items-center gap-2"
->
-    <span wire:loading.remove>Exportar PDF</span>
-    <span wire:loading>Generando...</span>
-</button>
             </div>
 
             {{-- BARRA DE FILTROS --}}
@@ -141,7 +133,7 @@
                                     </p>
                                     <div class="mt-4 flex flex-wrap gap-2">
                                         <span class="text-sm bg-gray-200 dark:bg-white/5 px-3 py-1 rounded-full text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-white/5">
-                                            Avance: <strong class="text-[#00ff88]">{{ $registro->avance_fisico }}%</strong>
+                                            Avance: <strong class="text-black dark:text-[#00ff88]">{{ $registro->avance_fisico }}%</strong>
                                         </span>
                                         <span class="text-sm bg-gray-200 dark:bg-white/5 px-3 py-1 rounded-full text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-white/5">
                                             {{ $registro->cantidad_hoy }} (M2)

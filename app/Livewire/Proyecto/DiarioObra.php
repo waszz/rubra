@@ -250,18 +250,16 @@ private function cargarHistorial()
    public function guardarReporte()
 {
     $maxCantidad = $this->limiteM2 > 0 ? max(0, $this->limiteM2 - $this->acumuladoM2) : PHP_INT_MAX;
-    $maxCosto    = $this->limiteCosto > 0 ? max(0, $this->limiteCosto - $this->acumuladoCosto) : PHP_INT_MAX;
 
     $this->validate([
         'fecha'        => 'required|date',
         'avanceFisico' => 'nullable|numeric|min:0|max:100',
         'cantidadHoy'  => ['required', 'numeric', 'min:0', "max:{$maxCantidad}"],
-        'costoHoy'     => ['required', 'numeric', 'min:0', "max:{$maxCosto}"],
+        'costoHoy'     => ['required', 'numeric'],
         'notas'        => 'nullable|string|max:1000',
         'foto'         => 'nullable|image|max:4096',
     ], [
         'cantidadHoy.max' => "La cantidad supera el límite del proyecto ({$this->limiteM2} m²). Disponible: " . number_format($maxCantidad, 2) . ' m².',
-        'costoHoy.max'    => 'El costo supera el presupuesto del rubro. Disponible: USD ' . number_format($maxCosto, 2) . '.',
     ]);
 
     $fotoPath = $this->foto

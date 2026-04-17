@@ -26,7 +26,7 @@ class Bitacora extends Component
         $this->proyecto = $proyecto;
     }
 
-    public function exportarPDF()
+    public function exportarPDF(bool $darkMode = false)
 {
     // Obtenemos los mismos registros con los filtros actuales
     $query = DiarioObra::with('recurso', 'user')
@@ -59,7 +59,8 @@ class Bitacora extends Component
     $pdf = Pdf::loadView('pdf.bitacora', [
         'proyecto' => $this->proyecto,
         'registros' => $registros,
-        'fecha_exportacion' => now()->format('d/m/Y H:i')
+        'fecha_exportacion' => now()->format('d/m/Y H:i'),
+        'darkMode' => $darkMode,
     ]);
 
     // Retornamos el archivo para descargar

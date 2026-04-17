@@ -202,16 +202,16 @@
                         </div>
                         <div>
                             @php
-                                $disponibleCosto = $limiteCosto > 0 ? max(0, $limiteCosto - $acumuladoCosto) : null;
+                                $disponibleCosto = $limiteCosto > 0 ? ($limiteCosto - $acumuladoCosto) : null;
                             @endphp
                             <label class="text-sm text-gray-700 dark:text-gray-400 uppercase font-black">Costo Hoy (USD)</label>
                             @if($disponibleCosto !== null)
                                 <p class="text-[11px] text-gray-500 mt-0.5">
-                                    Disponible: <span class="{{ $disponibleCosto <= 0 ? 'text-red-400 font-black' : 'text-green-400 font-bold' }}">{{ number_format($disponibleCosto, 2) }}</span> / {{ number_format($limiteCosto, 2) }}
+                                    Disponible: <span class="{{ $disponibleCosto < 0 ? 'text-red-400 font-black' : 'text-green-400 font-bold' }}">{{ number_format($disponibleCosto, 2) }}</span> / {{ number_format($limiteCosto, 2) }}
                                 </p>
                             @endif
-                            <input type="number" step="0.01" min="0"
-                                @if($disponibleCosto !== null) max="{{ $disponibleCosto }}" @endif
+                            <input type="number" step="0.01"
+                                @if($disponibleCosto !== null && $disponibleCosto > 0) max="{{ $disponibleCosto }}" @endif
                                 wire:model="costoHoy"
                                 class="w-full mt-1 p-3 rounded-xl bg-gray-100 dark:bg-[#0f1115] text-black dark:text-white border border-gray-200 dark:border-white/10 text-sm outline-none focus:border-gray-300 dark:focus:border-white/30">
                             @error('costoHoy') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
