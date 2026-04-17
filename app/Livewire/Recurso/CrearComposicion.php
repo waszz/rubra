@@ -66,6 +66,7 @@ public function agregarItemConCantidad(int $recursoId, float $cantidad = 1): voi
     $this->validate();
 
     $composicion = Recurso::create([
+        'user_id'    => auth()->id(),
         'nombre'     => $this->nombre,
         'tipo'       => 'composition',
         'unidad'     => $this->unidad,

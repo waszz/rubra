@@ -36,6 +36,24 @@ public function handle(Request $request, Closure $next, $seccion): Response
         // Si tiene rol en la pivot, usar ese en vez del global
         $rolEfectivo = $rolEnProyecto ?? $user->role;
     } else {
+        // Secciones de contenido compartido: invitados usan su rol pivot
+        $seccionesCompartidas = ['recursos_compartidos'];
+        if ($user->invited_by && in_array($seccion, $seccionesCompartidas)) {
+            $roles = DB::table('proyecto_user')
+                ->where('user_id', $user->id)
+                ->pluck('rol')
+                ->unique();
+
+            if ($roles->isNotEmpty()) {
+                $matriz = PermisoRol::matriz();
+                foreach ($roles as $rol) {
+                    if ($matriz[$rol][$seccion] ?? false) {
+                        return $next($request);
+                    }
+                }
+                abort(403, 'No tienes permiso para esta sección.');
+            }
+        }
         $rolEfectivo = $user->role;
     }
 

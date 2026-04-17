@@ -122,7 +122,7 @@
             })->whereNot('user_id', $user->id)->get();
         @endphp
 
-        @if($proyectosCompartidos->count())
+        @if($proyectosCompartidos->count() && $user->puedeCompartido('proyectos'))
         <div class="px-3 mb-2">
             <details class="bg-[#1a1a1a] border border-gray-800/50 rounded-xl overflow-hidden">
                 <summary class="px-4 py-2.5 flex items-center gap-2 cursor-pointer select-none list-none
@@ -162,8 +162,20 @@
 
         @if($user->puede('recursos'))
         <a href="{{ route('recursos.index') }}"
-           class="flex items-center gap-3 px-4 py-3 hover:bg-[#1a1a1a] rounded-xl transition-colors">
+           class="flex items-center gap-3 px-4 py-3 hover:bg-[#1a1a1a] rounded-xl transition-colors
+                  {{ request()->routeIs('recursos.index') ? 'bg-[#1a1a1a] text-white' : 'text-gray-400' }}">
             <span class="text-sm font-semibold">Recursos</span>
+        </a>
+        @endif
+
+        @if(isset($proyectosCompartidos) && $proyectosCompartidos->count() && $user->puedeCompartido('recursos_compartidos'))
+        <a href="{{ route('recursos.compartidos') }}"
+           class="flex items-center gap-3 px-4 py-3 hover:bg-[#1a1a1a] rounded-xl transition-colors
+                  {{ request()->routeIs('recursos.compartidos') ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'text-blue-500/70 hover:text-blue-400' }}">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-5-5M9 20H4v-2a4 4 0 015-5m4-4a4 4 0 100-8 4 4 0 000 8z"/>
+            </svg>
+            <span class="text-sm font-semibold">Recursos Compartidos</span>
         </a>
         @endif
 

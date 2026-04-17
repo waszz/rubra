@@ -12,6 +12,7 @@ class Recurso extends Model
     protected $table = 'recursos';
 
   protected $fillable = [
+    'user_id',
     'nombre',
     'codigo',
     'tipo',
@@ -30,7 +31,12 @@ class Recurso extends Model
         'precio_usd' => 'float',
     ];
 
-    public function items()
+    public function user()
+{
+    return $this->belongsTo(\App\Models\User::class);
+}
+
+public function items()
 {
     return $this->hasMany(ComposicionItem::class, 'composicion_id');
 }

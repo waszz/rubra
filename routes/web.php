@@ -71,6 +71,10 @@ Route::middleware(['auth', 'trial.expirado'])->group(function () {
         ->name('recursos.index')
         ->middleware('role:recursos');
 
+    Route::get('/recursos/compartidos', \App\Livewire\Recurso\RecursosCompartidos::class)
+        ->name('recursos.compartidos')
+        ->middleware('role:recursos_compartidos');
+
     Route::get('/recursos/crear', \App\Livewire\Recurso\CrearRecurso::class)
         ->name('recursos.create')
         ->middleware('role:recursos');
@@ -265,7 +269,7 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/proyectos/{proyecto}/presupuesto', PresupuestoDetallado::class)
     ->name('proyectos.presupuesto')
-    ->middleware('auth');
+    ->middleware(['auth', 'role:proyectos']);
 
 // Rutas legacy de /planillas deshabilitadas
 

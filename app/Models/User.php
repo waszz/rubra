@@ -173,6 +173,37 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Verifica permisos para secciones compartidas usando el rol asignado en proyecto_user.
+     * Para usuarios invitados (invited_by != null), usa el rol pivot en vez del global.
+     */
+    public function puedeCompartido($seccion): bool
+    {
+        if ($this->isGod()) {
+            return true;
+        }
+
+        $matriz = PermisoRol::matriz();
+
+        if ($this->invited_by) {
+            $roles = \Illuminate\Support\Facades\DB::table('proyecto_user')
+                ->where('user_id', $this->id)
+                ->pluck('rol')
+                ->unique();
+
+            if ($roles->isNotEmpty()) {
+                foreach ($roles as $rol) {
+                    if ($matriz[$rol][$seccion] ?? false) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        return $matriz[$this->role][$seccion] ?? false;
+    }
+
+    /**
      * Verifica si el usuario puede descargar la app (PWA).
      * Solo disponible en planes profesional y enterprise.
      */

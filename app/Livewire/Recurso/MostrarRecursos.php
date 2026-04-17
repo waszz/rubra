@@ -462,8 +462,11 @@ public function eliminarItem()
 
     public function toggleSelectAll(): void
     {
-        // Obtener todos los recursos que cumplen con los filtros actuales (sin paginación)
+        $user = auth()->user();
         $recursosConFiltros = Recurso::query()
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)->orWhereNull('user_id');
+            })
             ->when($this->buscar, fn($q) => $q->where('nombre', 'like', '%'.$this->buscar.'%'))
             ->when($this->filtroTipo, fn($q) => $q->where('tipo', $this->filtroTipo))
             ->when($this->filtroProyecto, fn($q) => $q->whereHas('proyectos', fn($q2) =>
@@ -473,10 +476,8 @@ public function eliminarItem()
             ->toArray();
 
         if ($this->selectAll) {
-            // Si activas select all, selecciona todos los del filtro actual
             $this->selectedResources = $recursosConFiltros;
         } else {
-            // Si desactivas, deselecciona todos
             $this->selectedResources = [];
         }
     }
@@ -628,6 +629,7 @@ public function eliminarItem()
     {
         try {
             $recurso = Recurso::create([
+                'user_id'   => auth()->id(),
                 'nombre'    => $nombre,
                 'codigo'    => $codigo ?: null,
                 'tipo'      => $this->tipoImportacion,
@@ -662,17 +664,16 @@ public function eliminarItem()
 {
     $user = auth()->user();
     
-    // Obtener solo los proyectos del usuario (propios o compartidos)
-    $proyectos = \App\Models\Proyecto::where(function ($q) use ($user) {
-        $q->where('user_id', $user->id)           // tus proyectos propios
-          ->orWhereHas('usuarios', function ($q2) use ($user) {
-              $q2->where('users.id', $user->id);  // proyectos donde fuiste invitado
-          });
-    })
-    ->orderBy('nombre_proyecto')
-    ->get(['id', 'nombre_proyecto']);
+    // Obtener solo los proyectos propios del usuario
+    $proyectos = \App\Models\Proyecto::where('user_id', $user->id)
+        ->orderBy('nombre_proyecto')
+        ->get(['id', 'nombre_proyecto']);
 
     $query = Recurso::with('items.recursoBase')
+        ->where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)
+              ->orWhereNull('user_id'); // recursos globales heredados
+        })
         ->when($this->buscar, fn($q) => $q->where('nombre', 'like', '%'.$this->buscar.'%'))
         ->when($this->filtroTipo, fn($q) => $q->where('tipo', $this->filtroTipo))
         ->when($this->filtroProyecto, fn($q) => $q->whereHas('proyectos', fn($q2) =>

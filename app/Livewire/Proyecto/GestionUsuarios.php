@@ -33,15 +33,15 @@ public $mostrarModalEliminar = false;
     // Permisos
     public array $matriz     = [];
     public array $secciones  = [
-        'proyectos'      => 'Proyectos',
-        'recursos'       => 'Recursos',
-        'usuarios'       => 'Usuarios',
-        'configuracion'  => 'Configuración',
-        'estadisticas'   => 'Estadísticas',
-        'mapa'           => 'Mapa',
-        'bitacora'       => 'Bitácora',
-        'reporte_diario' => 'Reporte Diario',
-        'computos'       => 'Gantt',
+        'proyectos'            => 'Proyectos Compartidos',
+        'recursos_compartidos' => 'Recursos Compartidos',
+        'usuarios'             => 'Usuarios',
+        'configuracion'        => 'Configuración',
+        'estadisticas'         => 'Estadísticas',
+        'mapa'                 => 'Mapa',
+        'bitacora'             => 'Bitácora',
+        'reporte_diario'       => 'Reporte Diario',
+        'computos'             => 'Gantt',
     ];
 
     public array $roles = [

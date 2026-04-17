@@ -34,6 +34,7 @@ class CrearRecurso extends Component
         $this->validate();
 
         $recurso = Recurso::create([
+            'user_id'                   => auth()->id(),
             'nombre'                    => $this->nombre,
             'codigo'                    => $this->codigo ?: null,
             'tipo'                      => $this->tipo,

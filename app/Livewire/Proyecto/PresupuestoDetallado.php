@@ -1225,7 +1225,11 @@ public function invitarUsuariosSeleccionados()
             $this->editItemApuSugeridos = [];
             return;
         }
+        $ownerId = $this->proyecto->user_id;
         $this->editItemApuSugeridos = Recurso::whereIn('tipo', ['material', 'labor', 'equipment'])
+            ->where(function ($q) use ($ownerId) {
+                $q->where('user_id', $ownerId)->orWhereNull('user_id');
+            })
             ->where('nombre', 'like', '%' . $this->editItemApuNombre . '%')
             ->limit(8)->get(['id', 'nombre', 'unidad'])->toArray();
     }
@@ -1297,7 +1301,11 @@ public function invitarUsuariosSeleccionados()
             $this->nuevoItemApuSugeridos = [];
             return;
         }
+        $ownerId = $this->proyecto->user_id;
         $this->nuevoItemApuSugeridos = Recurso::whereIn('tipo', ['material', 'labor', 'equipment'])
+            ->where(function ($q) use ($ownerId) {
+                $q->where('user_id', $ownerId)->orWhereNull('user_id');
+            })
             ->where('nombre', 'like', '%' . $this->nuevoItemApuNombre . '%')
             ->limit(8)->get(['id', 'nombre', 'unidad'])->toArray();
     }
@@ -2794,6 +2802,21 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
     public function render()
     {
         $query = Recurso::query();
+
+        // Si el proyecto es compartido (no soy el dueño), buscar solo recursos del dueño
+        $ownerId = $this->proyecto->user_id;
+        if ($ownerId !== auth()->id()) {
+            $query->where(function ($q) use ($ownerId) {
+                $q->where('user_id', $ownerId)
+                  ->orWhereNull('user_id'); // incluir recursos globales heredados
+            });
+        } else {
+            // Soy el dueño: buscar mis propios recursos + globales
+            $query->where(function ($q) {
+                $q->where('user_id', auth()->id())
+                  ->orWhereNull('user_id');
+            });
+        }
 
         if ($this->buscarSelector) {
             $query->where('nombre', 'like', '%' . $this->buscarSelector . '%');
