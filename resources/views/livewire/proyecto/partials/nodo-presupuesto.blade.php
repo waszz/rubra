@@ -13,7 +13,9 @@
     $nodeKey      = 'node_' . $nodo->id;
     $nodoAbierto  = in_array($nodeKey, $nodosAbiertos ?? []);
     $hijos        = $nodo->hijos ?? collect([]);
-    $esRecurso    = !is_null($nodo->recurso_id);
+    // A node is a leaf resource if it has a catalog match (recurso_id),
+    // OR if it has no children and carries a price (imported resource not in catalog).
+    $esRecurso    = !is_null($nodo->recurso_id) || ($hijos->isEmpty() && ($nodo->precio_usd ?? 0) > 0);
     $subRubros    = $hijos->whereNull('recurso_id');
     $recursosDir  = $hijos->whereNotNull('recurso_id');
     $totalNodo    = ($nodo->precio_unitario ?? $nodo->precio_usd ?? 0) * $nodo->cantidad;
