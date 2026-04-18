@@ -1992,12 +1992,18 @@ public function invitarUsuariosSeleccionados()
             $hasCode = (bool)preg_match($codeRx, $head);
 
             if ($hasCode) {
-                // ── Code prefix row: determine depth for classification ───────
-                // "xx.00" style codes are always category headers (depth treated as 1).
+                // ── Code prefix row: extract code, depth, name, unit, qty ────
+                // Extract the code token (e.g. "01.02") to keep in nombre.
+                $codeToken = '';
+                if (preg_match('/^(\d{1,3}(?:\.\d{1,3})*)\s*/', $head, $codeTokMatch)) {
+                    $codeToken = $codeTokMatch[1];
+                }
+
+                // Determine depth. "xx.00" style → always category (depth 1).
                 $thisCodeDepth = 1;
                 if (preg_match('/^(\d{1,3}(?:\.\d{1,3})+)[\s\.]/', $head, $depthMatch)) {
                     if (preg_match('/^\d{1,3}\.0+[\s\.]/', $head)) {
-                        $thisCodeDepth = 1; // xx.00 → category header
+                        $thisCodeDepth = 1;
                     } else {
                         $thisCodeDepth = substr_count($depthMatch[1], '.') + 1;
                     }
@@ -2006,6 +2012,8 @@ public function invitarUsuariosSeleccionados()
                 $afterCode = trim(preg_replace($codeRx, '', $head));
                 $parts     = preg_split('/\s+/', $afterCode);
                 $lastTok   = end($parts);
+
+                $hasPrice = ($amounts[0] ?? 0) > 0;
 
                 if ($lastTok !== false && $lastTok !== ''
                     && is_numeric(str_replace(',', '.', (string)$lastTok)))
@@ -2021,20 +2029,12 @@ public function invitarUsuariosSeleccionados()
                         $unit      = $tok2;
                         $nameParts = array_slice($nameParts, 0, -1);
                     }
-                    $nombre = trim(implode(' ', $nameParts));
+                    // Prepend the code number to the nombre
+                    $nombre = trim(($codeToken ? $codeToken . ' ' : '') . implode(' ', $nameParts));
                     if ($nombre !== '') {
-                        // 3-level doc: depth ≤ 2 → subrubro container; depth ≥ 3 → recurso
-                        // 2-level doc: depth ≤ 2 → recurso (no subrubro layer)
-                        if ($threeLevel && $thisCodeDepth <= 2) {
-                            $lastSubrubroQty = $qty > 0 ? $qty : 1.0;
-                            $items[] = [
-                                'tipo'     => 'subrubro',
-                                'nombre'   => $nombre,
-                                'unidad'   => $unit ?: 'gl',
-                                'cantidad' => $qty > 0 ? $qty : 1,
-                                'precio'   => $amounts[0] ?? 0,
-                            ];
-                        } else {
+                        // Rule: any row with an explicit unit price → recurso (leaf).
+                        // Rows without price use depth to decide categoria vs subrubro.
+                        if ($hasPrice || !$threeLevel || $thisCodeDepth >= 3) {
                             $items[] = [
                                 'tipo'     => 'recurso',
                                 'nombre'   => $nombre,
@@ -2042,22 +2042,40 @@ public function invitarUsuariosSeleccionados()
                                 'cantidad' => $qty > 0 ? $qty : 1,
                                 'precio'   => $amounts[0] ?? 0,
                             ];
+                        } else {
+                            // 3-level, no price, depth ≤ 2 → subrubro container
+                            $lastSubrubroQty = $qty > 0 ? $qty : 1.0;
+                            $items[] = [
+                                'tipo'     => 'subrubro',
+                                'nombre'   => $nombre,
+                                'unidad'   => $unit ?: 'gl',
+                                'cantidad' => $qty > 0 ? $qty : 1,
+                                'precio'   => 0,
+                            ];
                         }
                     }
                 } else {
-                    // Last token NOT numeric → no unit/qty in row
-                    // In 3-level docs: depth ≥ 2 without quantity = subrubro header
-                    // Otherwise (depth 1, or 2-level doc) = category
-                    $nombre = trim($afterCode);
+                    // Last token NOT numeric → no unit/qty in this row
+                    // Prepend the code number to the nombre
+                    $nombre = trim(($codeToken ? $codeToken . ' ' : '') . $afterCode);
                     if ($nombre !== '') {
-                        if ($threeLevel && $thisCodeDepth >= 2) {
+                        if ($hasPrice) {
+                            // Has a price but no qty → treat as recurso with qty=1
+                            $items[] = [
+                                'tipo'     => 'recurso',
+                                'nombre'   => $nombre,
+                                'unidad'   => 'gl',
+                                'cantidad' => 1,
+                                'precio'   => $amounts[0] ?? 0,
+                            ];
+                        } elseif ($threeLevel && $thisCodeDepth >= 2) {
                             $lastSubrubroQty = 1.0;
                             $items[] = [
                                 'tipo'     => 'subrubro',
                                 'nombre'   => $nombre,
                                 'unidad'   => '',
                                 'cantidad' => 1,
-                                'precio'   => $amounts[0] ?? 0,
+                                'precio'   => 0,
                             ];
                         } else {
                             $lastSubrubroQty = 1.0;
