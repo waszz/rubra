@@ -1996,13 +1996,19 @@ public function invitarUsuariosSeleccionados()
                     }
                     $nombre = trim(implode(' ', $nameParts));
                     if ($nombre !== '') {
-                        $lastSubrubroQty = $qty > 0 ? $qty : 1.0;
+                        $precio = $amounts[0] ?? 0;
+                        // If this code-prefixed row carries an explicit price it is a leaf
+                        // resource (common in external PDFs), not a container subrubro.
+                        $tipoDetectado = $precio > 0 ? 'recurso' : 'subrubro';
+                        if ($tipoDetectado === 'subrubro') {
+                            $lastSubrubroQty = $qty > 0 ? $qty : 1.0;
+                        }
                         $items[] = [
-                            'tipo'     => 'subrubro',
+                            'tipo'     => $tipoDetectado,
                             'nombre'   => $nombre,
                             'unidad'   => $unit ?: 'gl',
                             'cantidad' => $qty > 0 ? $qty : 1,
-                            'precio'   => $amounts[0] ?? 0, // leftmost $ = unit price
+                            'precio'   => $precio,
                         ];
                     }
                 } else {
