@@ -540,13 +540,13 @@ document.addEventListener('DOMContentLoaded', updateRubraThemeUI);
         // Punto central
         ctx.beginPath();
         ctx.fillStyle = 'rgba(209,83,48,0.95)';
-        ctx.arc(mouse.x, mouse.y, 6, 0, Math.PI * 2);
+        ctx.arc(mouse.x, mouse.y, 3, 0, Math.PI * 2);
         ctx.fill();
         // Anillo exterior
         ctx.beginPath();
         ctx.strokeStyle = 'rgba(255,214,200,0.55)';
         ctx.lineWidth = 1;
-        ctx.arc(mouse.x, mouse.y, 18, 0, Math.PI * 2);
+        ctx.arc(mouse.x, mouse.y, 10, 0, Math.PI * 2);
         ctx.stroke();
         requestAnimationFrame(draw);
     }
