@@ -142,6 +142,7 @@ public array $rolCompartirOpciones = []; // Opciones de rol según plan del usua
     public $incluirCantidad = true;
     public $incluirPrecio = true;
     public $incluirCargaSocial = true;
+    public $incluirBeneficio = true;
 
     // Alcance de exportación: 'completo' | 'rubros_subrubros'
     public $exportScope = 'completo';
@@ -156,6 +157,7 @@ public array $rolCompartirOpciones = []; // Opciones de rol según plan del usua
     public $excelIncluirCantidad = true;
     public $excelIncluirPrecio = true;
     public $excelIncluirCargaSocial = true;
+    public $excelIncluirBeneficio = true;
 
     // Historial undo/redo
     public $historialEstados = [];
@@ -251,6 +253,7 @@ public function resetearFormularioPDF()
     $this->incluirCantidad = true;
     $this->incluirPrecio = true;
     $this->incluirCargaSocial = true;
+    $this->incluirBeneficio = true;
 }
 
 public function abrirModalExcel()
@@ -270,6 +273,7 @@ public function cerrarModalExcel()
     $this->excelIncluirCantidad = true;
     $this->excelIncluirPrecio = true;
     $this->excelIncluirCargaSocial = true;
+    $this->excelIncluirBeneficio = true;
 }
 
 public function exportarPDF()
@@ -284,7 +288,7 @@ public function exportarPDF()
 
         $subtotalBase         = $datos['total'];
         $cargaSocial          = $this->calcularCargaSocialPDF();
-        $pctBeneficio         = (float) ($this->proyecto->beneficio ?? 0);
+        $pctBeneficio         = $this->incluirBeneficio ? (float) ($this->proyecto->beneficio ?? 0) : 0;
         $beneficioMonto       = $subtotalBase * ($pctBeneficio / 100);
         $subtotalConBeneficio = $subtotalBase + $beneficioMonto;
         $pctImpuestos         = (float) ($this->proyecto->impuestos ?? 22);
@@ -393,7 +397,7 @@ public function exportarExcel()
 
         $subtotalBase         = $datos['total'];
         $cargaSocial          = $this->calcularCargaSocialPDF();
-        $pctBeneficio         = (float) ($this->proyecto->beneficio ?? 0);
+        $pctBeneficio         = $this->excelIncluirBeneficio ? (float) ($this->proyecto->beneficio ?? 0) : 0;
         $beneficioMonto       = $subtotalBase * ($pctBeneficio / 100);
         $subtotalConBeneficio = $subtotalBase + $beneficioMonto;
         $pctImpuestos         = (float) ($this->proyecto->impuestos ?? 22);
@@ -1511,7 +1515,9 @@ public function invitarUsuariosSeleccionados()
 
         $this->_duplicarNodoRecursivo($original, $sibling->parent_id);
         $this->nodoCopiadoId = null;
+        $this->proyecto->refresh();
         $this->cargarProyecto();
+        $this->guardarEstado();
     }
 
     private function _duplicarNodoRecursivo(ProyectoRecurso $nodo, ?int $newParentId): void
@@ -1523,6 +1529,24 @@ public function invitarUsuariosSeleccionados()
         $nuevo = $nodo->replicate();
         $nuevo->parent_id = $newParentId;
         $nuevo->orden     = $maxOrden + 1;
+
+        // Root-level nodes: categoria must be unique (it's used as the group key).
+        // Append "(Copia N)" until we find a name that doesn't exist yet.
+        if (is_null($newParentId)) {
+            $baseName = preg_replace('/ \(Copia(?: \d+)?\)$/', '', $nuevo->nombre);
+            $n = 1;
+            $candidato = $baseName . ' (Copia)';
+            while (ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
+                ->whereNull('parent_id')
+                ->where('categoria', $candidato)
+                ->exists()) {
+                $n++;
+                $candidato = $baseName . ' (Copia ' . $n . ')';
+            }
+            $nuevo->nombre    = $candidato;
+            $nuevo->categoria = $candidato;
+        }
+
         $nuevo->save();
 
         foreach ($nodo->hijos as $hijo) {

@@ -1673,6 +1673,10 @@ $totalFinal = $subtotalConBeneficio + $iva;
                         <input type="checkbox" wire:model="incluirCargaSocial" class="w-4 h-4 rounded">
                         <span class="text-gray-300 text-xs">Incluir Carga Social</span>
                     </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" wire:model="incluirBeneficio" class="w-4 h-4 rounded">
+                        <span class="text-gray-300 text-xs">Incluir Beneficio ({{ number_format($proyecto->beneficio ?? 0, 0) }}%)</span>
+                    </label>
                 </div>
             </div>
 
@@ -1792,6 +1796,10 @@ $totalFinal = $subtotalConBeneficio + $iva;
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" wire:model="excelIncluirCargaSocial" class="w-4 h-4 rounded">
                         <span class="text-gray-300 text-xs">Carga Social</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" wire:model="excelIncluirBeneficio" class="w-4 h-4 rounded">
+                        <span class="text-gray-300 text-xs">Beneficio ({{ number_format($proyecto->beneficio ?? 0, 0) }}%)</span>
                     </label>
                 </div>
             </div>
