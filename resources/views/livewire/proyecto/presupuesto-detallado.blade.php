@@ -316,8 +316,13 @@
         if (!is_null($node->recurso_id)) {
             return (float)($node->precio_usd ?? 0);
         }
+        // Imported leaf without catalog match: has no children but has a stored price
+        $children = $node->hijos ?? collect([]);
+        if ((is_countable($children) ? count($children) : $children->count()) === 0 && ($node->precio_usd ?? 0) > 0) {
+            return (float)$node->precio_usd;
+        }
         $total = 0.0;
-        foreach ($node->hijos ?? [] as $child) {
+        foreach ($children as $child) {
             $total += $computePerUnitGlobal($child) * (float)($child->cantidad ?? 1);
         }
         return $total;
