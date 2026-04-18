@@ -141,6 +141,23 @@ class EstadisticasExportController extends Controller
                 $cantNodo = ($nodo->cantidad ?? 1) * $multiplier;
                 if ($tieneHijos) {
                     $this->sumarMaterialesRecursiva($nodo->hijos, $map, $cantNodo);
+                } elseif (($nodo->precio_usd ?? 0) > 0) {
+                    // Hoja importada sin match en catálogo → tratar como material
+                    $nombre   = trim($nodo->nombre ?? 'Sin nombre');
+                    $key      = mb_strtolower($nombre);
+                    $cantEfec = ($nodo->cantidad ?? 0) * $cantNodo;
+                    $subtotal = ($nodo->precio_usd ?? 0) * $cantEfec;
+                    if (!isset($map[$key])) {
+                        $map[$key] = [
+                            'nombre'         => $nombre,
+                            'cantidad'       => 0,
+                            'unidad'         => $nodo->unidad ?? '',
+                            'precioUnitario' => $nodo->precio_usd ?? 0,
+                            'costoReal'      => 0,
+                        ];
+                    }
+                    $map[$key]['cantidad']  += $cantEfec;
+                    $map[$key]['costoReal'] += $subtotal;
                 }
             } elseif ($nodo->recurso && $nodo->recurso->tipo === 'material') {
                 $nombre   = trim($nodo->nombre ?? $nodo->recurso->nombre ?? 'Sin nombre');
@@ -314,7 +331,9 @@ class EstadisticasExportController extends Controller
                 if ($tieneHijos) {
                     $this->sumarDistribucionRecursiva($nodo->hijos, $map, $cantNodo);
                 } elseif ($precioPropio > 0) {
-                    $map['sin_clasificar'] = ($map['sin_clasificar'] ?? 0) + ($precioPropio * $cantNodo);
+                    // Hoja importada sin match en catálogo: sin recurso_id, sin hijos, con precio.
+                    // Se trata como material (tipo desconocido pero es un insumo con precio unitario).
+                    $map['material'] = ($map['material'] ?? 0) + ($precioPropio * $cantNodo);
                 }
             } else {
                 $tipo     = $nodo->recurso->tipo ?? 'sin_clasificar';
