@@ -2014,6 +2014,9 @@ public function invitarUsuariosSeleccionados()
                 $lastTok   = end($parts);
 
                 $hasPrice = ($amounts[0] ?? 0) > 0;
+                // Depth-1 rows are ALWAYS category headers — even if they carry a
+                // total-price column (category rows in our own PDF export show a subtotal).
+                $isDepth1 = ($thisCodeDepth === 1);
 
                 if ($lastTok !== false && $lastTok !== ''
                     && is_numeric(str_replace(',', '.', (string)$lastTok)))
@@ -2032,9 +2035,19 @@ public function invitarUsuariosSeleccionados()
                     // Prepend the code number to the nombre
                     $nombre = trim(($codeToken ? $codeToken . ' ' : '') . implode(' ', $nameParts));
                     if ($nombre !== '') {
-                        // Rule: any row with an explicit unit price → recurso (leaf).
-                        // Rows without price use depth to decide categoria vs subrubro.
-                        if ($hasPrice || !$threeLevel || $thisCodeDepth >= 3) {
+                        if ($isDepth1) {
+                            // Depth-1 with a numeric token (e.g. "01. REPLANTEO gl 1,00 $ 5.000")
+                            // → still a category; the numeric part is its own qty column
+                            $lastSubrubroQty = 1.0;
+                            $items[] = [
+                                'tipo'     => 'categoria',
+                                'nombre'   => $nombre,
+                                'unidad'   => '',
+                                'cantidad' => 1,
+                                'precio'   => 0,
+                            ];
+                        } elseif ($hasPrice || !$threeLevel || $thisCodeDepth >= 3) {
+                            // Depth ≥ 2 with a price → leaf resource
                             $items[] = [
                                 'tipo'     => 'recurso',
                                 'nombre'   => $nombre,
@@ -2043,7 +2056,7 @@ public function invitarUsuariosSeleccionados()
                                 'precio'   => $amounts[0] ?? 0,
                             ];
                         } else {
-                            // 3-level, no price, depth ≤ 2 → subrubro container
+                            // 3-level, no price, depth 2 → subrubro container
                             $lastSubrubroQty = $qty > 0 ? $qty : 1.0;
                             $items[] = [
                                 'tipo'     => 'subrubro',
@@ -2059,8 +2072,18 @@ public function invitarUsuariosSeleccionados()
                     // Prepend the code number to the nombre
                     $nombre = trim(($codeToken ? $codeToken . ' ' : '') . $afterCode);
                     if ($nombre !== '') {
-                        if ($hasPrice) {
-                            // Has a price but no qty → treat as recurso with qty=1
+                        if ($isDepth1) {
+                            // Depth-1 always → category
+                            $lastSubrubroQty = 1.0;
+                            $items[] = [
+                                'tipo'     => 'categoria',
+                                'nombre'   => $nombre,
+                                'unidad'   => '',
+                                'cantidad' => 1,
+                                'precio'   => 0,
+                            ];
+                        } elseif ($hasPrice) {
+                            // Depth ≥ 2, has price but no qty → recurso with qty=1
                             $items[] = [
                                 'tipo'     => 'recurso',
                                 'nombre'   => $nombre,
