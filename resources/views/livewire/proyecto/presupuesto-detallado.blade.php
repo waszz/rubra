@@ -892,8 +892,8 @@ $totalFinal = $subtotalConBeneficio + $iva;
         $ejCollectReal = function($nodos) use (&$ejCollectReal): array {
             $real = 0.0; $tieneReal = false;
             foreach ($nodos as $n) {
-                if (!is_null($n->recurso_id)) {
-                    // Hoja
+                $esHoja = !is_null($n->recurso_id) || (($n->hijos ?? collect([]))->isEmpty() && ($n->precio_usd ?? 0) > 0);
+                if ($esHoja) {
                     if ($n->costo_real !== null) {
                         $real += (float)$n->costo_real * (float)($n->cantidad ?? 1);
                         $tieneReal = true;

@@ -13,7 +13,8 @@
     $nodeKey      = 'ej_' . $nodo->id;
     $nodoAbierto  = in_array($nodeKey, $nodosAbiertos ?? []);
     $hijos        = $nodo->hijos ?? collect([]);
-    $esRecurso    = !is_null($nodo->recurso_id);
+    // Leaf resource: has a catalog match (recurso_id) OR has no children and carries a price (imported)
+    $esRecurso    = !is_null($nodo->recurso_id) || ($hijos->isEmpty() && ($nodo->precio_usd ?? 0) > 0);
 
     // Indentación según nivel
     $padLeft = match(true) {
@@ -28,8 +29,13 @@
         if (!is_null($node->recurso_id)) {
             return (float)($node->precio_usd ?? $node->recurso?->precio_usd ?? 0);
         }
+        // Imported leaf without catalog match
+        $children = $node->hijos ?? collect([]);
+        if ($children->isEmpty() && ($node->precio_usd ?? 0) > 0) {
+            return (float)$node->precio_usd;
+        }
         $total = 0.0;
-        foreach ($node->hijos ?? collect([]) as $child) {
+        foreach ($children as $child) {
             $total += $computePerUnitEj($child) * (float)($child->cantidad ?? 1);
         }
         return $total;
@@ -45,7 +51,8 @@
     $sumRealHojas = function($nodos) use (&$sumRealHojas): ?float {
         $total = 0.0; $tieneReal = false;
         foreach ($nodos as $n) {
-            if (!is_null($n->recurso_id)) {
+            $esHoja = !is_null($n->recurso_id) || (($n->hijos ?? collect([]))->isEmpty() && ($n->precio_usd ?? 0) > 0);
+            if ($esHoja) {
                 if ($n->costo_real !== null) {
                     $total += (float)$n->costo_real * (float)($n->cantidad ?? 1);
                     $tieneReal = true;
