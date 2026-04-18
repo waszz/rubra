@@ -1868,6 +1868,23 @@ public function invitarUsuariosSeleccionados()
             return [trim($working), $amounts];
         };
 
+        // Pre-scan: detect whether this PDF uses 3 code levels (categoria > subrubro > recurso).
+        // If any data line has a depth-3+ code (e.g. "01.02.03 ..."), we use 3-level mode;
+        // otherwise depth-2 codes are treated as leaf resources (2-level structure).
+        $threeLevel       = false;
+        $preScanInTable   = false;
+        foreach ($lines as $preScanLine) {
+            $preScanUpper = mb_strtoupper(trim($preScanLine), 'UTF-8');
+            if (str_contains($preScanUpper, 'TABLA DE PRESUPUESTO')) { $preScanInTable = true; }
+            if (!$preScanInTable) continue;
+            if (str_contains($preScanUpper, 'TOTAL PRESUPUESTO')) break;
+            // Depth-3+ pattern: "01.02.03" or "01.02.03.04" etc.
+            if (preg_match('/^\d{1,3}(?:\.\d{1,3}){2,}[\s\.]/', trim($preScanLine))) {
+                $threeLevel = true;
+                break;
+            }
+        }
+
         foreach ($lines as $line) {
             $line  = trim($line);
             if ($line === '') continue;
@@ -1975,7 +1992,17 @@ public function invitarUsuariosSeleccionados()
             $hasCode = (bool)preg_match($codeRx, $head);
 
             if ($hasCode) {
-                // ── Code prefix row: category or subrubro ────────────────────
+                // ── Code prefix row: determine depth for classification ───────
+                // "xx.00" style codes are always category headers (depth treated as 1).
+                $thisCodeDepth = 1;
+                if (preg_match('/^(\d{1,3}(?:\.\d{1,3})+)[\s\.]/', $head, $depthMatch)) {
+                    if (preg_match('/^\d{1,3}\.0+[\s\.]/', $head)) {
+                        $thisCodeDepth = 1; // xx.00 → category header
+                    } else {
+                        $thisCodeDepth = substr_count($depthMatch[1], '.') + 1;
+                    }
+                }
+
                 $afterCode = trim(preg_replace($codeRx, '', $head));
                 $parts     = preg_split('/\s+/', $afterCode);
                 $lastTok   = end($parts);
@@ -1983,7 +2010,7 @@ public function invitarUsuariosSeleccionados()
                 if ($lastTok !== false && $lastTok !== ''
                     && is_numeric(str_replace(',', '.', (string)$lastTok)))
                 {
-                    // Last token is numeric → SUBRUBRO (has unit + qty before the prices)
+                    // Last token is numeric → has unit + qty
                     $qty       = $parseNum($lastTok);
                     $nameParts = array_slice($parts, 0, -1);
                     $unit      = '';
@@ -1996,33 +2023,52 @@ public function invitarUsuariosSeleccionados()
                     }
                     $nombre = trim(implode(' ', $nameParts));
                     if ($nombre !== '') {
-                        $precio = $amounts[0] ?? 0;
-                        // If this code-prefixed row carries an explicit price it is a leaf
-                        // resource (common in external PDFs), not a container subrubro.
-                        $tipoDetectado = $precio > 0 ? 'recurso' : 'subrubro';
-                        if ($tipoDetectado === 'subrubro') {
+                        // 3-level doc: depth ≤ 2 → subrubro container; depth ≥ 3 → recurso
+                        // 2-level doc: depth ≤ 2 → recurso (no subrubro layer)
+                        if ($threeLevel && $thisCodeDepth <= 2) {
                             $lastSubrubroQty = $qty > 0 ? $qty : 1.0;
+                            $items[] = [
+                                'tipo'     => 'subrubro',
+                                'nombre'   => $nombre,
+                                'unidad'   => $unit ?: 'gl',
+                                'cantidad' => $qty > 0 ? $qty : 1,
+                                'precio'   => $amounts[0] ?? 0,
+                            ];
+                        } else {
+                            $items[] = [
+                                'tipo'     => 'recurso',
+                                'nombre'   => $nombre,
+                                'unidad'   => $unit ?: 'gl',
+                                'cantidad' => $qty > 0 ? $qty : 1,
+                                'precio'   => $amounts[0] ?? 0,
+                            ];
                         }
-                        $items[] = [
-                            'tipo'     => $tipoDetectado,
-                            'nombre'   => $nombre,
-                            'unidad'   => $unit ?: 'gl',
-                            'cantidad' => $qty > 0 ? $qty : 1,
-                            'precio'   => $precio,
-                        ];
                     }
                 } else {
-                    // Last token is NOT numeric → CATEGORY (name only, no unit/qty)
+                    // Last token NOT numeric → no unit/qty in row
+                    // In 3-level docs: depth ≥ 2 without quantity = subrubro header
+                    // Otherwise (depth 1, or 2-level doc) = category
                     $nombre = trim($afterCode);
                     if ($nombre !== '') {
-                        $lastSubrubroQty = 1.0;
-                        $items[] = [
-                            'tipo'     => 'categoria',
-                            'nombre'   => $nombre,
-                            'unidad'   => '',
-                            'cantidad' => 1,
-                            'precio'   => 0,
-                        ];
+                        if ($threeLevel && $thisCodeDepth >= 2) {
+                            $lastSubrubroQty = 1.0;
+                            $items[] = [
+                                'tipo'     => 'subrubro',
+                                'nombre'   => $nombre,
+                                'unidad'   => '',
+                                'cantidad' => 1,
+                                'precio'   => $amounts[0] ?? 0,
+                            ];
+                        } else {
+                            $lastSubrubroQty = 1.0;
+                            $items[] = [
+                                'tipo'     => 'categoria',
+                                'nombre'   => $nombre,
+                                'unidad'   => '',
+                                'cantidad' => 1,
+                                'precio'   => 0,
+                            ];
+                        }
                     }
                 }
 
