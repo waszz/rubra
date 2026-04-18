@@ -162,6 +162,16 @@ class DiarioObra extends Component
             ->toArray();
     }
 
+    public function incrementarManoDeObra(): void
+    {
+        $this->manoDeObra++;
+    }
+
+    public function decrementarManoDeObra(): void
+    {
+        $this->manoDeObra = max(0, $this->manoDeObra - 1);
+    }
+
     public function updatedCantidadHoy()
     {
         $cantidad = (float) $this->cantidadHoy;

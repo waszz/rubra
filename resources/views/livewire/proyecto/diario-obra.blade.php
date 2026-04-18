@@ -275,12 +275,14 @@
                     <div>
                         <label class="text-sm text-gray-700 dark:text-gray-400 uppercase font-black">Mano de Obra (obreros)</label>
                         <p class="text-[11px] text-gray-500 mt-0.5">Cantidad de personas trabajando hoy en este rubro</p>
+                        <input type="hidden" wire:model="manoDeObra">
                         <div class="flex items-center gap-3 mt-1">
-                            <button type="button" wire:click="$set('manoDeObra', max(0, $manoDeObra - 1))"
+                            <button type="button" wire:click="decrementarManoDeObra"
                                 class="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-[#0f1115] border border-gray-200 dark:border-white/10 rounded-xl text-black dark:text-white font-black text-lg hover:bg-gray-200 dark:hover:bg-white/10 transition">−</button>
-                            <input type="number" min="0" step="1" wire:model="manoDeObra"
-                                class="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-[#0f1115] text-black dark:text-white border border-gray-200 dark:border-white/10 text-sm text-center font-black outline-none focus:border-gray-300 dark:focus:border-white/30">
-                            <button type="button" wire:click="$set('manoDeObra', $manoDeObra + 1)"
+                            <div class="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-[#0f1115] border border-gray-200 dark:border-white/10 text-sm text-center font-black text-black dark:text-white">
+                                {{ $manoDeObra }}
+                            </div>
+                            <button type="button" wire:click="incrementarManoDeObra"
                                 class="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-[#0f1115] border border-gray-200 dark:border-white/10 rounded-xl text-black dark:text-white font-black text-lg hover:bg-gray-200 dark:hover:bg-white/10 transition">+</button>
                         </div>
                         @error('manoDeObra') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
