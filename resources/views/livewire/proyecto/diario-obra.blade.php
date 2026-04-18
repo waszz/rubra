@@ -103,8 +103,8 @@
 
                         @forelse($rubro['subrubros'] as $sub)
                             <div wire:key="sub-{{ $sub['id'] }}"
-                                wire:click="abrirModal({{ $sub['id'] }})"
-                                class="flex items-center gap-3 px-5 py-3 hover:bg-gray-100 dark:hover:bg-white/[0.03] cursor-pointer transition group/sub">
+                                @if(!$modoLectura) wire:click="abrirModal({{ $sub['id'] }})" @endif
+                                class="flex items-center gap-3 px-5 py-3 hover:bg-gray-100 dark:hover:bg-white/[0.03] {{ $modoLectura ? '' : 'cursor-pointer' }} transition group/sub">
 
                                 {{-- Dot --}}
                                 <div class="w-1.5 h-1.5 rounded-full shrink-0
@@ -134,6 +134,7 @@
                             </div>
                         @empty
                             {{-- Si no tiene subrubros, abrir modal del rubro padre directamente --}}
+                            @if(!$modoLectura)
                             <div wire:click="abrirModal({{ $rubro['id'] }})"
                                 class="flex items-center justify-center gap-2 px-5 py-4 text-xs font-bold uppercase text-gray-500 hover:text-black dark:hover:text-white cursor-pointer transition">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,6 +142,7 @@
                                 </svg>
                                 Registrar avance directo
                             </div>
+                            @endif
                         @endforelse
                     </div>
                 @endif
@@ -370,6 +372,7 @@
 
                 {{-- Footer --}}
                 <div class="px-6 py-4 border-t border-white/5">
+                    @if(!$modoLectura)
                     <button wire:click="guardarReporte"
                         class="w-full bg-white text-black py-3.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-gray-100 transition-all flex items-center justify-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -377,6 +380,9 @@
                         </svg>
                         Guardar Reporte
                     </button>
+                    @else
+                    <p class="text-center text-xs text-yellow-400/70 font-bold uppercase tracking-widest py-2">Proyecto en modo solo lectura</p>
+                    @endif
                 </div>
 
             </div>
@@ -489,6 +495,7 @@
 
             {{-- Footer detalle --}}
             <div class="px-6 py-4 border-t border-white/5">
+                @if(!$modoLectura)
                 <button
                     wire:click="confirmarEliminar({{ $detalleRegistro->id }})"
                     class="w-full bg-red-600/10 hover:bg-red-600 border border-red-600/30 hover:border-red-600 text-red-400 hover:text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2">
@@ -497,6 +504,7 @@
                     </svg>
                     Eliminar este registro
                 </button>
+                @endif
             </div>
 
         </div>

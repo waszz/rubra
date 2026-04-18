@@ -202,6 +202,7 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        @if(!$modoLectura)
                         <button wire:click="abrirModalFechas({{ $fila['id'] }})"
                                 title="Asignar fechas"
                                 class="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-white">
@@ -210,6 +211,7 @@
                                       d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                             </svg>
                         </button>
+                        @endif
                         <button wire:click="abrirHistorial({{ $fila['id'] }})"
                                 title="Historial de fechas"
                                 class="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400">
@@ -381,11 +383,13 @@
                             @endif
                         </div>
                     @else
+                        @if(!$modoLectura)
                         <button wire:click="abrirModalFechas({{ $fila['id'] }})"
                                 class="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
                                        transition-opacity text-sm text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400 font-bold uppercase">
                             + Asignar fechas
                         </button>
+                        @endif
                     @endif
 
                 </div>
@@ -789,6 +793,7 @@ main { overflow: hidden !important; display: flex; flex-direction: column; }
                     class="w-1/3 py-3 rounded-xl border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white text-sm font-bold hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                     CANCELAR
                 </button>
+                @if(!$modoLectura)
                 @if($editFechaInicio || $editFechaFin)
                     <button wire:click="eliminarFechas"
                         class="w-1/3 py-3 rounded-xl border border-red-500/30 text-red-400 text-sm font-black hover:bg-red-500/10 transition-all">
@@ -799,6 +804,7 @@ main { overflow: hidden !important; display: flex; flex-direction: column; }
                     class="{{ ($editFechaInicio || $editFechaFin) ? 'w-1/3' : 'w-1/2' }} bg-gray-900 dark:bg-white text-white dark:text-black py-3 rounded-xl font-black text-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition-all">
                     GUARDAR
                 </button>
+                @endif
             </div>
         </div>
     </div>

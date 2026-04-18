@@ -49,12 +49,15 @@ class GanttProyecto extends Component
     public int   $editDiasLaborables = 0;
     public int   $editTrabajadores   = 1;
 
+    public bool $modoLectura = false;
+
     public function mount(Proyecto $proyecto)
     {
         $this->autorizarAcceso($proyecto);
         if (!in_array($proyecto->estado_obra, ['ejecucion', 'pausado', 'finalizado'])) {
             abort(403, 'El Gantt solo está disponible cuando el proyecto está en ejecución.');
         }
+        $this->modoLectura = in_array($proyecto->estado_obra, ['pausado', 'finalizado']);
         $this->proyecto = $proyecto;
         $this->cargarGantt();
     }
@@ -249,6 +252,7 @@ class GanttProyecto extends Component
 
     public function abrirModalFechas($id)
     {
+        if ($this->modoLectura) return;
         $nodo = ProyectoRecurso::find($id);
         if (!$nodo) return;
 
@@ -437,6 +441,7 @@ class GanttProyecto extends Component
 
     public function eliminarFechas()
     {
+        if ($this->modoLectura) return;
         $nodo = ProyectoRecurso::find($this->editFechaId);
         if (!$nodo) return;
 
@@ -449,121 +454,109 @@ class GanttProyecto extends Component
     }
 
     public function guardarFechas()
-{
-    $this->validate([
-        'editFechaInicio' => 'required|date',
-        'editFechaFin'    => 'required|date|after_or_equal:editFechaInicio',
-    ]);
+    {
+        if ($this->modoLectura) return;
 
-    // Validar que no sea anterior al inicio del proyecto
-    if ($this->proyecto->fecha_inicio) {
-        $minDate = Carbon::parse($this->proyecto->fecha_inicio);
-        if (Carbon::parse($this->editFechaInicio)->lt($minDate)) {
-            $this->addError('editFechaInicio', 'No puede ser anterior al inicio del proyecto (' . $minDate->format('d/m/Y') . ').');
-            return;
-        }
-    }
+        $this->validate([
+            'editFechaInicio' => 'required|date',
+            'editFechaFin'    => 'required|date|after_or_equal:editFechaInicio',
+        ]);
 
-    // Validar que no sea anterior al fin del predecesor (dependencia)
-    if ($this->editFechaMinima) {
-        if (Carbon::parse($this->editFechaInicio)->lt(Carbon::parse($this->editFechaMinima))) {
-            $nodoTemp = ProyectoRecurso::find($this->editFechaId);
-            $predecesor = $nodoTemp ? ProyectoRecurso::find($nodoTemp->depends_on_id) : null;
-            $nombrePred = $predecesor ? $predecesor->nombre : 'predecesor';
-            $this->addError('editFechaInicio',
-                'Depende de "' . $nombrePred . '". La fecha de inicio no puede ser anterior al ' . Carbon::parse($this->editFechaMinima)->format('d/m/Y') . '.');
-            return;
-        }
-    }
-
-    $nodo = ProyectoRecurso::find($this->editFechaId);
-    if (!$nodo) return;
-
-    // Si tiene padre, validar que no supere sus fechas
-    if ($nodo->parent_id) {
-        $padre = ProyectoRecurso::find($nodo->parent_id);
-
-        if ($padre && $padre->fecha_inicio && $padre->fecha_fin) {
-            $inicioHijo = Carbon::parse($this->editFechaInicio);
-            $finHijo    = Carbon::parse($this->editFechaFin);
-            $inicioPadre = Carbon::parse($padre->fecha_inicio);
-            $finPadre    = Carbon::parse($padre->fecha_fin);
-
-            if ($inicioHijo->lt($inicioPadre)) {
-                $this->addError('editFechaInicio', 
-                    'La fecha de inicio no puede ser anterior al rubro padre (' . $inicioPadre->format('d/m/Y') . ').');
-                return;
-            }
-
-            if ($finHijo->gt($finPadre)) {
-                $this->addError('editFechaFin', 
-                    'La fecha de fin no puede superar al rubro padre (' . $finPadre->format('d/m/Y') . ').');
+        if ($this->proyecto->fecha_inicio) {
+            $minDate = Carbon::parse($this->proyecto->fecha_inicio);
+            if (Carbon::parse($this->editFechaInicio)->lt($minDate)) {
+                $this->addError('editFechaInicio', 'No puede ser anterior al inicio del proyecto (' . $minDate->format('d/m/Y') . ').');
                 return;
             }
         }
-    }
 
-    // Si es padre, validar que sus hijos queden dentro
-    if (!$nodo->parent_id) {
-        $inicioNuevo = Carbon::parse($this->editFechaInicio);
-        $finNuevo    = Carbon::parse($this->editFechaFin);
-
-        $hijosConflicto = $nodo->hijos()
-            ->where(function($q) use ($inicioNuevo, $finNuevo) {
-                $q->where('fecha_inicio', '<', $inicioNuevo)
-                  ->orWhere('fecha_fin', '>', $finNuevo);
-            })
-            ->pluck('nombre');
-
-        if ($hijosConflicto->count()) {
-            $this->addError('editFechaFin', 
-                'Los siguientes sub-rubros superan este rango: ' . $hijosConflicto->join(', ') . '.');
-            return;
+        if ($this->editFechaMinima) {
+            if (Carbon::parse($this->editFechaInicio)->lt(Carbon::parse($this->editFechaMinima))) {
+                $nodoTemp   = ProyectoRecurso::find($this->editFechaId);
+                $predecesor = $nodoTemp ? ProyectoRecurso::find($nodoTemp->depends_on_id) : null;
+                $nombrePred = $predecesor ? $predecesor->nombre : 'predecesor';
+                $this->addError('editFechaInicio',
+                    'Depende de "' . $nombrePred . '". La fecha de inicio no puede ser anterior al ' . Carbon::parse($this->editFechaMinima)->format('d/m/Y') . '.');
+                return;
+            }
         }
-    }
 
-    $this->registrarHistorial($nodo, 'guardado', $this->editFechaInicio, $this->editFechaFin, $this->editTrabajadores);
+        $nodo = ProyectoRecurso::find($this->editFechaId);
+        if (!$nodo) return;
 
-    $nodo->update([
-        'fecha_inicio' => $this->editFechaInicio,
-        'fecha_fin'    => $this->editFechaFin,
-        'trabajadores' => $this->editTrabajadores,
-    ]);
-
-    // Propagar inicio a dependientes: su fecha_inicio = fecha_fin del nodo + 1 día
-    $nuevaFechaFin = Carbon::parse($this->editFechaFin);
-    $dependientes = ProyectoRecurso::where('depends_on_id', $nodo->id)->get();
-    foreach ($dependientes as $dep) {
-        $inicioNuevo = $nuevaFechaFin->copy()->addDay();
-        // Mantener la duración original si tenía fechas previas
-        if ($dep->fecha_inicio && $dep->fecha_fin) {
-            $duracion = Carbon::parse($dep->fecha_inicio)->diffInDays(Carbon::parse($dep->fecha_fin));
-            $dep->update([
-                'fecha_inicio' => $inicioNuevo->format('Y-m-d'),
-                'fecha_fin'    => $inicioNuevo->copy()->addDays($duracion)->format('Y-m-d'),
-            ]);
-        } else {
-            $dep->update(['fecha_inicio' => $inicioNuevo->format('Y-m-d')]);
+        if ($nodo->parent_id) {
+            $padre = ProyectoRecurso::find($nodo->parent_id);
+            if ($padre && $padre->fecha_inicio && $padre->fecha_fin) {
+                $inicioHijo  = Carbon::parse($this->editFechaInicio);
+                $finHijo     = Carbon::parse($this->editFechaFin);
+                $inicioPadre = Carbon::parse($padre->fecha_inicio);
+                $finPadre    = Carbon::parse($padre->fecha_fin);
+                if ($inicioHijo->lt($inicioPadre)) {
+                    $this->addError('editFechaInicio', 'La fecha de inicio no puede ser anterior al rubro padre (' . $inicioPadre->format('d/m/Y') . ').');
+                    return;
+                }
+                if ($finHijo->gt($finPadre)) {
+                    $this->addError('editFechaFin', 'La fecha de fin no puede superar al rubro padre (' . $finPadre->format('d/m/Y') . ').');
+                    return;
+                }
+            }
         }
-    }
 
-    $this->reset(['mostrarModalFechas', 'editFechaId', 'editNombre', 'editFechaInicio', 'editFechaFin', 'editHorasTotales', 'editDiasLaborables', 'editTrabajadores']);
-    $this->editTrabajadores = 1;
-    $this->cargarGantt();
-}
+        if (!$nodo->parent_id) {
+            $inicioNuevo    = Carbon::parse($this->editFechaInicio);
+            $finNuevo       = Carbon::parse($this->editFechaFin);
+            $hijosConflicto = $nodo->hijos()
+                ->where(function ($q) use ($inicioNuevo, $finNuevo) {
+                    $q->where('fecha_inicio', '<', $inicioNuevo)
+                      ->orWhere('fecha_fin', '>', $finNuevo);
+                })
+                ->pluck('nombre');
+            if ($hijosConflicto->count()) {
+                $this->addError('editFechaFin', 'Los siguientes sub-rubros superan este rango: ' . $hijosConflicto->join(', ') . '.');
+                return;
+            }
+        }
+
+        $this->registrarHistorial($nodo, 'guardado', $this->editFechaInicio, $this->editFechaFin, $this->editTrabajadores);
+
+        $nodo->update([
+            'fecha_inicio' => $this->editFechaInicio,
+            'fecha_fin'    => $this->editFechaFin,
+            'trabajadores' => $this->editTrabajadores,
+        ]);
+
+        $nuevaFechaFin = Carbon::parse($this->editFechaFin);
+        $dependientes  = ProyectoRecurso::where('depends_on_id', $nodo->id)->get();
+        foreach ($dependientes as $dep) {
+            $inicioNuevo = $nuevaFechaFin->copy()->addDay();
+            if ($dep->fecha_inicio && $dep->fecha_fin) {
+                $duracion = Carbon::parse($dep->fecha_inicio)->diffInDays(Carbon::parse($dep->fecha_fin));
+                $dep->update([
+                    'fecha_inicio' => $inicioNuevo->format('Y-m-d'),
+                    'fecha_fin'    => $inicioNuevo->copy()->addDays($duracion)->format('Y-m-d'),
+                ]);
+            } else {
+                $dep->update(['fecha_inicio' => $inicioNuevo->format('Y-m-d')]);
+            }
+        }
+
+        $this->reset(['mostrarModalFechas', 'editFechaId', 'editNombre', 'editFechaInicio', 'editFechaFin', 'editHorasTotales', 'editDiasLaborables', 'editTrabajadores']);
+        $this->editTrabajadores = 1;
+        $this->cargarGantt();
+    }
 
     private function registrarHistorial(ProyectoRecurso $nodo, string $accion, ?string $nuevaInicio, ?string $nuevaFin, $nuevosTrabajadores): void
     {
-        GanttFechaHistorial::create([
-            'proyecto_recurso_id'  => $nodo->id,
-            'user_id'              => Auth::id(),
-            'accion'               => $accion,
-            'fecha_inicio_anterior'=> $nodo->fecha_inicio?->format('Y-m-d'),
-            'fecha_fin_anterior'   => $nodo->fecha_fin?->format('Y-m-d'),
-            'fecha_inicio_nueva'   => $nuevaInicio,
-            'fecha_fin_nueva'      => $nuevaFin,
-            'trabajadores_anterior'=> $nodo->trabajadores,
-            'trabajadores_nueva'   => $nuevosTrabajadores,
+        \App\Models\GanttFechaHistorial::create([
+            'proyecto_recurso_id'   => $nodo->id,
+            'user_id'               => \Illuminate\Support\Facades\Auth::id(),
+            'accion'                => $accion,
+            'fecha_inicio_anterior' => $nodo->fecha_inicio?->format('Y-m-d'),
+            'fecha_fin_anterior'    => $nodo->fecha_fin?->format('Y-m-d'),
+            'fecha_inicio_nueva'    => $nuevaInicio,
+            'fecha_fin_nueva'       => $nuevaFin,
+            'trabajadores_anterior' => $nodo->trabajadores,
+            'trabajadores_nueva'    => $nuevosTrabajadores,
         ]);
     }
 
@@ -574,22 +567,22 @@ class GanttProyecto extends Component
 
         $this->historialRecursoId = $id;
         $this->historialNombre    = $nodo->nombre ?? '';
-        $this->historialRegistros = GanttFechaHistorial::where('proyecto_recurso_id', $id)
+        $this->historialRegistros = \App\Models\GanttFechaHistorial::where('proyecto_recurso_id', $id)
             ->with('user')
             ->orderByDesc('created_at')
             ->limit(50)
             ->get()
             ->map(fn($r) => [
-                'id'                   => $r->id,
-                'accion'               => $r->accion,
-                'user_name'            => $r->user?->name ?? 'Sistema',
-                'fecha_inicio_anterior'=> $r->fecha_inicio_anterior?->format('d/m/Y'),
-                'fecha_fin_anterior'   => $r->fecha_fin_anterior?->format('d/m/Y'),
-                'fecha_inicio_nueva'   => $r->fecha_inicio_nueva?->format('d/m/Y'),
-                'fecha_fin_nueva'      => $r->fecha_fin_nueva?->format('d/m/Y'),
-                'trabajadores_anterior'=> $r->trabajadores_anterior,
-                'trabajadores_nueva'   => $r->trabajadores_nueva,
-                'fecha'                => $r->created_at->format('d/m/Y H:i'),
+                'id'                    => $r->id,
+                'accion'                => $r->accion,
+                'user_name'             => $r->user?->name ?? 'Sistema',
+                'fecha_inicio_anterior' => $r->fecha_inicio_anterior?->format('d/m/Y'),
+                'fecha_fin_anterior'    => $r->fecha_fin_anterior?->format('d/m/Y'),
+                'fecha_inicio_nueva'    => $r->fecha_inicio_nueva?->format('d/m/Y'),
+                'fecha_fin_nueva'       => $r->fecha_fin_nueva?->format('d/m/Y'),
+                'trabajadores_anterior' => $r->trabajadores_anterior,
+                'trabajadores_nueva'    => $r->trabajadores_nueva,
+                'fecha'                 => $r->created_at->format('d/m/Y H:i'),
             ])
             ->toArray();
 
@@ -598,25 +591,17 @@ class GanttProyecto extends Component
 
     public function abrirHistorialGlobal(): void
     {
-        // Cargar todos los proyecto_recursos del proyecto que tienen historial,
-        // agrupados por rubro padre (parent_id = null).
-        $idsConHistorial = GanttFechaHistorial::whereHas('proyectoRecurso', function ($q) {
+        $idsConHistorial = \App\Models\GanttFechaHistorial::whereHas('proyectoRecurso', function ($q) {
             $q->where('proyecto_id', $this->proyecto->id);
         })->pluck('proyecto_recurso_id')->unique()->values();
 
-        // Cargar rubros raíz y sus hijos
         $rubros = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
             ->whereNull('parent_id')
-            ->with(['hijos' => function ($q) use ($idsConHistorial) {
-                $q->whereIn('id', $idsConHistorial);
-            }])
-            ->whereHas('hijos', function ($q) use ($idsConHistorial) {
-                $q->whereIn('id', $idsConHistorial);
-            })
+            ->with(['hijos' => fn($q) => $q->whereIn('id', $idsConHistorial)])
+            ->whereHas('hijos', fn($q) => $q->whereIn('id', $idsConHistorial))
             ->get();
 
-        // Contar cambios por subrubro
-        $conteos = GanttFechaHistorial::whereIn('proyecto_recurso_id', $idsConHistorial)
+        $conteos = \App\Models\GanttFechaHistorial::whereIn('proyecto_recurso_id', $idsConHistorial)
             ->selectRaw('proyecto_recurso_id, COUNT(*) as total, MAX(created_at) as ultimo')
             ->groupBy('proyecto_recurso_id')
             ->get()
@@ -627,24 +612,16 @@ class GanttProyecto extends Component
         foreach ($rubros as $rubro) {
             $hijos = [];
             foreach ($rubro->hijos as $hijo) {
-                $c = $conteos[$hijo->id] ?? ['total' => 0, 'ultimo' => null];
-                $hijos[] = [
-                    'id'     => $hijo->id,
-                    'nombre' => $hijo->nombre,
-                    'total'  => $c['total'],
-                    'ultimo' => $c['ultimo'],
-                ];
+                $c       = $conteos[$hijo->id] ?? ['total' => 0, 'ultimo' => null];
+                $hijos[] = ['id' => $hijo->id, 'nombre' => $hijo->nombre, 'total' => $c['total'], 'ultimo' => $c['ultimo']];
             }
             if (count($hijos)) {
-                $grupos[] = [
-                    'nombre' => $rubro->nombre,
-                    'hijos'  => $hijos,
-                ];
+                $grupos[] = ['nombre' => $rubro->nombre, 'hijos' => $hijos];
             }
         }
 
-        $this->historialGlobal            = $grupos;
-        $this->historialGlobalDetalle     = false;
+        $this->historialGlobal             = $grupos;
+        $this->historialGlobalDetalle      = false;
         $this->mostrarModalHistorialGlobal = true;
     }
 
@@ -655,27 +632,26 @@ class GanttProyecto extends Component
 
         $this->historialRecursoId = $id;
         $this->historialNombre    = $nodo->nombre ?? '';
-        $this->historialRegistros = GanttFechaHistorial::where('proyecto_recurso_id', $id)
+        $this->historialRegistros = \App\Models\GanttFechaHistorial::where('proyecto_recurso_id', $id)
             ->with('user')
             ->orderByDesc('created_at')
             ->limit(50)
             ->get()
             ->map(fn($r) => [
-                'id'                   => $r->id,
-                'accion'               => $r->accion,
-                'user_name'            => $r->user?->name ?? 'Sistema',
-                'fecha_inicio_anterior'=> $r->fecha_inicio_anterior?->format('d/m/Y'),
-                'fecha_fin_anterior'   => $r->fecha_fin_anterior?->format('d/m/Y'),
-                'fecha_inicio_nueva'   => $r->fecha_inicio_nueva?->format('d/m/Y'),
-                'fecha_fin_nueva'      => $r->fecha_fin_nueva?->format('d/m/Y'),
-                'trabajadores_anterior'=> $r->trabajadores_anterior,
-                'trabajadores_nueva'   => $r->trabajadores_nueva,
-                'fecha'                => $r->created_at->format('d/m/Y H:i'),
+                'id'                    => $r->id,
+                'accion'                => $r->accion,
+                'user_name'             => $r->user?->name ?? 'Sistema',
+                'fecha_inicio_anterior' => $r->fecha_inicio_anterior?->format('d/m/Y'),
+                'fecha_fin_anterior'    => $r->fecha_fin_anterior?->format('d/m/Y'),
+                'fecha_inicio_nueva'    => $r->fecha_inicio_nueva?->format('d/m/Y'),
+                'fecha_fin_nueva'       => $r->fecha_fin_nueva?->format('d/m/Y'),
+                'trabajadores_anterior' => $r->trabajadores_anterior,
+                'trabajadores_nueva'    => $r->trabajadores_nueva,
+                'fecha'                 => $r->created_at->format('d/m/Y H:i'),
             ])
             ->toArray();
 
         $this->historialGlobalDetalle = true;
-        // No activamos mostrarModalHistorial para no abrir el modal individual
     }
 
     public function volverListaHistorial(): void
@@ -693,6 +669,8 @@ class GanttProyecto extends Component
 
     public function moverBarra(int $id, string $nuevaFechaInicio, string $nuevaFechaFin): void
     {
+        if ($this->modoLectura) return;
+
         try {
             $inicio = Carbon::parse($nuevaFechaInicio);
             $fin    = Carbon::parse($nuevaFechaFin);
@@ -713,8 +691,8 @@ class GanttProyecto extends Component
         }
 
         // Snap inicio al próximo día laborable y preservar duración
-        $duracion = Carbon::parse($nuevaFechaInicio)->diffInDays(Carbon::parse($nuevaFechaFin));
-        $inicio   = Carbon::parse($this->snapToNextDiaLaboral($inicio));
+        $duracion = $inicio->diffInDays($fin);
+        $inicio   = Carbon::parse($this->snapToNextDiaLaboral($inicio->format('Y-m-d')));
         $fin      = $inicio->copy()->addDays($duracion);
 
         $nodo = ProyectoRecurso::find($id);
@@ -727,7 +705,7 @@ class GanttProyecto extends Component
             'fecha_fin'    => $fin->format('Y-m-d'),
         ]);
 
-        // Propagar a dependientes (igual que guardarFechas)
+        // Propagar a dependientes
         $dependientes = ProyectoRecurso::where('depends_on_id', $id)->get();
         foreach ($dependientes as $dep) {
             $inicioNuevo = $fin->copy()->addDay();

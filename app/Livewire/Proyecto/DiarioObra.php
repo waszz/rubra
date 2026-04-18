@@ -44,6 +44,8 @@ class DiarioObra extends Component
     public $notas = '';
     public $foto = null;
 
+    public bool $modoLectura = false;
+
     // Límites del rubro activo
     public float $limiteM2 = 0;
     public float $limiteCosto = 0;
@@ -68,6 +70,7 @@ class DiarioObra extends Component
             abort(403, 'El Diario de Obra solo está disponible cuando el proyecto está en ejecución.');
         }
         $this->proyecto = $proyecto;
+        $this->modoLectura = in_array($proyecto->estado_obra, ['pausado', 'finalizado']);
         $this->fecha = Carbon::today()->format('Y-m-d');
         $this->cargarRubros();
     }
@@ -215,6 +218,7 @@ private function cargarHistorial()
 
   public function abrirModal($rubroId)
 {
+    if ($this->modoLectura) return;
     $rubro = ProyectoRecurso::find($rubroId);
     if (!$rubro) return;
 
@@ -334,6 +338,7 @@ private function cargarHistorial()
      */
    public function guardarReporte()
 {
+    if ($this->modoLectura) return;
     $maxCantidad = $this->limiteM2 > 0 ? max(0, $this->limiteM2 - $this->acumuladoM2) : PHP_INT_MAX;
 
     $this->validate([
