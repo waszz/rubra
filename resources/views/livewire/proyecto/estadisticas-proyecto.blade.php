@@ -197,7 +197,7 @@
             </div>
             <p class="text-2xl font-black text-black dark:text-white tracking-tighter">{{ number_format($stats['costoReal'], 0, ',', '.') }}</p>
             @php $desv = $stats['desviacion']; @endphp
-            <p class="text-sm mt-1 font-bold {{ $desv > 0 ? 'text-red-500 dark:text-red-400' : 'text-emerald-500 dark:text-emerald-400' }}">
+            <p class="text-sm mt-1 font-bold {{ $desv > 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400' }}">
                 {{ $desv > 0 ? '▲' : '▼' }} Desv. USD {{ number_format(abs($desv), 0, ',', '.') }}
             </p>
             @if($stats['ivaEjecutado'] > 0)

@@ -1012,7 +1012,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
                     {{-- Diferencia --}}
                     <div class="text-right text-xs font-mono
-                        {{ $catDiff === null ? 'text-gray-700' : ($catDiff > 0 ? 'text-green-400' : ($catDiff < 0 ? 'text-red-400' : 'text-gray-500')) }}">
+                        {{ $catDiff === null ? 'text-gray-700' : ($catDiff > 0 ? 'text-red-400' : ($catDiff < 0 ? 'text-green-400' : 'text-gray-500')) }}">
                         @if($catDiff !== null)
                             {{ ($catDiff >= 0 ? '+' : '') . number_format($catDiff, 2, ',', '.') }}
                         @else —
@@ -1021,7 +1021,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
                     {{-- Desvío --}}
                     <div class="text-right text-xs font-black
-                        {{ $catDesvio === null ? 'text-gray-700' : ($catDesvio > 0 ? 'text-green-400' : ($catDesvio < 0 ? 'text-red-400' : 'text-gray-500')) }}">
+                        {{ $catDesvio === null ? 'text-gray-700' : ($catDesvio > 0 ? 'text-red-400' : ($catDesvio < 0 ? 'text-green-400' : 'text-gray-500')) }}">
                         @if($catDesvio !== null)
                             {{ ($catDesvio >= 0 ? '+' : '') . number_format($catDesvio, 1) }}%
                         @else —

@@ -190,7 +190,7 @@
         {{-- Diferencia --}}
         <div class="text-right text-xs font-mono
             {{ $diferenciaNodo === null ? 'text-gray-700' :
-               ($diferenciaNodo > 0 ? 'text-green-400' : ($diferenciaNodo < 0 ? 'text-red-400' : 'text-gray-500')) }}">
+               ($diferenciaNodo > 0 ? 'text-red-400' : ($diferenciaNodo < 0 ? 'text-green-400' : 'text-gray-500')) }}">
             @if($diferenciaNodo !== null)
                 {{ ($diferenciaNodo >= 0 ? '+' : '') . number_format($diferenciaNodo, 2, ',', '.') }}
             @else
@@ -201,7 +201,7 @@
         {{-- % Desvío --}}
         <div class="text-right text-xs font-black
             {{ $desvioPct === null ? 'text-gray-700' :
-               ($desvioPct > 0 ? 'text-green-400' : ($desvioPct < 0 ? 'text-red-400' : 'text-gray-500')) }}">
+               ($desvioPct > 0 ? 'text-red-400' : ($desvioPct < 0 ? 'text-green-400' : 'text-gray-500')) }}">
             @if($desvioPct !== null)
                 {{ ($desvioPct >= 0 ? '+' : '') . number_format($desvioPct, 1) }}%
             @else
