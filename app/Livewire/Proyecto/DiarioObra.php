@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\Proyecto;
 use App\Models\ProyectoRecurso;
+use App\Models\ComposicionItem;
 use App\Models\DiarioObra as DiarioObraModel;
 use App\Livewire\Concerns\AutorizaProyecto;
 use Carbon\Carbon;
@@ -37,15 +38,25 @@ class DiarioObra extends Component
     public $fecha = '';
     public $avanceFisico = 0;
     public $cantidadHoy = 0;
+    public int $manoDeObra = 0;
+    public float $horasHoy = 0;
     public $costoHoy = 0;
     public $notas = '';
     public $foto = null;
 
     // Límites del rubro activo
-    public float $limiteM2 = 0;         // metros_cuadrados del proyecto
-    public float $limiteCosto = 0;      // presupuesto total del rubro
-    public float $acumuladoM2 = 0;      // cantidad_hoy ya registrada para este rubro
-    public float $acumuladoCosto = 0;   // costo_hoy ya registrado para este rubro
+    public float $limiteM2 = 0;
+    public float $limiteCosto = 0;
+    public float $acumuladoM2 = 0;
+    public float $acumuladoCosto = 0;
+
+    // Planificado desde Gantt
+    public float $horasPlanificadas = 0.0;
+    public int   $trabajadoresPlanificados = 0;
+
+    // Acumulado real de mano de obra
+    public int   $acumuladoManoDeObra = 0;
+    public float $acumuladoHoras = 0.0;
 
     // Historial
     public $historial = [];
@@ -121,16 +132,19 @@ class DiarioObra extends Component
 
         $this->rubros = ProyectoRecurso::where('proyecto_id', $this->proyecto->id)
             ->whereNull('parent_id')
-            ->with(['hijos' => fn($q) => $q->whereNull('recurso_id')->orderBy('orden')])
+            ->with(['hijos' => fn($q) => $q->orderBy('orden')])
             ->orderBy('orden')
             ->get()
             ->map(function ($r) use ($lastAvances) {
-                $subrubros = $r->hijos->map(fn($sub) => [
-                    'id'     => $sub->id,
-                    'nombre' => $sub->nombre,
-                    'unidad' => $sub->unidad,
-                    'avance' => $lastAvances[$sub->id] ?? 0,
-                ])->toArray();
+                // Subrubros = children that are containers (have children themselves, or have no price = not a leaf)
+                $subrubros = $r->hijos
+                    ->filter(fn($sub) => is_null($sub->recurso_id) && ($sub->hijos->isNotEmpty() || ($sub->precio_usd ?? 0) == 0))
+                    ->map(fn($sub) => [
+                        'id'     => $sub->id,
+                        'nombre' => $sub->nombre,
+                        'unidad' => $sub->unidad,
+                        'avance' => $lastAvances[$sub->id] ?? 0,
+                    ])->values()->toArray();
 
                 // Avance del rubro padre: promedio de subrubros si los tiene, sino su propio avance
                 $avancePadre = count($subrubros) > 0
@@ -217,8 +231,22 @@ private function cargarHistorial()
         ->where('proyecto_recurso_id', $rubroId)
         ->sum('costo_hoy');
 
+    // Planificado desde Gantt
+    $this->horasPlanificadas        = $this->calcularHorasSubrubro($rubro);
+    $this->trabajadoresPlanificados = max(0, (int)($rubro->trabajadores ?? 0));
+
+    // Acumulado real de mano de obra
+    $this->acumuladoManoDeObra = (int) DiarioObraModel::where('proyecto_id', $this->proyecto->id)
+        ->where('proyecto_recurso_id', $rubroId)
+        ->sum('mano_de_obra');
+    $this->acumuladoHoras = (float) DiarioObraModel::where('proyecto_id', $this->proyecto->id)
+        ->where('proyecto_recurso_id', $rubroId)
+        ->sum('horas_hoy');
+
     // reset form
     $this->cantidadHoy = 0;
+    $this->manoDeObra = 0;
+    $this->horasHoy = 0;
     $this->costoHoy = 0;
     $this->notas = '';
     $this->foto = null;
@@ -230,6 +258,45 @@ private function cargarHistorial()
 }
 
     /**
+     * Calcula horas de mano de obra planificadas para un subrubro
+     * (misma lógica que GanttProyecto::calcularHorasSubrubro).
+     */
+    private function calcularHorasSubrubro(ProyectoRecurso $subrubro, float $factorAcumulado = 1.0): float
+    {
+        $cant  = (float) ($subrubro->cantidad ?? 1) * $factorAcumulado;
+        $horas = 0.0;
+
+        $hijos = $subrubro->relationLoaded('hijos')
+            ? $subrubro->hijos
+            : $subrubro->hijos()->with('recurso')->get();
+
+        foreach ($hijos as $child) {
+            $rec = $child->recurso;
+
+            if (!$rec) {
+                $horas += $this->calcularHorasSubrubro($child, $cant);
+                continue;
+            }
+
+            if (in_array($rec->tipo, ['labor', 'mano_obra'])) {
+                $horas += (float) ($child->cantidad ?? 0) * $cant;
+            } elseif ($rec->tipo === 'composition') {
+                $items = ComposicionItem::where('composicion_id', $rec->id)
+                    ->with('recursoBase')
+                    ->get();
+                foreach ($items as $item) {
+                    $base = $item->recursoBase;
+                    if ($base && in_array($base->tipo, ['labor', 'mano_obra'])) {
+                        $horas += (float) ($item->cantidad ?? 0) * (float) ($child->cantidad ?? 1) * $cant;
+                    }
+                }
+            }
+        }
+
+        return round($horas, 2);
+    }
+
+    /**
      * Calcula el presupuesto total de un rubro sumando recursivamente los precio_usd de sus hojas.
      */
     private function calcularPresupuestoRubro(ProyectoRecurso $nodo): float
@@ -237,8 +304,13 @@ private function cargarHistorial()
         if (!is_null($nodo->recurso_id)) {
             return (float)($nodo->precio_usd ?? 0) * (float)($nodo->cantidad ?? 1);
         }
+        // Imported leaf without catalog match: no children, has a price
+        $hijos = $nodo->hijos ?? collect([]);
+        if ($hijos->isEmpty() && ($nodo->precio_usd ?? 0) > 0) {
+            return (float)$nodo->precio_usd * (float)($nodo->cantidad ?? 1);
+        }
         $total = 0.0;
-        foreach ($nodo->hijos ?? [] as $hijo) {
+        foreach ($hijos as $hijo) {
             $total += $this->calcularPresupuestoRubro($hijo) * (float)($nodo->cantidad ?? 1);
         }
         return $total;
@@ -255,6 +327,8 @@ private function cargarHistorial()
         'fecha'        => 'required|date',
         'avanceFisico' => 'nullable|numeric|min:0|max:100',
         'cantidadHoy'  => ['required', 'numeric', 'min:0', "max:{$maxCantidad}"],
+        'manoDeObra'   => ['required', 'integer', 'min:0'],
+        'horasHoy'     => ['required', 'numeric', 'min:0'],
         'costoHoy'     => ['required', 'numeric'],
         'notas'        => 'nullable|string|max:1000',
         'foto'         => 'nullable|image|max:4096',
@@ -274,6 +348,8 @@ private function cargarHistorial()
         'fecha'               => $this->fecha,
         'avance_fisico'       => (float) ($this->avanceFisico ?? 0),
         'cantidad_hoy'        => $this->cantidadHoy,
+        'mano_de_obra'        => $this->manoDeObra,
+        'horas_hoy'           => $this->horasHoy,
         'costo_hoy'           => $this->costoHoy,
         'notas'               => $this->notas,
         'foto_path'           => $fotoPath,
@@ -286,6 +362,8 @@ private function cargarHistorial()
         'rubroUnidad',
         'avanceFisico',
         'cantidadHoy',
+        'manoDeObra',
+        'horasHoy',
         'costoHoy',
         'notas',
         'foto',
@@ -294,6 +372,10 @@ private function cargarHistorial()
         'limiteCosto',
         'acumuladoM2',
         'acumuladoCosto',
+        'horasPlanificadas',
+        'trabajadoresPlanificados',
+        'acumuladoManoDeObra',
+        'acumuladoHoras',
     ]);
 
     // Mantenemos la fecha de hoy para el siguiente reporte

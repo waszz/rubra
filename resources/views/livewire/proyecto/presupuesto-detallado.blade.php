@@ -830,10 +830,16 @@ $totalFinal = $subtotalConBeneficio + $iva;
         
         // Diferencia: Precio Final Presupuestado - Precio Final Ejecutado
         $diferencia = $precioFinalPresupuestado - $precioFinalEjecutado;
+
+        // Beneficio Real: precio cobrado (sin IVA) menos lo que costó realmente ejecutar
+        $beneficioReal = $subtotalConBeneficioEj - $totalReal;
+        $beneficioRealPct = $subtotalConBeneficioEj > 0
+            ? round($beneficioReal / $subtotalConBeneficioEj * 100, 1)
+            : 0.0;
     @endphp
 
     {{-- Resumen ejecución (cards) --}}
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         {{-- Total Presupuestado --}}
         <div class="bg-[#111] border border-white/5 rounded-2xl p-5 text-center">
             <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-2">Total Presupuestado</p>
@@ -867,6 +873,17 @@ $totalFinal = $subtotalConBeneficio + $iva;
             <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-2">Diferencia</p>
             <p class="text-lg font-black {{ $diferencia > 0 ? 'text-green-400' : ($diferencia < 0 ? 'text-red-400' : 'text-gray-400') }} font-mono">
                 {{ $diferencia >= 0 ? '+' : '' }}USD {{ number_format($diferencia, 0, ',', '.') }}
+            </p>
+        </div>
+
+        {{-- Beneficio Real --}}
+        <div class="bg-[#111] border border-white/5 rounded-2xl p-5 text-center">
+            <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-2">Beneficio Real</p>
+            <p class="text-lg font-black {{ $beneficioReal >= 0 ? 'text-green-400' : 'text-red-400' }} font-mono">
+                {{ $beneficioReal >= 0 ? '+' : '' }}USD {{ number_format($beneficioReal, 0, ',', '.') }}
+            </p>
+            <p class="text-[10px] {{ $beneficioReal >= 0 ? 'text-green-500/70' : 'text-red-500/70' }} mt-1">
+                {{ $beneficioReal >= 0 ? '+' : '' }}{{ number_format($beneficioRealPct, 1) }}%
             </p>
         </div>
     </div>

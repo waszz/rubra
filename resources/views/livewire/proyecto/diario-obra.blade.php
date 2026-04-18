@@ -168,7 +168,57 @@
 
                 <div class="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
 
-                    {{-- Avance físico --}}
+                    {{-- Referencia planificada (Gantt) --}}
+                    @if($horasPlanificadas > 0 || $trabajadoresPlanificados > 0)
+                    <div class="bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3">
+                        <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-2">Planificado</p>
+                        <div class="flex items-center gap-6">
+                            @if($horasPlanificadas > 0)
+                            <div class="text-center">
+                                <p class="text-lg font-black text-black dark:text-white">{{ number_format($horasPlanificadas, 1) }} hs</p>
+                                <p class="text-[10px] text-gray-500 uppercase font-bold">Hs MO Total</p>
+                            </div>
+                            @endif
+                            @if($trabajadoresPlanificados > 0)
+                            <div class="text-center">
+                                <p class="text-lg font-black text-black dark:text-white">{{ $trabajadoresPlanificados }}</p>
+                                <p class="text-[10px] text-gray-500 uppercase font-bold">Trab. Planif.</p>
+                            </div>
+                            @endif
+                            @if($horasPlanificadas > 0)
+                            <div class="text-center ml-auto">
+                                @php
+                                    $pctHorasUsadas = $horasPlanificadas > 0 ? min(100, round($acumuladoHoras / $horasPlanificadas * 100)) : 0;
+                                @endphp
+                                <p class="text-lg font-black {{ $pctHorasUsadas >= 100 ? 'text-red-400' : ($pctHorasUsadas > 60 ? 'text-yellow-400' : 'text-green-400') }}">{{ $pctHorasUsadas }}%</p>
+                                <p class="text-[10px] text-gray-500 uppercase font-bold">Consumido</p>
+                            </div>
+                            @endif
+                        </div>
+                        @if($acumuladoHoras > 0 || $acumuladoManoDeObra > 0)
+                        <div class="flex gap-4 mt-3 pt-3 border-t border-gray-200 dark:border-white/5">
+                            @if($acumuladoHoras > 0)
+                            <div>
+                                <span class="text-[10px] text-gray-400 uppercase font-bold">Acum. real:</span>
+                                <span class="text-xs font-black {{ $acumuladoHoras > $horasPlanificadas && $horasPlanificadas > 0 ? 'text-red-400' : 'text-white' }}">
+                                    {{ number_format($acumuladoHoras, 1) }} hs
+                                </span>
+                                @if($horasPlanificadas > 0)
+                                <span class="text-[10px] text-gray-500">/ {{ number_format($horasPlanificadas, 1) }} planif.</span>
+                                @endif
+                            </div>
+                            @endif
+                            @if($acumuladoManoDeObra > 0)
+                            <div>
+                                <span class="text-[10px] text-gray-400 uppercase font-bold">Obreros acum.:</span>
+                                <span class="text-xs font-black text-white">{{ $acumuladoManoDeObra }}</span>
+                                <span class="text-[10px] text-gray-500">jornales</span>
+                            </div>
+                            @endif
+                        </div>
+                        @endif
+                    </div>
+                    @endif
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <label class="text-sm text-gray-700 dark:text-gray-400 uppercase font-black">Avance Físico (%)</label>
@@ -183,7 +233,7 @@
                         </div>
                     </div>
 
-                    {{-- Cantidad y costo --}}
+                    {{-- Cantidad, mano de obra y costo --}}
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             @php
@@ -219,6 +269,39 @@
                                 class="w-full mt-1 p-3 rounded-xl bg-gray-100 dark:bg-[#0f1115] text-black dark:text-white border border-gray-200 dark:border-white/10 text-sm outline-none focus:border-gray-300 dark:focus:border-white/30">
                             @error('costoHoy') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
+                    </div>
+
+                    {{-- Mano de obra --}}
+                    <div>
+                        <label class="text-sm text-gray-700 dark:text-gray-400 uppercase font-black">Mano de Obra (obreros)</label>
+                        <p class="text-[11px] text-gray-500 mt-0.5">Cantidad de personas trabajando hoy en este rubro</p>
+                        <div class="flex items-center gap-3 mt-1">
+                            <button type="button" wire:click="$set('manoDeObra', max(0, $manoDeObra - 1))"
+                                class="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-[#0f1115] border border-gray-200 dark:border-white/10 rounded-xl text-black dark:text-white font-black text-lg hover:bg-gray-200 dark:hover:bg-white/10 transition">−</button>
+                            <input type="number" min="0" step="1" wire:model="manoDeObra"
+                                class="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-[#0f1115] text-black dark:text-white border border-gray-200 dark:border-white/10 text-sm text-center font-black outline-none focus:border-gray-300 dark:focus:border-white/30">
+                            <button type="button" wire:click="$set('manoDeObra', $manoDeObra + 1)"
+                                class="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-[#0f1115] border border-gray-200 dark:border-white/10 rounded-xl text-black dark:text-white font-black text-lg hover:bg-gray-200 dark:hover:bg-white/10 transition">+</button>
+                        </div>
+                        @error('manoDeObra') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Horas MO --}}
+                    <div>
+                        <label class="text-sm text-gray-700 dark:text-gray-400 uppercase font-black">Horas MO Hoy</label>
+                        <p class="text-[11px] text-gray-500 mt-0.5">
+                            Total de horas-hombre trabajadas hoy
+                            @if($manoDeObra > 0) &nbsp;&mdash;&nbsp; sugerido: <strong class="text-white">{{ $manoDeObra * 8 }} hs</strong> ({{ $manoDeObra }} &times; 8h) @endif
+                        </p>
+                        <input type="number" step="0.5" min="0" wire:model="horasHoy"
+                            class="w-full mt-1 p-3 rounded-xl bg-gray-100 dark:bg-[#0f1115] text-black dark:text-white border border-gray-200 dark:border-white/10 text-sm outline-none focus:border-gray-300 dark:focus:border-white/30">
+                        @if($horasPlanificadas > 0)
+                            @php $proyectadoTotal = $acumuladoHoras + $horasHoy; @endphp
+                            <p class="text-[11px] mt-1 {{ $proyectadoTotal > $horasPlanificadas ? 'text-red-400' : 'text-gray-500' }}">
+                                Con este registro: {{ number_format($proyectadoTotal, 1) }} hs acum. / {{ number_format($horasPlanificadas, 1) }} hs planif.
+                            </p>
+                        @endif
+                        @error('horasHoy') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     {{-- Notas --}}
@@ -331,6 +414,20 @@
                         <p class="text-gray-500 uppercase text-sm">Cantidad (M2)</p>
                         <p class="text-white font-black">
                             {{ $detalleRegistro->cantidad_hoy }}
+                        </p>
+                    </div>
+
+                    <div class="bg-white/5 p-3 rounded-xl">
+                        <p class="text-gray-500 uppercase text-sm">Mano de Obra</p>
+                        <p class="text-white font-black">
+                            {{ $detalleRegistro->mano_de_obra }} {{ $detalleRegistro->mano_de_obra == 1 ? 'obrero' : 'obreros' }}
+                        </p>
+                    </div>
+
+                    <div class="bg-white/5 p-3 rounded-xl">
+                        <p class="text-gray-500 uppercase text-sm">Hs MO</p>
+                        <p class="text-white font-black">
+                            {{ number_format($detalleRegistro->horas_hoy, 1) }} hs
                         </p>
                     </div>
 

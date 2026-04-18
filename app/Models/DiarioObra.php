@@ -15,6 +15,8 @@ class DiarioObra extends Model
         'fecha',
         'avance_fisico',
         'cantidad_hoy',
+        'mano_de_obra',
+        'horas_hoy',
         'costo_hoy',
         'notas',
         'foto_path',
@@ -24,6 +26,8 @@ class DiarioObra extends Model
         'fecha'         => 'date',
         'avance_fisico' => 'float',
         'cantidad_hoy'  => 'float',
+        'mano_de_obra'  => 'integer',
+        'horas_hoy'     => 'float',
         'costo_hoy'     => 'float',
     ];
 
