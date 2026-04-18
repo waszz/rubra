@@ -682,6 +682,7 @@ public function exportarExcel()
                 $categoriaActual = $item['categoria'];
                 $catSubtotal = (($datos['cat_subtotales'][$item['categoria']] ?? 0)) * (1 + $pctBeneficio / 100);
                 $catCsTotal  = $datos['cat_cs_totales'][$item['categoria']] ?? 0;
+                $catPadre    = $datos['cat_padre_info'][$item['categoria']] ?? null;
                 if ($this->excelIncluirPrecio && $lastCol > 1) {
                     // When CS column present: Total goes in (lastCol-1), CS goes in lastCol
                     $totalColIndex = $this->excelIncluirCargaSocial ? $lastCol - 1 : $lastCol;
@@ -690,6 +691,17 @@ public function exportarExcel()
                     $sheet->setCellValue('A' . $row, $item['categoria']);
                     $sheet->mergeCells('A' . $row . ':' . $mergeUntil . $row);
                     $sheet->getStyle('A' . $row . ':' . $lastColLetter . $row)->applyFromArray($styleCatRow);
+                    // Unidad y cantidad del rubro padre
+                    if ($catPadre) {
+                        $unidadColIndex = 3; // columna 3 = Unidad (A=item, B=nombre, C=unidad...)
+                        if ($this->excelIncluirUnidad) {
+                            $sheet->setCellValueByColumnAndRow($unidadColIndex, $row, $catPadre['unidad']);
+                        }
+                        $cantColIndex = 3 + ($this->excelIncluirUnidad ? 1 : 0);
+                        if ($this->excelIncluirCantidad) {
+                            $sheet->setCellValueByColumnAndRow($cantColIndex, $row, $catPadre['cantidad']);
+                        }
+                    }
                     $sheet->setCellValueByColumnAndRow($totalColIndex, $row, $catSubtotal);
                     $sheet->getStyle($totalColLetter . $row)->getNumberFormat()->setFormatCode('#,##0.00');
                     if ($this->excelIncluirCargaSocial) {
@@ -888,7 +900,19 @@ private function obtenerDatosPresupuesto($scope = 'completo')
     $items = [];
     $total = 0;
 
-    $this->recorrerNodos($this->proyecto->proyectoRecursos->whereNull('parent_id'), '', $items, $total);
+    $nodosRaiz = $this->proyecto->proyectoRecursos->whereNull('parent_id');
+
+    // Recoger unidad y cantidad del rubro padre por categoría
+    $catPadreInfo = [];
+    foreach ($nodosRaiz as $nodo) {
+        $catName = $nodo->categoria ?: $nodo->nombre;
+        $catPadreInfo[$catName] = [
+            'unidad'   => $nodo->unidad ?? 'gl',
+            'cantidad' => (float)($nodo->cantidad ?? 1),
+        ];
+    }
+
+    $this->recorrerNodos($nodosRaiz, '', $items, $total);
 
     // Subtotal y carga social por categoría.
     $catSubtotales = [];
@@ -925,6 +949,7 @@ private function obtenerDatosPresupuesto($scope = 'completo')
         'total'           => $totalGeneral,
         'cat_subtotales'  => $catSubtotales,
         'cat_cs_totales'  => $catCsTotales,
+        'cat_padre_info'  => $catPadreInfo,
     ];
 }
 

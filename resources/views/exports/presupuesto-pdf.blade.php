@@ -607,10 +607,18 @@
                     @php $categoriaActual = $item['categoria'] @endphp
                     @php
                         $colsExtra = $opciones['incluirUnidad'] + $opciones['incluirCantidad'];
+                        $catPadre  = $datos['cat_padre_info'][$item['categoria']] ?? null;
                     @endphp
                     <tr class="category-row">
                         @if($opciones['incluirPrecio'])
-                            <td colspan="{{ $colsExtra + 2 }}">{{ $item['categoria'] }}</td>
+                            <td>{{ $item['categoria'] }}</td>
+                            @if($opciones['incluirUnidad'])
+                                <td class="text-center" style="font-weight:normal;font-size:9px;">{{ $catPadre['unidad'] ?? '' }}</td>
+                            @endif
+                            @if($opciones['incluirCantidad'])
+                                <td class="text-right" style="font-weight:normal;font-size:9px;">{{ $catPadre ? number_format($catPadre['cantidad'], 2, ',', '.') : '' }}</td>
+                            @endif
+                            <td></td>
                             <td class="text-right">$ {{ number_format(($datos['cat_subtotales'][$item['categoria']] ?? 0) * $factorBeneficio, 2, ',', '.') }}</td>
                             @if($opciones['incluirCargaSocial'])
                                 @php $catCS = $datos['cat_cs_totales'][$item['categoria']] ?? 0; @endphp
