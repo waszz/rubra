@@ -368,7 +368,7 @@ document.addEventListener('alpine:init', () => {
         {{-- ================= LISTA (TU CÓDIGO ORIGINAL INTACTO) ================= --}}
         @if($vista === 'list')
 
-            <div class="divide-y divide-gray-800/50">
+            <div class="divide-y divide-gray-800/50" style="max-height:520px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#374151 transparent;">
 
                 @foreach($proyectos as $proyecto)
 
@@ -473,7 +473,7 @@ document.addEventListener('alpine:init', () => {
         @else
 
             {{-- ================= GRID MEJORADO ================= --}}
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6" style="max-height:560px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#374151 transparent;">
 
     @foreach($proyectos as $proyecto)
 
