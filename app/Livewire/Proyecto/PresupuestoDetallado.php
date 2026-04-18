@@ -2441,6 +2441,7 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
 
     public function abrirModalEliminar($id)
     {
+        if ($this->modoLectura) return;
         $this->deleteId = $id;
         $this->mostrarModalEliminar = true;
     }
