@@ -899,8 +899,14 @@ $totalFinal = $subtotalConBeneficio + $iva;
             if (!is_null($node->recurso_id)) {
                 return (float)($node->precio_usd ?? 0);
             }
+            // Nodo hoja importado (sin recurso_id, sin hijos, con precio propio)
+            $children = $node->hijos ?? collect([]);
+            $childCount = is_countable($children) ? count($children) : $children->count();
+            if ($childCount === 0 && ($node->precio_usd ?? 0) > 0) {
+                return (float)$node->precio_usd;
+            }
             $total = 0.0;
-            foreach ($node->hijos ?? collect([]) as $child) {
+            foreach ($children as $child) {
                 $total += $ejComputePerUnit($child) * (float)($child->cantidad ?? 1);
             }
             return $total;
