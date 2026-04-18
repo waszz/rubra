@@ -250,6 +250,26 @@ document.addEventListener('alpine:init', () => {
                 </div>
             </div>
 
+            @if($estadosData['ejecucion'] > 0 || $estadosData['pausado'] > 0 || $estadosData['finalizado'] > 0)
+            @php $brPositivo = $beneficioRealTotal >= 0; @endphp
+            <div class="bg-[#111111] border {{ $brPositivo ? 'border-emerald-500/30' : 'border-red-500/30' }} p-6 rounded-[2rem] flex items-center gap-5 group transition-all md:col-span-2">
+                <div class="bg-{{ $brPositivo ? 'emerald' : 'red' }}-600/10 p-4 rounded-2xl shrink-0">
+                    <svg class="w-6 h-6 text-{{ $brPositivo ? 'emerald' : 'red' }}-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $brPositivo ? 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' : 'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6' }}"></path>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <p class="text-[10px] text-gray-500 font-black uppercase tracking-[0.15em] mb-1">Beneficio Real en Ejecución</p>
+                    <h3 class="text-3xl font-black {{ $brPositivo ? 'text-emerald-400' : 'text-red-400' }} leading-none tracking-tighter">
+                        {{ $brPositivo ? '+' : '' }}$ {{ number_format($beneficioRealTotal, 2, ',', '.') }}
+                    </h3>
+                    <p class="text-[10px] {{ $brPositivo ? 'text-emerald-600' : 'text-red-600' }} font-bold uppercase mt-1">
+                        {{ $brPositivo ? 'Ganancia sobre costo real' : 'Pérdida sobre costo real' }}
+                    </p>
+                </div>
+            </div>
+            @endif
+
         </div>
 
         {{-- GRÁFICA ESTADO --}}

@@ -41,7 +41,9 @@
                 ['label' => 'Estadísticas','icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', 'active' => false, 'route' => route('estadisticas', ['proyectoId' => $proyecto->id])],
             ] as $tab)
                 @if(($tab['label'] === 'Gantt' && !auth()->user()->puedeCompartido('computos'))
+                    || ($tab['label'] === 'Gantt' && !in_array($proyecto->estado_obra, ['ejecucion', 'pausado', 'finalizado']))
                     || ($tab['label'] === 'Diario' && !auth()->user()->puedeCompartido('reporte_diario'))
+                    || ($tab['label'] === 'Diario' && !in_array($proyecto->estado_obra, ['ejecucion', 'pausado', 'finalizado']))
                     || ($tab['label'] === 'Bitácora' && !auth()->user()->puedeCompartido('bitacora'))
                     || ($tab['label'] === 'Estadísticas' && !auth()->user()->puedeCompartido('estadisticas')))
                     @continue

@@ -52,6 +52,9 @@ class GanttProyecto extends Component
     public function mount(Proyecto $proyecto)
     {
         $this->autorizarAcceso($proyecto);
+        if (!in_array($proyecto->estado_obra, ['ejecucion', 'pausado', 'finalizado'])) {
+            abort(403, 'El Gantt solo está disponible cuando el proyecto está en ejecución.');
+        }
         $this->proyecto = $proyecto;
         $this->cargarGantt();
     }

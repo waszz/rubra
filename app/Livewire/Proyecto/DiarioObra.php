@@ -64,6 +64,9 @@ class DiarioObra extends Component
     public function mount(Proyecto $proyecto)
     {
         $this->autorizarAcceso($proyecto);
+        if (!in_array($proyecto->estado_obra, ['ejecucion', 'pausado', 'finalizado'])) {
+            abort(403, 'El Diario de Obra solo está disponible cuando el proyecto está en ejecución.');
+        }
         $this->proyecto = $proyecto;
         $this->fecha = Carbon::today()->format('Y-m-d');
         $this->cargarRubros();
@@ -176,9 +179,9 @@ class DiarioObra extends Component
     {
         $cantidad = (float) $this->cantidadHoy;
         if ($cantidad <= 0) {
-            $this->avanceFisico = 0;
+            $this->avanceFisico = min(100, round($this->acumuladoM2 / $this->limiteM2 * 100, 1));
         } elseif ($this->limiteM2 > 0) {
-            $this->avanceFisico = min(100, round($cantidad / $this->limiteM2 * 100, 1));
+            $this->avanceFisico = min(100, round(($this->acumuladoM2 + $cantidad) / $this->limiteM2 * 100, 1));
         }
     }
 

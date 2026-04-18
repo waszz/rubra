@@ -95,6 +95,7 @@ $proyectos = Proyecto::where(function ($q) use ($user) {
     $totalM2            = $proyectos->sum('metros_cuadrados');
     $inversionTotal     = 0;
     $gananciasTotal     = 0;
+    $beneficioRealTotal = 0.0;
     $totalesPorProyecto = [];
 
     
@@ -124,6 +125,56 @@ $proyectos = Proyecto::where(function ($q) use ($user) {
             $inversionTotal += $total;
             $gananciasTotal += $beneficio;
         }
+
+        // Beneficio Real: solo proyectos en ejecución (misma lógica recursiva que presupuesto-detallado)
+        if (in_array($p->estado_obra, ['ejecucion', 'pausado', 'finalizado'])) {
+            $nodos = \App\Models\ProyectoRecurso::where('proyecto_id', $p->id)->get()->keyBy('id');
+            $childMap = [];
+            foreach ($nodos as $n) {
+                if ($n->parent_id !== null) {
+                    $childMap[$n->parent_id][] = $n->id;
+                }
+            }
+
+            $computePerUnit = function(int $nodeId) use (&$computePerUnit, $nodos, $childMap): float {
+                $node = $nodos[$nodeId];
+                if (!is_null($node->recurso_id)) return (float)($node->precio_usd ?? 0);
+                $kids = $childMap[$nodeId] ?? [];
+                if (empty($kids) && ($node->precio_usd ?? 0) > 0) return (float)$node->precio_usd;
+                $t = 0.0;
+                foreach ($kids as $kidId) {
+                    $t += $computePerUnit($kidId) * (float)($nodos[$kidId]->cantidad ?? 1);
+                }
+                return $t;
+            };
+
+            $sumReal = function(array $ids) use (&$sumReal, $nodos, $childMap): float {
+                $s = 0.0;
+                foreach ($ids as $id) {
+                    $n = $nodos[$id];
+                    if (!is_null($n->recurso_id)) {
+                        if ($n->costo_real !== null) $s += (float)$n->costo_real * (float)($n->cantidad ?? 1);
+                    } else {
+                        $s += $sumReal($childMap[$id] ?? []) * (float)($n->cantidad ?? 1);
+                    }
+                }
+                return $s;
+            };
+
+            $roots = $nodos->filter(fn($n) => is_null($n->parent_id));
+            $subtotalB = 0.0;
+            $totalRealP = 0.0;
+            foreach ($roots as $root) {
+                $rootKids = $childMap[$root->id] ?? [];
+                foreach ($rootKids as $kidId) {
+                    $subtotalB += $computePerUnit($kidId) * (float)($nodos[$kidId]->cantidad ?? 1);
+                }
+                $totalRealP += $sumReal($rootKids);
+            }
+
+            $subtotalConBeneficio = $subtotalB * (1 + $pctBeneficio);
+            $beneficioRealTotal += ($subtotalConBeneficio - $totalRealP);
+        }
     }
 
     $estadosData = [
@@ -146,6 +197,7 @@ $proyectos = Proyecto::where(function ($q) use ($user) {
         'totalM2'            => $totalM2,
         'inversionTotal'     => $inversionTotal,
         'gananciasTotal'     => $gananciasTotal,
+        'beneficioRealTotal' => $beneficioRealTotal,
         'estadosData'        => $estadosData,
         'totalesPorProyecto' => $totalesPorProyecto,
         'limiteAlcanzado'    => $limiteAlcanzado,
