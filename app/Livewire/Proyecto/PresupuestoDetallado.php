@@ -1989,21 +1989,26 @@ public function invitarUsuariosSeleccionados()
 
             if ($head === '') continue;
 
+            // Normalise double-dots that appear in some PDFs: "04..02" → "04.02"
+            $head = preg_replace('/\.{2,}/', '.', $head);
+
             $hasCode = (bool)preg_match($codeRx, $head);
 
             if ($hasCode) {
-                // ── Code prefix row: extract code, depth, name, unit, qty ────
-                // Extract the code token (e.g. "01.02") to keep in nombre.
+                // ── Code prefix row: classify purely by code depth ─────────────
+                // depth 1 → categoria | depth 2 → subrubro (3-level) or recurso (2-level) | depth 3+ → recurso
+                //
+                // Extract the full code token (e.g. "01.02") to keep in nombre.
                 $codeToken = '';
                 if (preg_match('/^(\d{1,3}(?:\.\d{1,3})*)\s*/', $head, $codeTokMatch)) {
                     $codeToken = $codeTokMatch[1];
                 }
 
-                // Determine depth. "xx.00" style → always category (depth 1).
+                // Determine depth. "xx.00" style (category totals like "01.00") → depth 1.
                 $thisCodeDepth = 1;
-                if (preg_match('/^(\d{1,3}(?:\.\d{1,3})+)[\s\.]/', $head, $depthMatch)) {
-                    if (preg_match('/^\d{1,3}\.0+[\s\.]/', $head)) {
-                        $thisCodeDepth = 1;
+                if (preg_match('/^(\d{1,3}(?:\.\d{1,3})+)[\s.]/', $head, $depthMatch)) {
+                    if (preg_match('/^\d{1,3}\.0+[\s.]/', $head)) {
+                        $thisCodeDepth = 1; // 01.00 → category header
                     } else {
                         $thisCodeDepth = substr_count($depthMatch[1], '.') + 1;
                     }
@@ -2013,15 +2018,10 @@ public function invitarUsuariosSeleccionados()
                 $parts     = preg_split('/\s+/', $afterCode);
                 $lastTok   = end($parts);
 
-                $hasPrice = ($amounts[0] ?? 0) > 0;
-                // Depth-1 rows are ALWAYS category headers — even if they carry a
-                // total-price column (category rows in our own PDF export show a subtotal).
-                $isDepth1 = ($thisCodeDepth === 1);
-
                 if ($lastTok !== false && $lastTok !== ''
                     && is_numeric(str_replace(',', '.', (string)$lastTok)))
                 {
-                    // Last token is numeric → has unit + qty
+                    // Last token is numeric → row has unit + qty
                     $qty       = $parseNum($lastTok);
                     $nameParts = array_slice($parts, 0, -1);
                     $unit      = '';
@@ -2032,85 +2032,46 @@ public function invitarUsuariosSeleccionados()
                         $unit      = $tok2;
                         $nameParts = array_slice($nameParts, 0, -1);
                     }
-                    // Prepend the code number to the nombre
                     $nombre = trim(($codeToken ? $codeToken . ' ' : '') . implode(' ', $nameParts));
-                    if ($nombre !== '') {
-                        if ($isDepth1) {
-                            // Depth-1 with a numeric token (e.g. "01. REPLANTEO gl 1,00 $ 5.000")
-                            // → still a category; the numeric part is its own qty column
-                            $lastSubrubroQty = 1.0;
-                            $items[] = [
-                                'tipo'     => 'categoria',
-                                'nombre'   => $nombre,
-                                'unidad'   => '',
-                                'cantidad' => 1,
-                                'precio'   => 0,
-                            ];
-                        } elseif ($hasPrice || !$threeLevel || $thisCodeDepth >= 3) {
-                            // Depth ≥ 2 with a price → leaf resource
-                            $items[] = [
-                                'tipo'     => 'recurso',
-                                'nombre'   => $nombre,
-                                'unidad'   => $unit ?: 'gl',
-                                'cantidad' => $qty > 0 ? $qty : 1,
-                                'precio'   => $amounts[0] ?? 0,
-                            ];
-                        } else {
-                            // 3-level, no price, depth 2 → subrubro container
-                            $lastSubrubroQty = $qty > 0 ? $qty : 1.0;
-                            $items[] = [
-                                'tipo'     => 'subrubro',
-                                'nombre'   => $nombre,
-                                'unidad'   => $unit ?: 'gl',
-                                'cantidad' => $qty > 0 ? $qty : 1,
-                                'precio'   => 0,
-                            ];
-                        }
-                    }
                 } else {
-                    // Last token NOT numeric → no unit/qty in this row
-                    // Prepend the code number to the nombre
+                    // No numeric last token — name only (category-style row)
+                    $qty    = 1.0;
+                    $unit   = '';
                     $nombre = trim(($codeToken ? $codeToken . ' ' : '') . $afterCode);
-                    if ($nombre !== '') {
-                        if ($isDepth1) {
-                            // Depth-1 always → category
-                            $lastSubrubroQty = 1.0;
-                            $items[] = [
-                                'tipo'     => 'categoria',
-                                'nombre'   => $nombre,
-                                'unidad'   => '',
-                                'cantidad' => 1,
-                                'precio'   => 0,
-                            ];
-                        } elseif ($hasPrice) {
-                            // Depth ≥ 2, has price but no qty → recurso with qty=1
-                            $items[] = [
-                                'tipo'     => 'recurso',
-                                'nombre'   => $nombre,
-                                'unidad'   => 'gl',
-                                'cantidad' => 1,
-                                'precio'   => $amounts[0] ?? 0,
-                            ];
-                        } elseif ($threeLevel && $thisCodeDepth >= 2) {
-                            $lastSubrubroQty = 1.0;
-                            $items[] = [
-                                'tipo'     => 'subrubro',
-                                'nombre'   => $nombre,
-                                'unidad'   => '',
-                                'cantidad' => 1,
-                                'precio'   => 0,
-                            ];
-                        } else {
-                            $lastSubrubroQty = 1.0;
-                            $items[] = [
-                                'tipo'     => 'categoria',
-                                'nombre'   => $nombre,
-                                'unidad'   => '',
-                                'cantidad' => 1,
-                                'precio'   => 0,
-                            ];
-                        }
-                    }
+                }
+
+                if ($nombre === '') continue;
+
+                // ── Classify by depth (price is irrelevant for type) ─────────
+                if ($thisCodeDepth === 1) {
+                    // Depth 1 → always category
+                    $lastSubrubroQty = 1.0;
+                    $items[] = [
+                        'tipo'     => 'categoria',
+                        'nombre'   => $nombre,
+                        'unidad'   => '',
+                        'cantidad' => 1,
+                        'precio'   => 0,
+                    ];
+                } elseif ($thisCodeDepth === 2 && $threeLevel) {
+                    // Depth 2 in a 3-level PDF → subrubro container
+                    $lastSubrubroQty = $qty > 0 ? $qty : 1.0;
+                    $items[] = [
+                        'tipo'     => 'subrubro',
+                        'nombre'   => $nombre,
+                        'unidad'   => $unit ?: 'gl',
+                        'cantidad' => $qty > 0 ? $qty : 1,
+                        'precio'   => 0,
+                    ];
+                } else {
+                    // Depth 2 in a 2-level PDF, or depth 3+ → recurso (leaf)
+                    $items[] = [
+                        'tipo'     => 'recurso',
+                        'nombre'   => $nombre,
+                        'unidad'   => $unit ?: 'gl',
+                        'cantidad' => $qty > 0 ? $qty : 1,
+                        'precio'   => $amounts[0] ?? 0,
+                    ];
                 }
 
             } else {
