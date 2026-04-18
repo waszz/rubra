@@ -35,14 +35,19 @@
 
     // compute per unit recursively (sum of contents per single unidad)
     $computePerUnit = function ($node) use (&$computePerUnit) {
-        // Hoja con recurso (incluyendo labor/APU): precio almacenado o el del catálogo
+        // Hoja con recurso del catálogo (incluyendo labor/APU): precio almacenado o el del catálogo
         if (!is_null($node->recurso_id)) {
             return (float)($node->precio_usd ?? $node->recurso?->precio_usd ?? 0);
         }
 
+        // Hoja importada sin match en catálogo (recurso_id null, sin hijos, con precio)
+        $children = $node->hijos ?? collect([]);
+        if ($children->isEmpty() && ($node->precio_usd ?? 0) > 0) {
+            return (float)$node->precio_usd;
+        }
+
         // Subrubro: precio unitario = suma de (precio_unitario_hijo × cantidad_hijo) para todos los hijos
         $total = 0.0;
-        $children = $node->hijos ?? collect([]);
         foreach ($children as $h) {
             $total += $computePerUnit($h) * (float)($h->cantidad ?? 1);
         }
