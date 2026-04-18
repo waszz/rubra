@@ -483,7 +483,9 @@ $totalFinal = $subtotalConBeneficio + $iva;
             @php
                 $nodoPadre   = $nodosRaiz->first();
                 $nodosReales = $nodoPadre?->hijos ?? collect();
-                $totalCategoria = $calcularSubtotalRecursivo($nodosReales);
+                $multiplicadorPadre = (float)($nodoPadre?->cantidad ?? 1);
+                if ($multiplicadorPadre <= 0) $multiplicadorPadre = 1;
+                $totalCategoria = $calcularSubtotalRecursivo($nodosReales) * $multiplicadorPadre;
                 $catKey         = 'cat_' . $nombreCategoria;
                 $catAbierta     = in_array($catKey, $nodosAbiertos ?? []);
 
@@ -518,7 +520,7 @@ $totalFinal = $subtotalConBeneficio + $iva;
                     }
                     return $total;
                 };
-                $csCategoria = $calcularCSRecursivo($nodosReales);
+                $csCategoria = $calcularCSRecursivo($nodosReales) * $multiplicadorPadre;
             @endphp
 
             {{-- CATEGORÍA --}}
@@ -626,8 +628,35 @@ $totalFinal = $subtotalConBeneficio + $iva;
 
                     </div>
 
-                    <div></div>
-                    <div></div>
+                    {{-- Unidad editable del rubro padre --}}
+                    <div class="flex justify-center">
+                        @if(!$modoLectura && !in_array($proyecto->estado_obra, ['ejecucion','en_ejecucion']))
+                            <input type="text"
+                                   wire:change="updateUnidad({{ $nodoPadre->id }}, $event.target.value)"
+                                   value="{{ $nodoPadre?->unidad ?? 'gl' }}"
+                                   placeholder="gl"
+                                   class="w-14 bg-[#0a0a0a] border border-white/5 rounded px-1 py-0.5 text-xs text-center text-gray-400 uppercase focus:border-white/20 focus:outline-none">
+                        @else
+                            <span class="text-xs text-gray-600 uppercase">{{ $nodoPadre?->unidad ?? 'gl' }}</span>
+                        @endif
+                    </div>
+
+                    {{-- Multiplicador (cantidad) del rubro padre --}}
+                    <div class="flex justify-center items-center gap-1">
+                        <span class="text-amber-500 text-xs font-bold select-none">&times;</span>
+                        @if(!$modoLectura && !in_array($proyecto->estado_obra, ['ejecucion','en_ejecucion']))
+                            <input type="number"
+                                   wire:change="updateCantidad({{ $nodoPadre->id }}, $event.target.value)"
+                                   value="{{ $multiplicadorPadre }}"
+                                   step="0.01"
+                                   min="0.01"
+                                   title="Multiplicador: multiplica el total de este rubro padre"
+                                   class="w-14 bg-[#0a0a0a] border border-amber-500/20 rounded px-1 py-0.5 text-xs text-center text-amber-400 font-bold focus:border-amber-500/40 focus:outline-none">
+                        @else
+                            <span class="text-xs text-amber-400 font-bold font-mono">{{ number_format($multiplicadorPadre, 2) }}</span>
+                        @endif
+                    </div>
+
                     <div></div>
                     <div class="text-center text-sm font-bold text-blue-300 font-mono">
                         @if($csCategoria > 0)

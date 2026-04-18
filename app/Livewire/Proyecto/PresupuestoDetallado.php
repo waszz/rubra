@@ -2685,6 +2685,19 @@ public function actualizarCostoRealGrupo(array $ids, $valor)
     }
 
 
+    // ── ACTUALIZAR UNIDAD ────────────────────────────────────
+
+    public function updateUnidad($id, $nuevaUnidad)
+    {
+        $unidad = trim($nuevaUnidad);
+        if ($unidad === '') return;
+
+        ProyectoRecurso::find($id)?->update(['unidad' => $unidad]);
+        $this->proyecto->refresh();
+        $this->cargarProyecto();
+        $this->guardarEstado();
+    }
+
     // ── ACTUALIZAR CANTIDAD ──────────────────────────────────
 
     public function updateCantidad($id, $nuevaCantidad)

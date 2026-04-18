@@ -123,9 +123,14 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <h4 class="font-bold text-sm text-black dark:text-white">Residente de Obra</h4>
+                                        <h4 class="font-bold text-sm text-black dark:text-white">
+                                            {{ $registro->user?->name ?? 'Residente de Obra' }}
+                                        </h4>
                                         <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-black tracking-widest">
-                                            Reporte: <span class="text-blue-400">{{ $registro->recurso->nombre }}</span>
+                                            @if($registro->user?->role)
+                                                <span class="text-[#e85d27]">{{ ucfirst($registro->user->role) }}</span> ·
+                                            @endif
+                                            Reporte: <span class="text-blue-400">{{ $registro->recurso?->nombre ?? 'Sin recurso' }}</span>
                                         </p>
                                     </div>
                                 </div>
